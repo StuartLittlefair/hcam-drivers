@@ -33,5 +33,5 @@ Status reports for developers
 -----------------------------
 
 .. image:: https://travis-ci.org/astropy/package-template.svg
-    :target: https://travis-ci.org/StuartLittlefair/hcam_drivers
+    :target: https://travis-ci.org/StuartLittlefair/hcam-drivers
     :alt: Travis Status
