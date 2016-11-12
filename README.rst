@@ -1,27 +1,37 @@
-Astropy affiliated package template
+HiperCAM Python Driver
 ===================================
 
 .. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
 
-This is the template for affiliated packages of the Astropy project.
+``hcam-drivers`` provides Python tools for interfacing with the HiperCAM high-speed
+camera. ``hcam-drivers`` is written in Python and is based on TKinter. It should be
+compatible with Python2 and Python3. 
 
-Astropy affiliated packages are astronomy-related Python packages that
-have requested to be part of the Astropy project’s community.
-Such packages can make use of the setup, installation, and documentation
-infrastructure developed for the ``astropy`` core package simply by
-using this template to lay out the package.
+Installation
+------------
+
+The software is written as much as possible to make use of core Python
+components. The third-party requirements are astropy
+(http://astropy.org/), a package for astronomical calculations,
+and pyserial (http://pyserial.sourceforge.net/) for talking to serial ports.
+
+Once you have installed these, install with the usual::
+
+ python setup.py install
+
+or if you don't have root access::
+
+ python setup.py install --prefix=my_own_installation_directory
 
 For more information, see:
 
-* `Detailed instructions for using this template <http://docs.astropy.org/en/latest/development/affiliated-packages.html>`_
-* `The Affiliated Packages section of the Astropy web site <http://affiliated.astropy.org>`_
-* `This template's Github code repository <https://github.com/astropy/package-template>`_
+* `This packages' Github code repository <https://github.com/StuartLittlefair/hcam-drivers>`_
 
 Status reports for developers
 -----------------------------
 
 .. image:: https://travis-ci.org/astropy/package-template.svg
-    :target: https://travis-ci.org/astropy/package-template
+    :target: https://travis-ci.org/StuartLittlefair/hcam-drivers
     :alt: Travis Status
