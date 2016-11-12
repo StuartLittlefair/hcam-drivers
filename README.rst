@@ -13,9 +13,9 @@ Installation
 ------------
 
 The software is written as much as possible to make use of core Python
-components. The third-party requirements are astropy
-(http://astropy.org/), a package for astronomical calculations,
-and pyserial (http://pyserial.sourceforge.net/) for talking to serial ports.
+components. The third-party requirements are `astropy <http://astropy.org/>`_, a package 
+for astronomical calculations, and `pyserial <http://pyserial.sourceforge.net/>`_ for 
+talking to serial ports.
 
 Once you have installed these, install with the usual::
 
@@ -27,6 +27,7 @@ or if you don't have root access::
 
 For more information, see:
 
+* `The documentation <http://hcam-drivers.readthedocs.io/en/latest/>`_
 * `This packages' Github code repository <https://github.com/StuartLittlefair/hcam_drivers>`_
 
 Status reports for developers
