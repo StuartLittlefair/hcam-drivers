@@ -5,8 +5,8 @@ HiperCAM Python Driver
     :target: http://www.astropy.org
     :alt: Powered by Astropy Badge
 
-``hcam-drivers`` provides Python tools for interfacing with the HiperCAM high-speed
-camera. ``hcam-drivers`` is written in Python and is based on TKinter. It should be
+``hcam_drivers`` provides Python tools for interfacing with the HiperCAM high-speed
+camera. ``hcam_drivers`` is written in Python and is based on TKinter. It should be
 compatible with Python2 and Python3. 
 
 Installation
@@ -27,11 +27,11 @@ or if you don't have root access::
 
 For more information, see:
 
-* `This packages' Github code repository <https://github.com/StuartLittlefair/hcam-drivers>`_
+* `This packages' Github code repository <https://github.com/StuartLittlefair/hcam_drivers>`_
 
 Status reports for developers
 -----------------------------
 
 .. image:: https://travis-ci.org/astropy/package-template.svg
-    :target: https://travis-ci.org/StuartLittlefair/hcam-drivers
+    :target: https://travis-ci.org/StuartLittlefair/hcam_drivers
     :alt: Travis Status

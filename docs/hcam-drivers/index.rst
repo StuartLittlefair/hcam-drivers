@@ -2,9 +2,9 @@
 Template package
 ****************
 
-This is the documentation for ``hcam-drivers``.
+This is the documentation for ``hcam_drivers``.
 
 Reference/API
 =============
 
-.. automodapi:: hcam-drivers
+.. automodapi:: hcam_drivers
