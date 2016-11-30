@@ -5,15 +5,11 @@ hcam-drivers is a GUI interface for running the HiperCAM high-speed
 camera. The main user-facing tool is the hdriver.py script which runs
 the GUI.
 
-The package follows the general structure first adopted by T. Marsh
-for the ULTRACAM/SPEC GUIs, which is is to group related buttons and information 
-fields into discrete widgets, which translate into equivalent classes at the code level,
-e.g. trm.drivers.drivers.Astroframe. The compartmentalisation suggested by
-this is rather illusory as there is typically a need to interact between such
-widgets. One way to do this would have been with callbacks, but in the end I
-decided it was much easier to use a set of globals. Many of the classes therefore
-really serve just to loosely group functions associated with them.
-
+The package follows the following general structure. Widgets are defined as
+classes. All widgets have a ``toplevel`` argument in the constructor, which
+is the main window widget. This top level widget has attributes for e.g. window parameters.
+As a result, all widgets have access to the same properties through their ``toplevel``
+attribute, which allows the widgets to interact with each other.
 """
 
 # Affiliated packages may add whatever they like to this file, but

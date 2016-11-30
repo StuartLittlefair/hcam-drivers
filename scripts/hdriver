@@ -1,0 +1,261 @@
+#!/usr/bin/env python
+from __future__ import print_function, division
+
+import argparse
+import tkinter as tk
+from tkinter import messagebox, filedialog
+import os
+import queue
+import logging
+# import threading
+
+import hcam_drivers.utils as utils
+from hcam_drivers.globals import Container
+import hcam_drivers.utils.widgets as w
+from hcam_drivers.utils import slide
+from hcam_drivers.utils import hcam
+from hcam_drivers.utils.rtplot import RtplotServer
+from hcam_drivers.config import (load_config, write_config,
+                                 check_user_dir, dump_app)
+from hcam_drivers import honeywell as honey
+
+usage = """
+Python GUI for HiperCAM
+
+Author: Stuart Littlefair
+"""
+
+
+class GUI(tk.Tk):
+    """
+    This class isolates the gui components from the rtplot server.
+    """
+    def __init__(self):
+        # Create the main GUI
+        super(GUI, self).__init__()
+
+        # add a container object
+        self.globals = Container()
+
+        # load config
+        self.globals.cpars = dict()
+        load_config(self.globals)
+        # add one extra that there is no point getting from a file as
+        # it should always be set False on starting the GUI
+        self.globals.cpars['eso_server_online'] = False
+
+        if self.globals.cpars['debug']:
+            logging.basicConfig(level=logging.DEBUG)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
+        # style
+        utils.addStyle(self)
+
+        # Now we make the various widgets. The order here is determined by the fact
+        # that some widgets need to reference the simpler ones, so they have to
+        # initialised first.
+
+        # command log
+        self.globals.clog = w.LabelGuiLogger('CMM', self, 5, 56, 'Command log')
+        # server response log
+        self.globals.rlog = w.LabelGuiLogger('RSP', self, 5, 56, 'Response log')
+
+        # Instrument params
+        self.globals.ipars = hcam.InstPars(self)
+
+        # Run parameters
+        self.globals.rpars = hcam.RunPars(self)
+
+        # Info (run number, frame number, exposure time)
+        self.globals.info = w.InfoFrame(self)
+
+        # container frame for switch options (observe, fps and setup)
+        topLhsFrame = tk.Frame(self)
+        self.globals.fpslide = slide.FocalPlaneSlide(topLhsFrame)
+        self.globals.setup = w.InstSetup(topLhsFrame)
+        self.globals.observe = hcam.Observe(topLhsFrame)
+
+        # counts and S/N frmae
+        self.globals.count = hcam.CountsFrame(self)
+
+        # astronomical info
+        self.globals.astro = w.AstroFrame(self)
+
+        # CCD temp monitoring
+        if self.globals.cpars['ccd_temperature_on']:
+            try:
+                self.globals.honeywell = honey.Honeywell()
+            except Exception as err:
+                self.globals.clog.warn(str(err))
+                self.globals.clog('Disabling access to honeywell monitor')
+                self.globals.cpars['ccd_temperature_on'] = False
+
+        # add switcher
+        switch = w.Switch(topLhsFrame)
+        # pack switch and setup widget
+        switch.pack(pady=5, anchor=tk.W)
+        self.globals.setup.pack(pady=5, anchor=tk.W)
+
+        # format the LHS
+        topLhsFrame.grid(row=0, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
+        self.globals.count.grid(row=1, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
+        self.globals.info.grid(row=2, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
+        self.globals.clog.grid(row=3, column=0, sticky=tk.W, padx=10, pady=10)
+
+        # format the RHS
+        self.globals.ipars.grid(row=0, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
+        self.globals.rpars.grid(row=1, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
+        self.globals.astro.grid(row=2, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
+        #self.globals.rlog.grid(row=3, column=1, sticky=tk.W, padx=10, pady=10)
+
+        # menubar. 'Quit', configuration settings
+        menubar = tk.Menu(self)
+        menubar.add_command(label='Quit', command=self.ask_quit)
+
+        # settings menu in menubar
+        settingsMenu = tk.Menu(menubar, tearoff=0)
+
+        # expert settingsMenu
+        expertMenu = w.ExpertMenu(settingsMenu, self.globals.observe, self.globals.setup,
+                                  # self.globals.ipars,
+                                  self.globals.fpslide)
+        settingsMenu.add_cascade(label='Expert', menu=expertMenu)
+
+        # boolean switches
+        settingsMenu.add_checkbutton(label='Require run params',
+                                     var=w.Boolean(self, 'require_run_params'))
+        settingsMenu.add_checkbutton(label='Confirm target name change',
+                                     var=w.Boolean(self, 'confirm_on_change'))
+        settingsMenu.add_checkbutton(label='Server on',
+                                     var=w.Boolean(self, 'hcam_server_on'))
+        settingsMenu.add_checkbutton(label='Focal plane slide on',
+                                     var=w.Boolean(self, 'focal_plane_slide_on'))
+        settingsMenu.add_checkbutton(label='CCD temperature on',
+                                     var=w.Boolean(self, 'ccd_temperature_on'))
+        # we add a callback to this one to enable start button if appropriate
+        settingsMenu.add_checkbutton(label='Assume NGC server online',
+                                     var=w.Boolean(self, 'eso_server_online',
+                                                   lambda flag: (self.globals.ipars.check() if
+                                                                 flag else None))
+                                     )
+
+        # now we enable/disable this last item according to expert status
+        lindex = settingsMenu.index(tk.END)
+        if self.globals.cpars['expert_level']:
+            settingsMenu.entryconfig(lindex, state=tk.NORMAL)
+        else:
+            settingsMenu.entryconfig(lindex, state=tk.DISABLED)
+        expertMenu.indices = [lindex]
+
+        # add to menubar
+        menubar.add_cascade(label='Settings', menu=settingsMenu)
+
+        # add a menubar link to the alarms window
+        alarmMenu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label='Alarms', menu=alarmMenu)
+        # TODO: make this do something!
+
+        # stick the menubar in place
+        self.config(menu=menubar)
+
+        # all the components are defined. Let's try and load previous application settings
+        app_file = os.path.join(os.path.expanduser('~/.hdriver'), 'app.json')
+        if os.path.isfile(app_file):
+            json_string = open(app_file).read()
+            try:
+                self.globals.ipars.loadJSON(json_string)
+                self.globals.rpars.loadJSON(json_string)
+                self.globals.clog.info('Loaded saved instrument and run settings')
+            except Exception as err:
+                self.globals.clog.warn('Failed to load saved settings')
+                self.globals.clog.warn(str(err))
+
+        # configure
+        self.title('hdriver')
+        self.protocol("WM_DELETE_WINDOW", self.ask_quit)
+
+        # run checks
+        self.globals.ipars.check()
+
+        # check application directories
+        check_user_dir(self.globals)
+
+        # TODO: rtplot server?
+
+        # File logging
+        if self.globals.cpars['file_logging_on']:
+            # bizarrely, file dialog does not close on OS X
+            # the updating of the root Tk object
+            # fixes this.
+            self.update()
+            # self.withdraw()  # hide main window
+            self.globals.logfile = filedialog.asksaveasfilename(
+                initialdir=self.globals.cpars['log_file_directory'],
+                defaultextension='.log',
+                filetypes=[('log files', '.log'), ],
+                title='Name of log file'
+            )
+            # self.deiconify()  # reveal main window
+            if self.globals.logfile:
+                self.globals.clog.update(self.globals.logfile)
+                self.globals.rlog.update(self.globals.logfile)
+                self.globals.fpslide.log.update(self.globals.logfile)
+            else:
+                self.globals.clog.info('Will not log to file')
+        else:
+            self.globals.clog.warn('Logging to a file is disabled')
+
+        # update
+        self.update()
+
+    def ask_quit(self):
+        """
+        Shutdown routine
+        """
+        if not messagebox.askokcancel('Quit', 'Really quit hdriver?'):
+            print('Booya')
+        else:
+            # save config
+            write_config(self.globals)
+            dump_app(self.globals)
+            self.destroy()
+
+    def update(self):
+        """
+        Run regular checks of FIFO queue which stores exceptions raised in threads
+        """
+        super(GUI, self).update()
+        try:
+            exc = self.globals.FIFO.get(block=False)
+        except queue.Empty:
+            pass
+        else:
+            error, tback = exc
+            self.globals.clog.warn('Error in thread: ' + error)
+            self.globals.clog.debug(tback)
+
+        # schedule next check
+        self.after(2000, self.update)
+
+    def startRtplotServer(self, x):
+        """
+        Starts up the server to handle GET requests from rtplot
+        It is at this point that we pass the window parameters
+        to the server.
+        """
+        self.server = RtplotServer(self.globals.ipars,
+                                   self.globals.cpars['rtplot_server_port'])
+        self.server.run()
+
+if __name__ == "__main__":
+
+    # command-line parameters
+    parser = argparse.ArgumentParser(description=usage)
+
+    # The main window.
+    gui = GUI()
+    gui.mainloop()
+
+    # be nice on exit
+    print('\nThank you for using hdriver')
