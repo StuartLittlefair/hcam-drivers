@@ -1,0 +1,132 @@
+#!/usr/bin/env python
+from __future__ import print_function, division
+from flask import (Flask, request, abort, jsonify,
+                   make_response)
+import yaml
+# This imitates the "thin client" that runs on the rack PC.
+# The thin client acts as a bridge between client software on
+# the DRPC and the ESO software, controlling the camera and
+# receiving info about the current status
+
+
+app = Flask(__name__)
+
+MSG_TEMPLATE = "MESSAGEBUFFER:\n{}"
+KNOWN_PARAMS = {
+    'DET.NDIT': 1,
+    'DET.SEQ1.DIT': 5,
+    'DET.SEQ2.DIT': 5,
+    'DET.SEQ3.DIT': 5,
+    'DET.SEQ4.DIT': 5,
+    'DET.SEQ5.DIT': 5,
+}
+
+
+def parse_response(response):
+    return jsonify(yaml.load(response.replace('\n', ' ')))
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)
+
+
+@app.route("/start")
+def start():
+    """
+    Start a run
+    """
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/stop")
+def stop():
+    """
+    Stop a run, returning intermediate product
+    """
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/abort")
+def abort_run():
+    """
+    Abort a run
+    """
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/online")
+def online():
+    """
+    Bring server online, powering on NGC controller
+    """
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/off")
+def off():
+    """
+    Bring server to OFF state. All sub-processes terminate
+    """
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/reset")
+def reset():
+    """
+    Resets the NGC controller front end
+    """
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/status", methods=['GET'])
+def get_status():
+    """
+    Get status of server
+    """
+    return parse_response(MSG_TEMPLATE.format("ONLINE"))
+
+
+@app.route("/status/<param_id>", methods=['GET'])
+def get_param_status(param_id):
+    """
+    Get status of given parameters
+    """
+    if param_id not in KNOWN_PARAMS:
+        abort(404)
+    response = MSG_TEMPLATE.format("{} {}".format(param_id, KNOWN_PARAMS[param_id]))
+    return parse_response(response)
+
+
+@app.route("/status/<param_id>", methods=['POST'])
+def set_param_status(param_id):
+    """
+    Set status of given parameters
+    """
+    if param_id not in KNOWN_PARAMS:
+        abort(404)
+    req_json = request.get_json()
+    if not req_json or 'value' not in req_json:
+        # bad request, return 400
+        abort(400)
+    print(req_json)
+    KNOWN_PARAMS[param_id] = req_json['value']
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+@app.route("/status/post", methods=['POST'])
+def post_run():
+    """
+    Post an XML file to the server, updating multiple settings.
+
+    Client should parse XML file and make HTML post request with data json encoded
+    """
+    req_json = request.get_json()
+    if not req_json or 'app' not in req_json:
+        # bad request, return 400
+        abort(400)
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+if __name__ == '__main__':
+    app.run(debug=False)
