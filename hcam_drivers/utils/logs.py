@@ -68,7 +68,7 @@ class StreamHandler(logging.StreamHandler):
         """
         fout: file pointer to send messages to
         """
-        super(StreamHandler, self).__init__(self)
+        super(StreamHandler, self).__init__()
         logging.Formatter.converter = time.gmtime
         formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-7s %(message)s\n',
                                       '%H:%M:%S')
