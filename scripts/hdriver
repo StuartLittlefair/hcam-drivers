@@ -107,7 +107,7 @@ class GUI(tk.Tk):
         self.globals.ipars.grid(row=0, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
         self.globals.rpars.grid(row=1, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
         self.globals.astro.grid(row=2, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
-        #self.globals.rlog.grid(row=3, column=1, sticky=tk.W, padx=10, pady=10)
+        # self.globals.rlog.grid(row=3, column=1, sticky=tk.W, padx=10, pady=10)
 
         # menubar. 'Quit', configuration settings
         menubar = tk.Menu(self)

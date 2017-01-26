@@ -1137,6 +1137,8 @@ class Start(w.ActButton):
     -- start the run
     -- update the button status
     -- start the exposure timer
+
+    TODO: complete optional tasks
     """
     def __init__(self, master, width):
         """
@@ -1198,8 +1200,13 @@ class Start(w.ActButton):
         if not messagebox.askokcancel('Confirm', 'Really start?'):
             return False
 
-        # create JSON to post
+        # Check instrument pars are OK
         g = get_root(self).globals
+        if not g.ipars.check():
+            g.clog.warn('Invalid instrument parameters; save failed.')
+            return False
+
+        # create JSON to post
         data = createJSON(g)
 
         # POST
@@ -1214,6 +1221,13 @@ class Start(w.ActButton):
             g.clog.warn('Failed to start run')
             g.clog.warn(str(err))
             return False
+
+        # Run successfully started.
+        # enable stop button, disable Start
+        # start run timer
+        self.disable()
+        g.observe.stop.enable()
+        g.info.timer.start()
         return True
 
 

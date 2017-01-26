@@ -1749,8 +1749,8 @@ class PowerOn(ActButton):
             g.setup.powerOff.enable()
 
             try:
-                # now check the run number -- lifted from Java code; the wait
-                # for the power on application to finish may not be needed
+                # now check the run number
+                # TODO: adapt this to ESO server - poll until online, then getRunNumber
                 n = 0
                 while isRunActive(g) and n < 5:
                     n += 1
@@ -1793,9 +1793,8 @@ class PowerOff(ActButton):
         g.clog.debug('Power off pressed')
 
         if execCommand(g, 'off'):
-
             g.clog.info('ESO server idle and child processes quit')
-
+            g.cpars['eso_server_online'] = False
             # alter buttons
             self.disable()
             g.observe.start.disable()
@@ -2201,9 +2200,10 @@ class InfoFrame(tk.LabelFrame):
                 try:
                     # if no run is active, get run number from
                     # hipercam server
-                    if not isRunActive(g):
-                        run = getRunNumber(g, True)
-                        self.run.configure(text='{0:03d}'.format(run))
+                    # TODO: temporarily commented out to reduce calls to server
+                    # if not isRunActive(g):
+                    #    run = getRunNumber(g, True)
+                    #    self.run.configure(text='{0:03d}'.format(run))
 
                     # get the value of the run being displayed, regardless of
                     # whether we just managed to update it
