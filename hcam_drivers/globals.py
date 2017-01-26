@@ -28,7 +28,7 @@ class Container:
     MENU_FONT    : font for menus (set in drivers)
     ENTRY_FONT   : font for data entry fields and mutable fields
 
-    HTTP_PATH_CONFIG : url for posting setups to rack server
+    SERVER_POST_PATH : url for posting setups to rack server
 
     and lowercase (all set = None to start with)::
 
@@ -110,7 +110,7 @@ class Container:
         self.ENTRY_FONT = None
 
         # URL for posting setups
-        self.HTTP_PATH_CONFIG = "/status/post"
+        self.SERVER_POST_PATH = "/status/post"
 
         # Command log widget. Used to report actions and results
         self.clog = None
