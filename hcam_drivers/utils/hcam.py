@@ -1,5 +1,5 @@
 # Specific widgets, widget groups and parameters for hipercam instrument
-from __future__ import print_function, absolute_import, division
+from __future__ import print_function, unicode_literals, absolute_import, division
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import math
@@ -8,7 +8,8 @@ import json
 # internal imports
 from . import widgets as w
 from . import get_root, DriverError
-from .misc import createJSON, saveJSON, execCommand, isRunActive
+from .misc import (createJSON, saveJSON, postJSON,
+                   execCommand, isRunActive)
 
 # astropy
 # from astropy import units as u
@@ -1199,10 +1200,15 @@ class Start(w.ActButton):
             return False
 
         # create JSON to post
+        g = get_root(self).globals
+        data = createJSON(g)
+
         # POST
+        success = postJSON(g, data)
+        if not success:
+            return False
 
         # START
-        g = get_root(self).globals
         try:
             execCommand(g, 'start')
         except Exception as err:

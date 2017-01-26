@@ -5,7 +5,7 @@ Class to talk to the focal plane slide
 
 Written by Stu.
 """
-from __future__ import (print_function, division, absolute_import)
+from __future__ import (print_function, unicode_literals, division, absolute_import)
 import serial
 import struct
 import tkinter as tk

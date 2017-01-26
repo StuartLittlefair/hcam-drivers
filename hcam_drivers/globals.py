@@ -1,4 +1,4 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, unicode_literals, absolute_import
 from queue import Queue
 """
 This module supplies a single class, the Container. The idea is

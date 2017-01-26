@@ -1,5 +1,5 @@
 # talk to honeywell temperature monitor
-from __future__ import absolute_import, print_function, division
+from __future__ import absolute_import, unicode_literals, print_function, division
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
