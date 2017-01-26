@@ -109,7 +109,6 @@ def set_param_status(param_id):
     if not req_json or 'value' not in req_json:
         # bad request, return 400
         abort(400)
-    print(req_json)
     KNOWN_PARAMS[param_id] = req_json['value']
     return parse_response(MSG_TEMPLATE.format("OK"))
 
@@ -122,9 +121,10 @@ def post_run():
     Client should parse XML file and make HTML post request with data json encoded
     """
     req_json = request.get_json()
-    if not req_json or 'app' not in req_json:
+    if not req_json or 'appdata' not in req_json:
         # bad request, return 400
         abort(400)
+    print(type(req_json), req_json)
     return parse_response(MSG_TEMPLATE.format("OK"))
 
 

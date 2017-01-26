@@ -123,7 +123,7 @@ def postJSON(g, data):
     g.clog.debug('Entering postJSON')
 
     # encode data as json
-    json_data = json.dumps(data)
+    json_data = json.dumps(data).encode('utf-8')
 
     # Send the xml to the server
     url = g.cpars['hipercam_server'] + g.SERVER_POST_PATH

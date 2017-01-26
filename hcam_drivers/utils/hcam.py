@@ -1195,7 +1195,6 @@ class Start(w.ActButton):
         """
         Carries out action associated with start button
         """
-        # TODO: complete this
         if not messagebox.askokcancel('Confirm', 'Really start?'):
             return False
 

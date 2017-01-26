@@ -110,7 +110,7 @@ class Container:
         self.ENTRY_FONT = None
 
         # URL for posting setups
-        self.SERVER_POST_PATH = "/status/post"
+        self.SERVER_POST_PATH = "status/post"
 
         # Command log widget. Used to report actions and results
         self.clog = None
