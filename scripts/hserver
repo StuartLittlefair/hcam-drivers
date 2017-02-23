@@ -1,0 +1,226 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+from flask import (Flask, request, abort, jsonify,
+                   make_response)
+import yaml
+import subprocess
+
+# This script provides a "thin client" that runs on the rack PC.
+# The thin client acts as a bridge between client software on
+# another machine and the ESO software, controlling the camera and
+# receiving info about the current status
+
+app = Flask(__name__)
+
+MSG_TEMPLATE = "MESSAGEBUFFER:\n{}"
+KNOWN_PARAMS = [
+    'DET.NDIT',
+    'DET.SEQ2.DIT',
+    'DET.SEQ3.DIT',
+    'DET.SEQ4.DIT',
+    'DET.SEQ5.DIT']
+
+
+def sendCommand(command, *command_pars):
+    """
+    Use low level ngcbCmd to send command to control server.
+    """
+    command_array = ['ngcbCmd', command]
+    if command_pars:
+        command_array.extend(*command_pars)
+    # must contain only strings
+    command_array = [str(val) for val in command_array]
+    # now attempt to send command to control server
+    try:
+        result = subprocess.check_output(command_array)
+        # make sure all successful commands end with OK line
+        if not result.strip().endswith('OK'):
+            result = result.strip() + '\nOK\n\n'
+    except subprocess.CalledProcessError as err:
+        # make sure all failed commands end with NOK line
+        result = err.output.strip() + '\nNOK\n\n'
+    return result
+
+
+def databaseSummary():
+    """
+    Get a summary of system state and exposure state from database
+    """
+    cmdTemplate = 'dbRead "<alias>ngcircon:"{}'
+    database_attributes = [
+        'system.stateName',
+        'system.subStateName',
+        'exposure.time',  # total exposure time for run
+        'exposure.countDown',  # time remaining
+        'exposure.expStatusName',
+        'exposure.baseName',
+        'exposure.newDataFileName']  # LAST WRITTEN FILE
+    results = {}
+    for attribute in database_attributes:
+        cmd = cmdTemplate.format(attribute)
+        try:
+            response = subprocess.check_output(cmd, shell=True)
+            results[attribute] = response.split('=')[-1].strip()
+        except:
+            results[attribute] = 'ERR'
+    return results
+
+
+def parse_response(response):
+    """
+    Take server response and convert to well formed JSON.
+    """
+    return jsonify(yaml.load(response.replace('\n', ' ')))
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)
+
+
+@app.route("/start")
+def start():
+    """
+    Start a run
+    """
+    response = sendCommand('start')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/stop")
+def stop():
+    """
+    Stop a run, returning intermediate product
+    """
+    response = sendCommand('stop')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/abort")
+def abort_run():
+    """
+    Abort a run
+    """
+    response = sendCommand('abort')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/online")
+def online():
+    """
+    Bring server online, powering on NGC controller
+    """
+    response = sendCommand('online')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/off")
+def off():
+    """
+    Bring server to OFF state. All sub-processes terminate. Server cannot reply
+    """
+    response = sendCommand('off')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/standby")
+def standby():
+    """
+    Bring server to standby state.
+
+    All sub-processes are disabled, but server can communicate.
+    """
+    response = sendCommand('standby')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/reset")
+def reset():
+    """
+    Resets the NGC controller front end
+    """
+    response = sendCommand('reset')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/summary", methods=['GET'])
+def get_status_summary():
+    """
+    Get status summary of server and exposure from the database
+    """
+    summary_dictionary = databaseSummary()
+    return jsonify(summary_dictionary)
+
+
+@app.route("/status", methods=['GET'])
+def get_status():
+    """
+    Get status of server
+    """
+    response = sendCommand('status')
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/status/<param_id>", methods=['GET'])
+def get_param_status(param_id):
+    """
+    Get status of given parameters.
+
+    TODO: Use the helper class mentioned in the routine below
+          to convert the values in JSON data to Naidu's parameter
+          names for a given app.
+    """
+    if param_id not in KNOWN_PARAMS:
+        abort(404)
+    response = sendCommand('status', [param_id])
+    response = MSG_TEMPLATE.format(response)
+    return parse_response(response)
+
+
+@app.route("/status/<param_id>", methods=['POST'])
+def set_param_status(param_id):
+    """
+    Set status of given parameters.
+
+    TODO: Use the helper class mentioned in the routine below
+          to convert the values in JSON data to Naidu's parameter
+          names for a given app.
+    """
+    if param_id not in KNOWN_PARAMS:
+        abort(404)
+    req_json = request.get_json()
+    if not req_json or 'value' not in req_json:
+        # bad request, return 400
+        abort(400)
+    response = sendCommand('setup', [param_id, req_json['value']])
+    return parse_response(MSG_TEMPLATE.format(response))
+
+
+@app.route("/status/post", methods=['POST'])
+def post_run():
+    """
+    Update multiple settings.
+
+    Settings are JSON encoded in body of request.
+
+    First we extract the application and load the correct sequencer file.
+    Then we use 'ngcbCmd setup <key1> <value1> [<key2> <value2>] ....' to
+    load remaining parameters.abort
+
+    The remaining parameters are read from the dictionary created
+    from the JSON data.
+
+    TODO: Write a helper class to convert the JSON data into Naidu's
+          parameter names for a given app, and routines to find the
+          path to Naidu's sequencer file for a given HiperCAM mode.
+    """
+    req_json = request.get_json()
+    if not req_json or 'appdata' not in req_json:
+        # bad request, return 400
+        abort(400)
+    print(type(req_json), req_json)
+    return parse_response(MSG_TEMPLATE.format("OK"))
+
+
+if __name__ == '__main__':
+    app.run(debug=False)

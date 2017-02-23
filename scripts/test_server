@@ -3,6 +3,10 @@ from __future__ import print_function, division, unicode_literals
 from flask import (Flask, request, abort, jsonify,
                    make_response)
 import yaml
+
+# not needed on deployment version
+import numpy as np
+import time
 # This imitates the "thin client" that runs on the rack PC.
 # The thin client acts as a bridge between client software on
 # the DRPC and the ESO software, controlling the camera and
@@ -20,6 +24,38 @@ KNOWN_PARAMS = {
     'DET.SEQ4.DIT': 5,
     'DET.SEQ5.DIT': 5,
 }
+
+
+class Run:
+    """
+    A dummy run object to simulate when an exposure is ongoing
+    """
+    def __init__(self, dataDict):
+        self.data = dataDict
+        # calculate duration
+        if self.numexp == 0:
+            self.infinite = True
+        else:
+            self.infinite = False
+        # duration in seconds
+        self.duration = np.random.uniform(100, 3600)
+        self.frame_no = 0
+        self.running = False
+        self.start_time = None
+
+    def start(self):
+        self.start_time = time.time()
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    @property
+    def active(self):
+        if self.running and (time.time() - self.start_time) < self.duration:
+            return True
+        else:
+            return False
 
 
 def parse_response(response):
@@ -84,7 +120,8 @@ def get_status():
     """
     Get status of server
     """
-    return parse_response(MSG_TEMPLATE.format("ONLINE"))
+    status = "ONLINE"
+    return parse_response(MSG_TEMPLATE.format(status))
 
 
 @app.route("/status/<param_id>", methods=['GET'])
