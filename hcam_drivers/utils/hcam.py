@@ -346,7 +346,7 @@ class InstPars(tk.LabelFrame):
                         self.wframe.xsr[nw].set(xsr)
                         self.wframe.ys[nw].set(ys)
                         self.wframe.nx[nw].set(nx)
-                        self.wframe.nx[nw].set(ny)
+                        self.wframe.ny[nw].set(ny)
                         nwin += 1
                     else:
                         break
