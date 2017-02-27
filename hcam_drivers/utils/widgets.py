@@ -2691,21 +2691,16 @@ class WinPairs(tk.Frame):
                 ysw.config(bg=g.COL['error'])
                 status = False
 
-        # Pair overlap checks. Compare one pair with the next one upstream
-        # (if there is one). Only bother if we have survived so far, which
-        # saves a lot of checks
+        # Pair overlap checks. Compare one pair with the next one in the
+        # same quadrant (if there is one). Only bother if we have survived
+        # so far, which saves a lot of checks
         if status:
-            n1 = 0
-            for ysw1, nyw1 in zip(self.ys[:npair-1], self.ny[:npair-1]):
-                ys1 = ysw1.value()
-                ny1 = nyw1.value()
+            for index in range(npair-2):
+                ys1 = self.ys[index].value()
+                ny1 = self.ny[index].value()
 
-                n1 += 1
-
-                ysw2 = self.ys[n1]
-
+                ysw2 = self.ys[index+2]
                 ys2 = ysw2.value()
-
                 if ys1 + ny1 > ys2:
                     ysw2.config(bg=g.COL['error'])
                     status = False
