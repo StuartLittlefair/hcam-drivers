@@ -282,11 +282,12 @@ def checkSimbad(g, target, maxobj=5, timeout=5):
         '\nformat object form1 "Target: %IDLIST(1) | %COO(A D;ICRS)"\nquery ' \
         + target
     query = urllib.parse.urlencode({'submit': 'submit script', 'script': q})
-    resp = urllib.request.urlopen(url, query, timeout)
+    resp = urllib.request.urlopen(url, query.encode(), timeout)
     data = False
     error = False
     results = []
     for line in resp:
+        line = line.decode()
         if line.startswith('::data::'):
             data = True
         if line.startswith('::error::'):
