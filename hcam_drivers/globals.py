@@ -28,7 +28,7 @@ class Container:
     MENU_FONT    : font for menus (set in drivers)
     ENTRY_FONT   : font for data entry fields and mutable fields
 
-    SERVER_POST_PATH : url for ing setups to rack server
+    SERVER_POST_PATH : url for posting setups to rack server
 
     and lowercase (all set = None to start with)::
 
