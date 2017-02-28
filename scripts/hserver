@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 from __future__ import print_function, division, unicode_literals
-from flask import (Flask, request, abort, jsonify,
-                   make_response)
+from tornado.escape import json_encode, json_decode
+import tornado.ioloop
+from tornado.web import RequestHandler, Application, url, HTTPError
 import yaml
 import subprocess
+import traceback
 
 # This script provides a "thin client" that runs on the rack PC.
 # The thin client acts as a bridge between client software on
 # another machine and the ESO software, controlling the camera and
 # receiving info about the current status
-
-app = Flask(__name__)
 
 MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
 KNOWN_PARAMS = [
@@ -35,8 +35,6 @@ def sendCommand(command, *command_pars):
         ret_msg = subprocess.check_output(command_array).strip()
         # make sure all successful commands end with OK line
         result = MSG_TEMPLATE.format(ret_msg, "OK")
-        # if not result.strip().endswith('OK'):
-        #    result = result.strip() + '\nOK\n\n'
     except subprocess.CalledProcessError as err:
         # make sure all failed commands end with NOK line
         result = MSG_TEMPLATE.format(err.output.strip(), "NOK")
@@ -72,134 +70,157 @@ def parse_response(response):
     """
     Take server response and convert to well formed JSON.
     """
-    return jsonify(yaml.load(response))
+    return json_encode(yaml.load(response))
 
 
-@app.errorhandler(404)
-def not_found(error):
-    resp = MSG_TEMPLATE.format('URL not found', 'NOK')
-    return make_response(parse_response(resp), 404)
+class HServerException(HTTPError):
+    pass
 
 
-@app.route("/start")
-def start():
+class BaseHandler(RequestHandler):
+    """
+    Abstract class for request handling
+    """
+    def initialize(self, db):
+        self.db = db
+        self.command = None
+
+    def write_error(self, status_code, **kwargs):
+        self.set_header('Content-Type', 'application/json')
+        resp = MSG_TEMPLATE.format(self._reason, 'NOK')
+        resp_dict = yaml.load(resp)
+        if self.settings.get("serve_traceback") and "exc_info" in kwargs:
+            lines = []
+            for line in traceback.format_exception(*kwargs["exc_info"]):
+                lines.append(line)
+            resp_dict['traceback'] = lines
+        self.finish(json_encode(resp_dict))
+
+    def get(self):
+        """
+        Execute server command, return response
+        """
+        response = sendCommand(self.command)
+        self.set_header('Content-Type', 'application/json')
+        self.write(parse_response(response))
+
+
+class StartHandler(BaseHandler):
     """
     Start a run
     """
-    response = sendCommand('start')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'start'
 
 
-@app.route("/stop")
-def stop():
+class StopHandler(BaseHandler):
     """
     Stop a run, returning intermediate product
     """
-    response = sendCommand('stop')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'stop'
 
 
-@app.route("/abort")
-def abort_run():
+class AbortHandler(BaseHandler):
     """
     Abort a run
     """
-    response = sendCommand('abort')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'abort'
 
 
-@app.route("/online")
-def online():
+class OnlineHandler(BaseHandler):
     """
     Bring server online, powering on NGC controller
     """
-    response = sendCommand('online')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'online'
 
 
-@app.route("/off")
-def off():
+class OffHandler(BaseHandler):
     """
     Bring server to OFF state. All sub-processes terminate. Server cannot reply
     """
-    response = sendCommand('off')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'off'
 
 
-@app.route("/standby")
-def standby():
+class StandbyHandler(BaseHandler):
     """
     Bring server to standby state.
 
     All sub-processes are disabled, but server can communicate.
     """
-    response = sendCommand('standby')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'standby'
 
 
-@app.route("/reset")
-def reset():
+class ResetHandler(BaseHandler):
     """
     Resets the NGC controller front end
     """
-    response = sendCommand('reset')
-    return parse_response(response)
+    def initialize(self, db):
+        self.db = db
+        self.command = 'reset'
 
 
-@app.route("/summary", methods=['GET'])
-def get_status_summary():
+class SummaryHandler(BaseHandler):
     """
     Get status summary of server and exposure from the database
     """
-    summary_dictionary = databaseSummary()
-    return jsonify(summary_dictionary)
+    def get(self):
+        summary_dictionary = databaseSummary()
+        self.set_header('Content-Type', 'application/json')
+        self.write(json_encode(summary_dictionary))
 
 
-@app.route("/status", methods=['GET'])
-def get_status():
+class StatusHandler(BaseHandler):
     """
-    Get status of server
+    Check status, either of the server as a whole, or get/set
+    parameter of the current sequencer file.
     """
-    response = sendCommand('status')
-    return parse_response(response)
+    def get(self, param_id=None):
+        # get server status
+        if param_id is None:
+            response = sendCommand('status')
+            self.set_header('Content-Type', 'application/json')
+            self.finish(parse_response(response))
+        else:
+            # get status of requested parameter
+            # TODO: Use a helper class
+            # to convert the values in JSON data to Naidu's
+            # parameter names for a given app.
+            if param_id not in KNOWN_PARAMS:
+                raise HServerException(reason='Invalid Parameter',
+                                       status_code=404)
+            response = sendCommand('status', [param_id])
+            self.set_header('Content-Type', 'application/json')
+            self.finish(parse_response(response))
+
+    def post(self, param_id):
+        if param_id not in KNOWN_PARAMS:
+            raise HServerException(reason='Invalid Parameter',
+                                   status_code=404)
+        try:
+            req_json = json_decode(self.request.body.decode())
+            if not req_json or 'value' not in req_json:
+                raise HServerException(reason='No value supplied',
+                                       status_code=400)
+
+            response = sendCommand('setup', [param_id, req_json['value']])
+            self.set_header('Content-Type', 'application/json')
+            self.finish(parse_response(response))
+        except:
+            raise HServerException(reason='Error setting param', status_code=500)
 
 
-@app.route("/status/<param_id>", methods=['GET'])
-def get_param_status(param_id):
-    """
-    Get status of given parameters.
-
-    TODO: Use the helper class mentioned in the routine below
-          to convert the values in JSON data to Naidu's parameter
-          names for a given app.
-    """
-    if param_id not in KNOWN_PARAMS:
-        abort(404)
-    response = sendCommand('status', [param_id])
-    return parse_response(response)
-
-
-@app.route("/status/<param_id>", methods=['POST'])
-def set_param_status(param_id):
-    """
-    Set status of given parameters.
-
-    TODO: Use the helper class mentioned in the routine below
-          to convert the values in JSON data to Naidu's parameter
-          names for a given app.
-    """
-    if param_id not in KNOWN_PARAMS:
-        abort(404)
-    req_json = request.get_json()
-    if not req_json or 'value' not in req_json:
-        # bad request, return 400
-        abort(400)
-    response = sendCommand('setup', [param_id, req_json['value']])
-    return parse_response(response)
-
-
-@app.route("/status/post", methods=['POST'])
-def post_run():
+class PostRunHandler(BaseHandler):
     """
     Update multiple settings.
 
@@ -216,14 +237,29 @@ def post_run():
           parameter names for a given app, and routines to find the
           path to Naidu's sequencer file for a given HiperCAM mode.
     """
-    req_json = request.get_json()
-    if not req_json or 'appdata' not in req_json:
-        # bad request, return 400
-        abort(400)
-    print(type(req_json), req_json)
-    # TODO: actually post run!
-    return parse_response(MSG_TEMPLATE.format("Not currently supported", "OK"))
+    def post(self):
+        req_json = json_decode(self.request.body.decode())
+        if not req_json or 'appdata' not in req_json:
+                raise HServerException(reason='No appdata supplied',
+                                       status_code=400)
+        response = MSG_TEMPLATE.format("Not currently supported", "OK")
+        self.set_header('Content-Type', 'application/json')
+        self.write(parse_response(response))
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    db = {}
+    app = Application([
+        url(r'/start', StartHandler, dict(db=db), name="start"),
+        url(r'/stop', StopHandler, dict(db=db), name="stop"),
+        url(r'/abort', AbortHandler, dict(db=db), name="abort"),
+        url(r'/online', OnlineHandler, dict(db=db), name="online"),
+        url(r'/off', OffHandler, dict(db=db), name="off"),
+        url(r'/reset', ResetHandler, dict(db=db), name="reset"),
+        url(r'/summary', SummaryHandler, dict(db=db), name="summary"),
+        url(r'/status', StatusHandler, dict(db=db)),
+        url(r'/setup', PostRunHandler, dict(db=db), name='setup'),
+        url(r"/status/(.*)", StatusHandler, dict(db=db))
+    ])
+    app.listen(5000)
+    tornado.ioloop.IOLoop.current().start()
