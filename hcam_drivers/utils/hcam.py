@@ -1216,7 +1216,9 @@ class Start(w.ActButton):
 
         # START
         try:
-            execCommand(g, 'start')
+            success = execCommand(g, 'start')
+            if not success:
+                raise Exception("Start command failed: check server response")
         except Exception as err:
             g.clog.warn('Failed to start run')
             g.clog.warn(str(err))
