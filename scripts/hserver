@@ -120,7 +120,7 @@ class StopHandler(BaseHandler):
     """
     def initialize(self, db):
         self.db = db
-        self.command = 'stop'
+        self.command = 'end'
 
 
 class AbortHandler(BaseHandler):

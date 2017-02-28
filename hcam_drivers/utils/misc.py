@@ -238,13 +238,11 @@ def isRunActive(g):
     Polls the data server to see if a run is active
     """
     if g.cpars['hcam_server_on']:
-        # TODO: make this operate properly when server is finalised
         url = g.cpars['hipercam_server'] + 'summary'
         response = urllib.request.urlopen(url, timeout=2)
         rs = ReadServer(response.read(), status_msg=True)
         if not rs.ok:
             raise DriverError('isRunActive error: ' + str(rs.err))
-
         if rs.state == 'idle':
             return False
         elif rs.state == 'active':
@@ -255,33 +253,21 @@ def isRunActive(g):
         raise DriverError('isRunActive error: servers are not active')
 
 
-def getRunNumber(g, nocheck=False):
+def getRunNumber(g):
     """
     Polls the data server to find the current run number. Throws
     exceptions if it can't determine it.
-
-    nocheck : determines whether a check for an active run is made
-            nocheck=False is safe, but runs 'isRunActive' which
-            might not be needed if you have called this already.
-            nocheck=True avoids the isRunActive but runs the risk
-            of polling for the run of an active run which cannot
-            be done.
     """
 
     if not g.cpars['hcam_server_on']:
         raise DriverError('getRunNumber error: servers are not active')
-
-    if nocheck or isRunActive(g):
-        # TODO: make operational when server finalised
-        url = g.cpars['hipercam_server'] + 'summary'
-        response = urllib.request.urlopen(url)
-        rs = ReadServer(response.read(), status_msg=True)
-        if rs.ok:
-            return rs.run
-        else:
-            raise DriverError('getRunNumber error: ' + str(rs.err))
+    url = g.cpars['hipercam_server'] + 'summary'
+    response = urllib.request.urlopen(url)
+    rs = ReadServer(response.read(), status_msg=True)
+    if rs.ok:
+        return rs.run
     else:
-        raise DriverError('getRunNumber error')
+        raise DriverError('getRunNumber error: ' + str(rs.err))
 
 
 def checkSimbad(g, target, maxobj=5, timeout=5):

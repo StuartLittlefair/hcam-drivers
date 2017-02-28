@@ -1749,19 +1749,7 @@ class PowerOn(ActButton):
             g.setup.powerOff.enable()
 
             try:
-                # now check the run number
-                # TODO: adapt this to ESO server - poll until online, then getRunNumber
-                n = 0
-                while isRunActive(g) and n < 5:
-                    n += 1
-                    time.sleep(1)
-
-                if isRunActive(g):
-                    g.clog.warn('Timed out waiting for ESO server to come online; ' +
-                                'cannot initialise run number. ' +
-                                'Tell spl if this happens')
-                else:
-                    g.info.run.configure(text='{0:03d}'.format(getRunNumber(g, True)))
+                g.info.run.configure(text='{0:03d}'.format(getRunNumber(g)))
             except Exception as err:
                 g.clog.warn('Failed to determine run number at start of run')
                 g.clog.warn(str(err))
@@ -2198,11 +2186,9 @@ class InfoFrame(tk.LabelFrame):
 
                 # get run number (set by the 'Start' button')
                 try:
-                    # if no run is active, get run number from
-                    # hipercam server
-                    if not isRunActive(g):
-                        run = getRunNumber(g, True)
-                        self.run.configure(text='{0:03d}'.format(run))
+                    # get run number from hipercam server
+                    run = getRunNumber(g)
+                    self.run.configure(text='{0:03d}'.format(run))
 
                     # Find the number of frames in this run
                     # TODO: implement this when server is finalised
