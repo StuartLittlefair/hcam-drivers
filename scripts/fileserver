@@ -7,6 +7,7 @@ import glob
 import os
 import traceback
 
+import numpy as np
 from astropy.io import fits
 from astropy.time import Time
 import tornado.ioloop
@@ -34,7 +35,6 @@ class MainHandler(BaseHandler):
         self.db = db
 
     def get(self, path):
-        print(path)
         try:
             action = self.get_argument('action')
         except:
@@ -70,7 +70,6 @@ class RunHandler(BaseHandler):
         # get some info about a given run
         try:
             action = self.get_argument('action')
-            print(action)
             if action not in ['get_hdr', 'get_frame', 'get_frame_hdr']:
                 raise tornado.web.HTTPError(400)
             # do we have to update the current file object?
