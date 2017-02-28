@@ -1,0 +1,231 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+import struct
+
+import io
+import glob
+import os
+import traceback
+
+from astropy.io import fits
+from astropy.time import Time
+import tornado.ioloop
+from tornado.escape import json_encode
+from tornado.web import RequestHandler, Application, url
+
+
+class BaseHandler(RequestHandler):
+    """
+    Abstract class for request handling
+    """
+    def write_error(self, status_code, **kwargs):
+        self.set_header('Content-Type', 'application/json')
+        resp_dict = {'status_code': status_code, 'error': self._reason}
+        if self.settings.get("serve_traceback") and "exc_info" in kwargs:
+            lines = []
+            for line in traceback.format_exception(*kwargs["exc_info"]):
+                lines.append(line)
+            resp_dict['traceback'] = lines
+        self.finish(json_encode(resp_dict))
+
+
+class MainHandler(BaseHandler):
+    def initialize(self, db):
+        self.db = db
+
+    def get(self, path):
+        print(path)
+        try:
+            action = self.get_argument('action')
+        except:
+            raise tornado.web.HTTPError(400)
+        if action == "dir":
+            self.list_dir(self.db['dir'], path)
+        else:
+            raise tornado.web.HTTPError(400)
+
+    def list_dir(self, root, stub):
+        path = os.path.abspath(os.path.join(root, stub, "*.fits"))
+        files = [os.path.splitext(
+                    os.path.basename(file))[0] for file in glob.glob(path)]
+        self.write("\n".join(files))
+
+
+class RunHandler(BaseHandler):
+    def initialize(self, db):
+        self.db = db
+        self.hdulist = db['hdulist']
+        self.currRun = db['currRun']
+
+    def update(self, run_id):
+        """
+        Update our internal (and shared) references to run and fits file
+        """
+        self.hdulist = self.get_fits(run_id)
+        self.currRun = run_id
+        self.db['currRun'] = self.currRun
+        self.db['hdulist'] = self.hdulist
+
+    def get(self, run_id):
+        # get some info about a given run
+        try:
+            action = self.get_argument('action')
+            print(action)
+            if action not in ['get_hdr', 'get_frame', 'get_frame_hdr']:
+                raise tornado.web.HTTPError(400)
+            # do we have to update the current file object?
+            if run_id != self.currRun:
+                self.update(run_id)
+            if action == "get_hdr":
+                try:
+                    self.get_main_header()
+                except:
+                    raise tornado.web.HTTPError(400)
+            elif action == "get_frame":
+                try:
+                    frame_id = int(self.get_argument('frame'))
+                    chip_id = int(self.get_argument('chip'))
+                    self.get_frame(frame_id, chip_id)
+                except:
+                    raise tornado.web.HTTPError(400)
+            elif action == "get_frame_hdr":
+                try:
+                    frame_id = int(self.get_argument('frame'))
+                    chip_id = int(self.get_argument('chip'))
+                    self.get_frame_header(frame_id, chip_id)
+                except:
+                    raise tornado.web.HTTPError(400)
+        except:
+            raise tornado.web.HTTPError(400)
+
+    def get_fits(self, run_id):
+        fname = '{}.fits'.format(run_id)
+        path = os.path.join(self.db['dir'], fname)
+        return fits.open(path)
+
+    def get_frame_header(self, frame_id, chip_id):
+        """
+        Send FITS Header for frame and chip as text
+        """
+        hdu_name = 'CHIP{}.DIT{}'.format(chip_id, frame_id)
+        hdu = self.hdulist[hdu_name]
+        hdr = hdu.header
+        self.write(hdr.tostring(sep='\n').encode('UTF-8'))
+
+    def get_main_header(self):
+        """
+        Send main FITS HDU as txt
+        """
+        hdr = self.hdulist[0].header
+        self.write(hdr.tostring(sep='\n').encode('UTF-8'))
+
+    def get_frame(self, frame_id, chip_id):
+        """
+        Read data from HDU in FITS file and send back in a format that the HiPERCAM pipeline knows
+
+        This is a set of header words giving the timing, followed by the data in 16 bit format.
+        Data is little-endian.
+
+        The header looks like this:
+            status word (2 bytes)
+            frame number (4 bytes)
+            exposure time (4 bytes)
+            timestamp (4 bytes)
+
+        The header words are as follows:
+            status word
+            -----------
+            Bit 15: Detector power status -> 0 or 1 for off/on
+            Bit 14: Timestamp availability -> 0 or 1 for absent/there
+            Bit 4: Error Flag for later data?
+            Bits 3-12: Unused -> 0
+            Bit 2: Error Flag -> 0 or 1 for OK/NOK
+            Bit 1: Stop Flag -> 0 or 1 for application completed full observation, 1 for stopped early
+            Bit 0: Last Frame flag -> 0 or 1 for not last frame/last frame
+
+        Parameters
+        ----------
+        frame_id : int
+            frame number, starting at 1
+        chip_id : int
+            chip ID number, starting from 1
+        """
+        hdu_name = 'CHIP{}.DIT{}'.format(chip_id, frame_id)
+        hdu = self.hdulist[hdu_name]
+
+        # header bytes - start with array of 32 NULL bytes
+        hdr_bytes = bytearray(32)
+        ERR = 1 << 4
+        STOP = 1 << 1
+        LAST = 1 << 0
+        # set last, stop, err flags
+        # fits file has 1 master HDU, 5 HDUs for total exposure and 5xnframe HDUs
+        nframes = int((len(self.hdulist) - 6)/5)
+        stop = (frame_id == nframes)
+        last = False
+        err = False
+        if last:
+            hdr_bytes[0] = hdr_bytes[0] | LAST
+        if err:
+            hdr_bytes[0] = hdr_bytes[0] | ERR
+        if stop:
+            hdr_bytes[0] = hdr_bytes[0] | STOP
+
+        # set frame number (encode as unsigned int, little endian)
+        hdr_bytes[4:8] = struct.pack('<I', frame_id)
+
+        # set exposure time bytes
+        expTime = hdu.header['EXPTIME'] # seconds
+        hdr_bytes[8:12] = struct.pack('<I', int(10000*expTime))
+
+        # TIMESTAMP
+        # bytes 12-15 are timestamp, number of seconds
+        # bytes 16-19 are timestamp, number of nanoseconds / 100
+        # currently reading in the time recv frame timestamp
+        timestamp = Time(hdu.header['HIERARCH ESO DET EXP UTC']).gps
+        nsecs = int(timestamp)
+        nnsecs = int(1e7 * (timestamp-int(timestamp)))
+        hdr_bytes[12:16] = struct.pack('<I', nsecs)
+        hdr_bytes[16:20] = struct.pack('<I', nnsecs)
+
+        # Fudge GPS status code for now
+        GPS_STATUS = 0x04  # GPS has synced
+        # unsigned short, little endian
+        hdr_bytes[24:26] = struct.pack('<H', GPS_STATUS)
+
+        # Image Data
+        im = hdu.data.astype('<u2')
+        im_bytes = bytearray(im.tobytes())
+
+        # write the stuff
+        self.set_header("Content-type",  "image/data")
+        self.set_header('Content-length', len(hdr_bytes)+len(im_bytes))
+        self.write(io.BytesIO(hdr_bytes).getvalue())
+        self.write(io.BytesIO(im_bytes).getvalue())
+
+
+def make_app(db, debug):
+    return Application([
+        # url routing. look for runXXX pattern first, assume everything else
+        # is a directory for e.g uls
+        url(r"/(run[0-9]+)", RunHandler, dict(db=db), name="run"),
+        url(r"/(.*)", MainHandler, dict(db=db), name="path")
+    ], debug=debug)
+
+
+def run_fileserver(dir, debug):
+    # we pass around current run and reference to open fits object
+    # to minimise the overheads associated with each request.
+    # this will break if the fileserver is run with multiple processes!
+    db = {'dir': dir, 'currRun': None, 'hdulist': None}
+    app = make_app(db, debug)
+    app.listen(8007)
+    tornado.ioloop.IOLoop.current().start()
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="HiPERCAM FileServer")
+    parser.add_argument('--dir', action='store', default='.', help="directory to serve")
+    parser.add_argument('--debug', action='store_true', help="debug fileserver")
+    args = parser.parse_args()
+    run_fileserver(os.path.abspath(args.dir), args.debug)
