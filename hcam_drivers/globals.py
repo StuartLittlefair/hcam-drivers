@@ -110,7 +110,7 @@ class Container:
         self.ENTRY_FONT = None
 
         # URL for posting setups
-        self.SERVER_POST_PATH = "status/post"
+        self.SERVER_POST_PATH = "setup"
 
         # Command log widget. Used to report actions and results
         self.clog = None
@@ -144,9 +144,6 @@ class Container:
 
         # Instrument setup widget
         self.setup = None
-
-        # Filter when 'start' last pressed
-        self.start_filter = None
 
         # honeywell temperature control
         self.honeywell = None

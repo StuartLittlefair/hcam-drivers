@@ -1749,19 +1749,7 @@ class PowerOn(ActButton):
             g.setup.powerOff.enable()
 
             try:
-                # now check the run number
-                # TODO: adapt this to ESO server - poll until online, then getRunNumber
-                n = 0
-                while isRunActive(g) and n < 5:
-                    n += 1
-                    time.sleep(1)
-
-                if isRunActive(g):
-                    g.clog.warn('Timed out waiting for ESO server to come online; ' +
-                                'cannot initialise run number. ' +
-                                'Tell spl if this happens')
-                else:
-                    g.info.run.configure(text='{0:03d}'.format(getRunNumber(g, True)))
+                g.info.run.configure(text='{0:03d}'.format(getRunNumber(g)))
             except Exception as err:
                 g.clog.warn('Failed to determine run number at start of run')
                 g.clog.warn(str(err))
@@ -2198,27 +2186,9 @@ class InfoFrame(tk.LabelFrame):
 
                 # get run number (set by the 'Start' button')
                 try:
-                    # if no run is active, get run number from
-                    # hipercam server
-                    # TODO: temporarily commented out to reduce calls to server
-                    # if not isRunActive(g):
-                    #    run = getRunNumber(g, True)
-                    #    self.run.configure(text='{0:03d}'.format(run))
-
-                    # get the value of the run being displayed, regardless of
-                    # whether we just managed to update it
-                    rtxt = self.run.cget('text')
-
-                    # if the value comes back as undefined, try to work out
-                    # the run number from the hipercam server
-                    # TODO: implement this when server is finalised
-                    if rtxt == 'UNDEF':
-                        pass
-                    else:
-                        run = int(rtxt)
-
-                    # OK, we have managed to get the run number
-                    # rstr = 'run{0:03d}'.format(run)
+                    # get run number from hipercam server
+                    run = getRunNumber(g)
+                    self.run.configure(text='{0:03d}'.format(run))
 
                     # Find the number of frames in this run
                     # TODO: implement this when server is finalised
