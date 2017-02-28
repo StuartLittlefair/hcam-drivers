@@ -12,7 +12,7 @@ import subprocess
 
 app = Flask(__name__)
 
-MSG_TEMPLATE = "MESSAGEBUFFER:\n{}"
+MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
 KNOWN_PARAMS = [
     'DET.NDIT',
     'DET.SEQ2.DIT',
@@ -32,13 +32,14 @@ def sendCommand(command, *command_pars):
     command_array = [str(val) for val in command_array]
     # now attempt to send command to control server
     try:
-        result = subprocess.check_output(command_array)
+        ret_msg = subprocess.check_output(command_array).strip()
         # make sure all successful commands end with OK line
-        if not result.strip().endswith('OK'):
-            result = result.strip() + '\nOK\n\n'
+        result = MSG_TEMPLATE.format(ret_msg, "OK")
+        # if not result.strip().endswith('OK'):
+        #    result = result.strip() + '\nOK\n\n'
     except subprocess.CalledProcessError as err:
         # make sure all failed commands end with NOK line
-        result = err.output.strip() + '\nNOK\n\n'
+        result = MSG_TEMPLATE.format(err.output.strip(), "NOK")
     return result
 
 
@@ -63,6 +64,7 @@ def databaseSummary():
             results[attribute] = response.split('=')[-1].strip()
         except:
             results[attribute] = 'ERR'
+    results['RETCODE'] = "OK"
     return results
 
 
@@ -70,12 +72,13 @@ def parse_response(response):
     """
     Take server response and convert to well formed JSON.
     """
-    return jsonify(yaml.load(response.replace('\n', ' ')))
+    return jsonify(yaml.load(response))
 
 
 @app.errorhandler(404)
 def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+    resp = MSG_TEMPLATE.format('URL not found', 'NOK')
+    return make_response(parse_response(resp), 404)
 
 
 @app.route("/start")
@@ -84,7 +87,7 @@ def start():
     Start a run
     """
     response = sendCommand('start')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/stop")
@@ -93,7 +96,7 @@ def stop():
     Stop a run, returning intermediate product
     """
     response = sendCommand('stop')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/abort")
@@ -102,7 +105,7 @@ def abort_run():
     Abort a run
     """
     response = sendCommand('abort')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/online")
@@ -111,7 +114,7 @@ def online():
     Bring server online, powering on NGC controller
     """
     response = sendCommand('online')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/off")
@@ -120,7 +123,7 @@ def off():
     Bring server to OFF state. All sub-processes terminate. Server cannot reply
     """
     response = sendCommand('off')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/standby")
@@ -131,7 +134,7 @@ def standby():
     All sub-processes are disabled, but server can communicate.
     """
     response = sendCommand('standby')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/reset")
@@ -140,7 +143,7 @@ def reset():
     Resets the NGC controller front end
     """
     response = sendCommand('reset')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/summary", methods=['GET'])
@@ -158,7 +161,7 @@ def get_status():
     Get status of server
     """
     response = sendCommand('status')
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/status/<param_id>", methods=['GET'])
@@ -173,7 +176,6 @@ def get_param_status(param_id):
     if param_id not in KNOWN_PARAMS:
         abort(404)
     response = sendCommand('status', [param_id])
-    response = MSG_TEMPLATE.format(response)
     return parse_response(response)
 
 
@@ -193,7 +195,7 @@ def set_param_status(param_id):
         # bad request, return 400
         abort(400)
     response = sendCommand('setup', [param_id, req_json['value']])
-    return parse_response(MSG_TEMPLATE.format(response))
+    return parse_response(response)
 
 
 @app.route("/status/post", methods=['POST'])
@@ -219,7 +221,8 @@ def post_run():
         # bad request, return 400
         abort(400)
     print(type(req_json), req_json)
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    # TODO: actually post run!
+    return parse_response(MSG_TEMPLATE.format("Not currently supported", "OK"))
 
 
 if __name__ == '__main__':

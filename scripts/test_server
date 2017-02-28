@@ -2,11 +2,14 @@
 from __future__ import print_function, division, unicode_literals
 from flask import (Flask, request, abort, jsonify,
                    make_response)
+from flask import g
 import yaml
 
 # not needed on deployment version
-import numpy as np
 import time
+import os
+import sqlite3
+import tempfile
 # This imitates the "thin client" that runs on the rack PC.
 # The thin client acts as a bridge between client software on
 # the DRPC and the ESO software, controlling the camera and
@@ -15,9 +18,9 @@ import time
 
 app = Flask(__name__)
 
-MSG_TEMPLATE = "MESSAGEBUFFER:\n{}"
+MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
 KNOWN_PARAMS = {
-    'DET.NDIT': 1,
+    'DET.NDIT': 10,
     'DET.SEQ1.DIT': 5,
     'DET.SEQ2.DIT': 5,
     'DET.SEQ3.DIT': 5,
@@ -26,45 +29,60 @@ KNOWN_PARAMS = {
 }
 
 
-class Run:
-    """
-    A dummy run object to simulate when an exposure is ongoing
-    """
-    def __init__(self, dataDict):
-        self.data = dataDict
-        # calculate duration
-        if self.numexp == 0:
-            self.infinite = True
-        else:
-            self.infinite = False
-        # duration in seconds
-        self.duration = np.random.uniform(100, 3600)
-        self.frame_no = 0
-        self.running = False
-        self.start_time = None
+DATABASE = 'test_server.db'
+PAST_TIME = 1400000000
 
-    def start(self):
-        self.start_time = time.time()
-        self.running = True
 
-    def stop(self):
-        self.running = False
+def create_db():
+    if os.path.exists(DATABASE):
+        os.unlink(DATABASE)
+    with sqlite3.connect(DATABASE) as conn:
+        conn.execute(
+            'CREATE TABLE run (id INT, startTime FLOAT' +
+            ', NDIT INT, DIT FLOAT, stateName TEXT, run INT, expState TEXT)'
+        )
+        keys = ('DET.SEQ{}.DIT'.format(seq+1) for seq in range(5))
+        DIT = max([KNOWN_PARAMS[key] for key in keys])
+        conn.execute(
+            "INSERT INTO run (id, startTime, NDIT, DIT, stateName, run, expState) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (1, PAST_TIME, KNOWN_PARAMS['DET.NDIT'], DIT, 'LOADED', 1, "idle")
+        )
+        conn.commit()
 
-    @property
-    def active(self):
-        if self.running and (time.time() - self.start_time) < self.duration:
-            return True
-        else:
-            return False
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
+    return db
+
+
+def query_db(query, args=(), one=False):
+    conn = get_db()
+    cur = conn.execute(query, args)
+    rv = cur.fetchall()
+    conn.commit()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
+
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
 
 def parse_response(response):
-    return jsonify(yaml.load(response.replace('\n', ' ')))
+    return jsonify(yaml.load(response))
 
 
 @app.errorhandler(404)
 def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+    resp = MSG_TEMPLATE.format('URL not found', 'NOK')
+    return make_response(parse_response(resp), 404)
 
 
 @app.route("/start")
@@ -72,7 +90,9 @@ def start():
     """
     Start a run
     """
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    query_db("update run set startTime = ? WHERE id = 1", [time.time()])
+    query_db("update run set expState = ? WHERE id = 1", ["active"])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
 
 
 @app.route("/stop")
@@ -80,7 +100,14 @@ def stop():
     """
     Stop a run, returning intermediate product
     """
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    # fake stopping run by setting starttime a long time in the past
+    query_db("update run set startTime = ? WHERE id = 1", [PAST_TIME])
+    # add 1 to run number
+    row = query_db("select * from run", one=True)
+    run_number = int(row['run'])
+    run_number += 1
+    query_db("update run set run = ? WHERE id = 1", [run_number])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
 
 
 @app.route("/abort")
@@ -88,7 +115,9 @@ def abort_run():
     """
     Abort a run
     """
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    # fake stopping run by setting starttime a long time in the past
+    query_db("update run set startTime = ? WHERE id = 1", [PAST_TIME])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
 
 
 @app.route("/online")
@@ -96,7 +125,8 @@ def online():
     """
     Bring server online, powering on NGC controller
     """
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    query_db("update run set stateName = ? WHERE id = 1", ['ONLINE'])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
 
 
 @app.route("/off")
@@ -104,7 +134,19 @@ def off():
     """
     Bring server to OFF state. All sub-processes terminate
     """
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    query_db("update run set stateName = ? WHERE id = 1", ['OFF'])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
+
+
+@app.route("/standby")
+def standby():
+    """
+    Bring server to standby state.
+
+    All sub-processes are disabled, but server can communicate.
+    """
+    query_db("update run set stateName = ? WHERE id = 1", ['STANDBY'])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
 
 
 @app.route("/reset")
@@ -112,7 +154,39 @@ def reset():
     """
     Resets the NGC controller front end
     """
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
+
+
+@app.route("/summary", methods=['GET'])
+def get_status_summary():
+    """
+    Get status summary of server and exposure from the database
+    """
+    row = query_db("select * from run", one=True)
+    elapsedTime = time.time() - row['startTime']
+    countDown = row['DIT']*row['NDIT'] - elapsedTime
+    run = int(row['run'])
+    if elapsedTime > row['DIT']*row['NDIT']:
+        expStatusName = "success"
+        subState = "idle"
+        if row['expState'] != 'idle':
+            query_db("update run set run = ? WHERE id = 1", [run+1])
+            query_db("update run set expState = ? WHERE id = 1", ["idle"])
+    else:
+        expStatusName = "integrating"
+        subState = "active"
+
+    summary_dictionary = {
+        "RETCODE": "OK",
+        "exposure.baseName": "/home/observer/ngc",
+        "exposure.countDown": str(countDown),
+        "exposure.expStatusName": expStatusName,
+        "exposure.newDataFileName": "ngc{:05d}.fits".format(run),
+        "exposure.time": "6",
+        "system.stateName": row['stateName'],
+        "system.subStateName": subState
+    }
+    return jsonify(summary_dictionary)
 
 
 @app.route("/status", methods=['GET'])
@@ -120,8 +194,9 @@ def get_status():
     """
     Get status of server
     """
-    status = "ONLINE"
-    return parse_response(MSG_TEMPLATE.format(status))
+    row = query_db("select * from run", one=True)
+    status = row['stateName']
+    return parse_response(MSG_TEMPLATE.format(status, "OK"))
 
 
 @app.route("/status/<param_id>", methods=['GET'])
@@ -131,7 +206,8 @@ def get_param_status(param_id):
     """
     if param_id not in KNOWN_PARAMS:
         abort(404)
-    response = MSG_TEMPLATE.format("{} {}".format(param_id, KNOWN_PARAMS[param_id]))
+    ret_value = "{} {}".format(param_id, KNOWN_PARAMS[param_id])
+    response = MSG_TEMPLATE.format(ret_value, "OK")
     return parse_response(response)
 
 
@@ -147,7 +223,11 @@ def set_param_status(param_id):
         # bad request, return 400
         abort(400)
     KNOWN_PARAMS[param_id] = req_json['value']
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    if param_id.startswith('DET.SEQ'):
+        query_db("update run set DIT = ? WHERE id = 1", [req_json['value']])
+    else:
+        query_db("update run set NDIT = ? WHERE id = 1", [req_json['value']])
+    return parse_response(MSG_TEMPLATE.format("OK", "OK"))
 
 
 @app.route("/status/post", methods=['POST'])
@@ -162,8 +242,10 @@ def post_run():
         # bad request, return 400
         abort(400)
     print(type(req_json), req_json)
-    return parse_response(MSG_TEMPLATE.format("OK"))
+    return parse_response(MSG_TEMPLATE.format("Not currently supported",
+                                              "OK"))
 
 
 if __name__ == '__main__':
+    create_db()
     app.run(debug=False)

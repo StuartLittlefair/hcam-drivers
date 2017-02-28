@@ -2200,25 +2200,9 @@ class InfoFrame(tk.LabelFrame):
                 try:
                     # if no run is active, get run number from
                     # hipercam server
-                    # TODO: temporarily commented out to reduce calls to server
-                    # if not isRunActive(g):
-                    #    run = getRunNumber(g, True)
-                    #    self.run.configure(text='{0:03d}'.format(run))
-
-                    # get the value of the run being displayed, regardless of
-                    # whether we just managed to update it
-                    rtxt = self.run.cget('text')
-
-                    # if the value comes back as undefined, try to work out
-                    # the run number from the hipercam server
-                    # TODO: implement this when server is finalised
-                    if rtxt == 'UNDEF':
-                        pass
-                    else:
-                        run = int(rtxt)
-
-                    # OK, we have managed to get the run number
-                    # rstr = 'run{0:03d}'.format(run)
+                    if not isRunActive(g):
+                        run = getRunNumber(g, True)
+                        self.run.configure(text='{0:03d}'.format(run))
 
                     # Find the number of frames in this run
                     # TODO: implement this when server is finalised

@@ -7,6 +7,7 @@ import threading
 import sys
 import traceback
 import os
+import re
 
 from . import DriverError
 
@@ -24,7 +25,15 @@ class ReadServer(object):
                'IDLE', 'BUSY', 'ERROR', 'ABORT', 'UNKNOWN'
      run     : current or last run number
     """
-    def __init__(self, resp):
+    def __init__(self, resp, status_msg=False):
+        """
+        Parameters
+        ----------
+        resp : bytes
+            response from server
+        status_msg : bool (default True)
+            Set True if the response should contain status info
+        """
         # Store the entire response
         try:
             self.root = json.loads(resp.decode())
@@ -37,15 +46,23 @@ class ReadServer(object):
             return
 
         # Work out whether it was happy
-        if 'MESSAGEBUFFER' not in self.root:
+        if 'RETCODE' not in self.root:
             self.ok = False
             self.err = 'Could not identify status'
             self.state = None
             return
+        else:
+            self.ok = True if self.root['RETCODE'] == "OK" else False
+
+        if not status_msg:
+            self.state = None
+            self.run = 0
+            self.err = ''
+            return
 
         # Determine state of the camera
-        sfind = True  # TODO: update this once server finished
-        if sfind is None:
+        sfind = self.root['system.subStateName']
+        if sfind is 'ERR':
             self.ok = False
             self.err = 'Could not identify state'
             self.state = None
@@ -54,13 +71,23 @@ class ReadServer(object):
         else:
             self.ok = True
             self.err = ''
-            self.state = 'IDLE'
+            self.state = self.root['system.subStateName']
 
         # Find current run number (set it to 0 if we fail)
-        # TODO: make this work
-        if 'run_number' not in self.root:
-            self.run = 1
-        else:
+        newDataFileName = self.root["exposure.newDataFileName"]
+        exposure_state = self.root["exposure.expStatusName"]
+        pattern = '\D*(\d*).*.fits'
+        try:
+            run_number = int(re.match(pattern, newDataFileName).group(1))
+            if exposure_state == "success":
+                self.run = run_number
+            elif exposure_state == "integrating":
+                self.run = run_number + 1
+            else:
+                raise ValueError("unknown exposure state {}".format(
+                    exposure_state
+                ))
+        except (ValueError, IndexError):
             self.run = 0
 
     def resp(self):
@@ -133,7 +160,7 @@ def postJSON(g, data):
     g.clog.debug('content length = ' + str(len(json_data)))
     req = urllib.request.Request(url, data=json_data, headers={'Content-type': 'application/json'})
     response = opener.open(req, timeout=5)
-    csr = ReadServer(response.read())
+    csr = ReadServer(response.read(), status_msg=False)
     g.rlog.warn(csr.resp())
     if not csr.ok:
         g.clog.warn('Server response was not OK')
@@ -175,6 +202,7 @@ def execCommand(g, command):
       abort   : aborts a run
       online  : bring ESO control server online and power up hardware
       off     : put ESO control server in idle state and power down
+      standby : server can communicate, but child processes disabled
       reset   : resets the NGC controller front end
 
     Returns True/False according to whether the command
@@ -188,7 +216,7 @@ def execCommand(g, command):
         url = g.cpars['hipercam_server'] + command
         g.clog.info('execCommand, command = "' + command + '"')
         response = urllib.request.urlopen(url)
-        rs = ReadServer(response.read())
+        rs = ReadServer(response.read(), status_msg=False)
 
         g.rlog.info('Server response =\n' + rs.resp())
         if rs.ok:
@@ -211,15 +239,15 @@ def isRunActive(g):
     """
     if g.cpars['hcam_server_on']:
         # TODO: make this operate properly when server is finalised
-        url = g.cpars['hipercam_server'] + 'status'
+        url = g.cpars['hipercam_server'] + 'summary'
         response = urllib.request.urlopen(url, timeout=2)
-        rs = ReadServer(response.read())
+        rs = ReadServer(response.read(), status_msg=True)
         if not rs.ok:
             raise DriverError('isRunActive error: ' + str(rs.err))
 
-        if rs.state == 'IDLE':
+        if rs.state == 'idle':
             return False
-        elif rs.state == 'BUSY':
+        elif rs.state == 'active':
             return True
         else:
             raise DriverError('isRunActive error, state = ' + rs.state)
@@ -245,9 +273,9 @@ def getRunNumber(g, nocheck=False):
 
     if nocheck or isRunActive(g):
         # TODO: make operational when server finalised
-        url = g.cpars['hipercam_server'] + 'status'
+        url = g.cpars['hipercam_server'] + 'summary'
         response = urllib.request.urlopen(url)
-        rs = ReadServer(response.read())
+        rs = ReadServer(response.read(), status_msg=True)
         if rs.ok:
             return rs.run
         else:
