@@ -45,7 +45,7 @@ def databaseSummary():
     """
     Get a summary of system state and exposure state from database
     """
-    cmdTemplate = 'dbRead "<alias>ngcircon:"{}'
+    cmdTemplate = 'dbRead "<alias>ngcircon_ircam1:"{}'
     database_attributes = [
         'system.stateName',
         'system.subStateName',
