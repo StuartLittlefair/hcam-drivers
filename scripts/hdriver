@@ -248,6 +248,7 @@ class GUI(tk.Tk):
                                    self.globals.cpars['rtplot_server_port'])
         self.server.run()
 
+
 if __name__ == "__main__":
 
     # command-line parameters
