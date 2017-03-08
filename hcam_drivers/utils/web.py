@@ -84,7 +84,7 @@ class FastFITSPipe:
                 dims.append(self.hdr['NAXIS' + str(idx)])
         return tuple(dims)
 
-    def seek(self, frame_number):
+    def seek_frame(self, frame_number):
         """
         Try and find the start of a given frame
 
@@ -93,7 +93,10 @@ class FastFITSPipe:
         self._fileobj.seek(self.header_bytesize + self.framesize*(frame_number-1))
 
     def read_frame_bytes(self):
-        return self._fileobj.read(self.framesize)
+        raw_bytes = self._fileobj.read(self.framesize)
+        if len(raw_bytes) != self.framesize:
+            raise EOFError('frame not written yet')
+        return raw_bytes
 
 
 def raw_bytes_to_numpy(raw_data, bscale=1, bzero=32768, dtype='int16'):
