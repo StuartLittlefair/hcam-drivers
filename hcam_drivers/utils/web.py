@@ -93,8 +93,11 @@ class FastFITSPipe:
         self._fileobj.seek(self.header_bytesize + self.framesize*(frame_number-1))
 
     def read_frame_bytes(self):
+        start_pos = self._fileobj.tell()
         raw_bytes = self._fileobj.read(self.framesize)
         if len(raw_bytes) != self.framesize:
+            # go back to start position
+            self._fileobj.seek(start_pos)
             raise EOFError('frame not written yet')
         return raw_bytes
 
