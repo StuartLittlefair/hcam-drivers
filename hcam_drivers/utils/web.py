@@ -61,6 +61,7 @@ class FastFITSPipe:
         self._fileobj.seek(0)
         return fits.Header.fromfile(self._fileobj)
 
+    #  TODO: need a robust way of finding this for all applications
     @lazyproperty
     def framesize(self):
         size = 0
@@ -74,6 +75,7 @@ class FastFITSPipe:
             size = abs(bitpix) * size // 8
         return size
 
+    #  TODO: need a robust way of finding this for all applications
     @lazyproperty
     def output_shape(self):
         naxis = self.hdr.get('NAXIS', 0)
