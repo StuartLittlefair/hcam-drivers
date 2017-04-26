@@ -1,10 +1,15 @@
 # talk to honeywell temperature monitor
 from __future__ import absolute_import, unicode_literals, print_function, division
-from pymodbus.constants import Endian
-from pymodbus.payload import BinaryPayloadDecoder
-from pymodbus.client.sync import ModbusTcpClient as ModbusClient
-
 from .utils import DriverError
+import six
+if six.PY2:
+    from pymodbus.constants import Endian
+    from pymodbus.payload import BinaryPayloadDecoder
+    from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+else:
+    from pymodbus3.constants import Endian
+    from pymodbus3.payload import BinaryPayloadDecoder
+    from pymodbus3.client.sync import ModbusTcpClient as ModbusClient
 
 
 class Honeywell:
