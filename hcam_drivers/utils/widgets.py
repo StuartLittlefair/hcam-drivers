@@ -2515,7 +2515,7 @@ class WinPairs(tk.Frame):
         xyframe.grid(row=0, column=1, sticky=tk.W)
 
         row = 1
-        allowed_pairs = (1, 2, 4)
+        allowed_pairs = (1,)
         ap = [pairnum for pairnum in allowed_pairs if pairnum <= npair]
         self.npair = ListInt(top, ap[0], ap, checker, width=2)
         if npair > 1:
@@ -2794,6 +2794,389 @@ class WinPairs(tk.Frame):
         while n < npair:
             yield (self.xsl[n].value(), self.xsr[n].value(),
                    self.ys[n].value(), self.nx[n].value(), self.ny[n].value())
+            n += 1
+
+
+class WinQuads(tk.Frame):
+    """
+    Class to define a frame of multiple window quads,
+    contained within a gridded block that can be easily postioned.
+    """
+
+    def __init__(self, master,
+                 xsll, xsllmin, xsllmax, xsul, xsulmin, xsulmax,
+                 xslr, xslrmin, xslrmax, xsur, xsurmin, xsurmax,
+                 ys, ysmin, ysmax, nx, ny, xbfac, ybfac, checker):
+        """
+        Arguments:
+
+            master:
+                container widget
+
+            xsll, xsllmin, xsllmax: float or container of floats
+                initial X values of the lower left window in quad, along
+                with minimum and maximum values.
+
+            xsul, xsulmin, xsulmax: float or container of floats
+                initial X values of the upper left window in quad, along
+                with minimum and maximum values.
+
+            xslr, xslrmin, xslrmax: float or container of floats
+                initial X values of the lower right window in quad, along
+                with minimum and maximum values.
+
+            xsur, xsurmin, xsurmax: float or container of floats
+                initial X values of the upper right window in quad, along
+                with minimum and maximum values.
+
+            ys, ysmin, ysmax: float or container of floats
+                initial Y values of the window, as measured from serial
+                register, along with minimum and maximum values
+
+            nx : float or container of floats
+                X dimensions of windows, unbinned pixels
+
+            ny : float or container of floats
+                Y dimensions of windows, unbinned pixels
+
+            xbfac : float or container of floats
+                array of unique x-binning factors
+
+            ybfac : float or container of floats
+                array of unique y-binning factors
+
+            checker :
+                checker function to provide a global check and update in response
+                to any changes made to the values stored in a Window. Can be None.
+
+        It is assumed that the maximum X dimension is the same for all windows in the quad
+        and is equal to xsllmax - xsllmin + 1.
+        """
+        # check we have a consistent number of quads in all parameters
+        nquad = len(xsll)
+        checks = (xsll, xsllmin, xsllmax, xsul, xsulmin, xsulmax,
+                  xslr, xslrmin, xslrmax, xsur, xsurmin, xsurmax,
+                  ys, ysmin, ysmax, nx, ny)
+        for check in checks:
+            if nquad != len(check):
+                raise DriverError('drivers.WinQuads.__init__:' +
+                                  ' conflicting array lengths amongst inputs')
+
+        super(WinQuads, self).__init__(master)
+
+        # top part contains binning factors and number of quads
+        top = tk.Frame(self)
+        top.pack(anchor=tk.W)
+
+        tk.Label(top, text='Binning factors (X x Y): ').grid(
+            row=0, column=0, sticky=tk.W)
+
+        xyframe = tk.Frame(top)
+        self.xbin = ListInt(xyframe, xbfac[0], xbfac, checker, width=2)
+        self.xbin.pack(side=tk.LEFT)
+        tk.Label(xyframe, text=' x ').pack(side=tk.LEFT)
+        self.ybin = ListInt(xyframe, ybfac[0], ybfac, checker, width=2)
+        self.ybin.pack(side=tk.LEFT)
+        xyframe.grid(row=0, column=1, sticky=tk.W)
+
+        row = 1
+        allowed_quads = (1, 2)
+        aq = [quadnum for quadnum in allowed_quads if quadnum <= nquad]
+        self.nquad = ListInt(top, aq[0], aq, checker, width=2)
+        if nquad > 1:
+            # Second row: number of quads selector
+            tk.Label(top, text='Number of window quads').grid(
+                row=1, column=0, sticky=tk.W)
+            self.nquad.grid(ow=row, column=1, sticky=tk.W, pady=2)
+            row += 1
+
+        # bottom part of the frame contains the window settings
+        bottom = tk.Frame(self)
+        bottom.pack(anchor=tk.W)
+
+        # top row - labels
+        tk.Label(bottom, text='xsll').grid(row=row, column=1, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='xsul').grid(row=row, column=2, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='xslr').grid(row=row, column=3, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='xsur').grid(row=row, column=4, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='ys').grid(row=row, column=5, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='nx').grid(row=row, column=6, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='ny').grid(row=row, column=7, ipady=5, sticky=tk.S)
+
+        row += 1
+        (self.label, self.xsll, self.xsul, self.xslr, self.xsur,
+         self.ys, self.nx, self.ny) = [], [], [], [], [], [], [], []
+        nr = 0
+        for (xsll, xsllmin, xsllmax, xsul, xsulmin, xsulmax,
+             xslr, xslrmin, xslrmax, xsur, xsurmin, xsurmax,
+             ys, ysmin, ysmax, nx, ny) in zip(*checks):
+
+            # create
+            if nquad == 1:
+                self.label.append(tk.Label(bottom, text='Quad: '))
+            else:
+                self.label.append(
+                    tk.Label(bottom, text='Pair ' + str(nr) + ': ')
+                )
+
+            self.xsll.append(
+                RangedInt(bottom, xsll, xsllmin, xsllmax, checker, True, width=4))
+            self.xsul.append(
+                RangedInt(bottom, xsul, xsulmin, xsulmax, checker, True, width=4))
+            self.xslr.append(
+                RangedInt(bottom, xslr, xslrmin, xslrmax, checker, True, width=4))
+            self.xsur.append(
+                RangedInt(bottom, xsur, xsurmin, xsurmax, checker, True, width=4))
+            self.ys.append(
+                RangedInt(bottom, ys, ysmin, ysmax, checker, True, width=4))
+            self.nx.append(
+                RangedMint(bottom, nx, 1, xsulmax-xsulmin+1, self.xbin,
+                           checker, True, width=4))
+            self.ny.append(
+                RangedMint(bottom, ny, 1, ysmax-ysmin+1, self.ybin,
+                           checker, True, width=4))
+
+            # arrange
+            self.label[-1].grid(row=row, column=0)
+            self.xsll[-1].grid(row=row, column=1)
+            self.xsul[-1].grid(row=row, column=2)
+            self.xslr[-1].grid(row=row, column=3)
+            self.xsur[-1].grid(row=row, column=4)
+            self.ys[-1].grid(row=row, column=5)
+            self.nx[-1].grid(row=row, column=6)
+            self.ny[-1].grid(row=row, column=7)
+
+            row += 1
+            nr += 1
+
+        # sync button
+        self.sbutt = ActButton(bottom, 5, self.sync, text='Sync')
+        self.sbutt.grid(row=row, column=0, columnspan=7, pady=10, sticky=tk.W)
+        self.frozen = False
+
+    def check(self):
+        """
+        Checks the values of the window quads. If any problems are found it
+        flags the offending window by changing the background colour.
+
+        Returns:
+            status : bool
+        """
+        status = synced = True
+
+        xbin = self.xbin.value()
+        ybin = self.ybin.value()
+        nquad = self.nquad.value()
+
+        g = get_root(self).globals
+        # individual window checks
+        for (xsllw, xsulw, xslrw, xsurw, ysw, nxw, nyw) in zip(
+             self.xsll[:nquad],
+             self.xsul[:nquad], self.xslr[:nquad],
+             self.xsur[:nquad], self.ys[:nquad], self.nx[:nquad], self.ny[:nquad]):
+
+            all_fields = (xsllw, xsulw, xslrw, xsurw, ysw, nxw, nyw)
+            for field in all_fields:
+                field.config(bg=g.COL['main'])
+                status = status if field.ok() else False
+
+            xsll = xsllw.value()
+            xsul = xsulw.value()
+            xslr = xslrw.value()
+            xsur = xsurw.value()
+            ys = ysw.value()
+            nx = nxw.value()
+            ny = nyw.value()
+
+            # Are unbinned dimensions consistent with binning factors?
+            if nx is None or nx % xbin != 0:
+                nxw.config(bg=g.COL['error'])
+                status = False
+            if ny is None or ny % ybin != 0:
+                nyw.config(bg=g.COL['error'])
+                status = False
+
+            # overlap checks in x direction
+            if xsll is None or xslr is None or xsll >= xslr:
+                xslrw.config(bg=g.COL['error'])
+                status = False
+            if xsul is None or xsur is None or xsul >= xsur:
+                xsurw.config(bg=g.COL['error'])
+                status = False
+            if nx is None or xsll + nx > xslr:
+                xslrw.config(bg=g.COL['error'])
+                status = False
+            if xsul + nx > xsur:
+                xsurw.config(bg=g.COL['error'])
+                status = False
+
+            # Are the windows synchronised? This means that they would
+            # be consistent with the pixels generated were the whole CCD
+            # to be binned by the same factors. If relevant values are not
+            # set, we count that as "synced" because the purpose of this is
+            # to enable / disable the sync button and we don't want it to be
+            # enabled just because xs or ys are not set.
+            perform_check = all([param is not None for param in (
+                xsll, xslr, ys, nx, ny
+            )])
+            if (perform_check and ((xsll - 1) % xbin != 0 or (xslr - 1) % xbin != 0 or
+                                   (ys - 1) % ybin != 0)):
+                synced = False
+
+            perform_check = all([param is not None for param in (
+                xsul, xsur, ys, nx, ny
+            )])
+            if (perform_check and ((xsul - 1) % xbin != 0 or (xsur - 1) % xbin != 0 or
+                                   (ys - 1) % ybin != 0)):
+                synced = False
+
+            # Range checks
+            rchecks = ((xsll, nx, xsllw), (xslr, nx, xslrw),
+                       (xsul, nx, xsulw), (xsur, nx, xsurw),
+                       (ys, ny, ysw))
+            for check in rchecks:
+                val, size, widg = check
+                if val is None or size is None or val + size - 1 > widg.imax:
+                    widg.config(bg=g.COL['error'])
+                    status = False
+
+            # Quad overlap checks. Compare one quad with the next one
+            # in the same quadrant if there is one. Only bother if we
+            # have survived so far, which saves a lot of checks.
+            if status:
+                for index in range(nquad-1):
+                    ys1 = self.ys[index].value()
+                    ny1 = self.ny[index].value()
+                    ysw2 = self.ys[index+1]
+                    ys2 = ysw2.value()
+
+                    if ys1 + ny1 > ys2:
+                        ysw2.config(bg=g.COL['error'])
+                        status = False
+
+            if synced:
+                self.sbutt.config(bg=g.COL['main'])
+                self.sbutt.disable()
+            else:
+                if not self.frozen:
+                    self.sbutt.enable()
+                self.sbutt.config(bg=g.COL['warn'])
+
+            return status
+
+    def sync(self):
+        """
+        Synchronise the settings.
+
+        This routine changes the window settings so that the pixel start
+        values are shifted downwards until they are synchronised with a
+        full-frame binned version. This does nothing if the binning factor
+        is 1.
+        """
+        xbin = self.xbin.value()
+        ybin = self.ybin.value()
+        if xbin == 1 and ybin == 1:
+            self.sbutt.config(state='disable')
+            return
+
+        for n, (xsll, xsul, xslr, xsur, ys, nx, ny) in enumerate(self):
+            if xsll % xbin != 1:
+                xsll = xbin * ((xsll-1)//xbin)+1
+                self.xsll[n].set(xsll)
+            if xsul % xbin != 1:
+                xsul = xbin * ((xsul-1)//xbin)+1
+                self.xsul[n].set(xsul)
+            if xslr % xbin != 1:
+                xslr = xbin * ((xslr-1)//xbin)+1
+                self.xslr[n].set(xslr)
+            if xsur % xbin != 1:
+                xsur = xbin * ((xsur-1)//xbin)+1
+                self.xsur[n].set(xsur)
+
+            if ybin > 1 and ys % ybin != 1:
+                ys = ybin*((ys-1)//ybin)+1
+                self.ys[n].set(ys)
+
+        self.sbutt.config(state='disable')
+
+    def freeze(self):
+        """
+        Freeze (disable) all settings
+        """
+        for fields in zip(self.xsll, self.xsul, self.xslr, self.xsur,
+                          self.ys, self.nx, self.ny):
+            for field in fields:
+                field.disable()
+        self.nquad.disable()
+        self.xbin.disable()
+        self.ybin.disable()
+        self.sbutt.disable()
+        self.frozen = True
+
+    def unfreeze(self):
+        """
+        Unfreeze all settings so they can be altered
+        """
+        self.enable()
+        self.frozen = False
+        self.check()
+
+    def disable(self, everything=False):
+        """
+        Disable all but optionally not binning, which is needed for FF apps
+
+        Parameters
+        -----------
+        everything: bool
+            disable binning as well
+        """
+        self.freeze()
+        if not everything:
+            self.xbin.enable()
+            self.ybin.enable()
+        self.frozen = False
+
+    def enable(self):
+        """
+        Enables WinQuad setting
+        """
+        nquad = self.nquad.value()
+        for label, xsll, xsul, xslr, xsur, ys, nx, ny in \
+                zip(self.label[:nquad], self.xsll[:nquad], self.xsul[:nquad],
+                    self.xslr[:nquad], self.xsur[:nquad], self.ys[:nquad],
+                    self.nx[:nquad], self.ny[:nquad]):
+            label.config(state='normal')
+            for thing in (xsll, xsul, xslr, xsur, ys, nx, ny):
+                thing.enable()
+
+        for label, xsll, xsul, xslr, xsur, ys, nx, ny in \
+                zip(self.label[nquad:], self.xsll[nquad:], self.xsul[nquad:],
+                    self.xslr[nquad:], self.xsur[nquad:], self.ys[nquad:],
+                    self.nx[nquad:], self.ny[nquad:]):
+            label.config(state='disable')
+            for thing in (xsll, xsul, xslr, xsur, ys, nx, ny):
+                thing.disable()
+
+        self.nquad.enable()
+        self.xbin.enable()
+        self.ybin.enable()
+        self.sbutt.enable()
+
+    def __iter__(self):
+        """
+        Generator to allow looping through window quads.
+
+        Successive calls return xsll, xsul, xslr, xsur, ys, nx, ny
+        for each quad.
+        """
+        n = 0
+        nquad = self.nquad.value()
+        while n < nquad:
+            yield (
+                self.xsll[n].value(), self.xsul[n].value(),
+                self.xslr[n].value(), self.xsur[n].value(),
+                self.ys[n].value(), self.nx[n].value, self.ny[n].value()
+            )
             n += 1
 
 
