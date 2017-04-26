@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+import glob
+import os
+
+import tornado.ioloop
+from tornado.web import Application, url
+from tornado import websocket
+import json
+
+from hcam_drivers.utils.web import BaseHandler, FastFITSPipe
+
+
+class MainHandler(BaseHandler):
+    def initialize(self, db):
+        self.db = db
+
+    def get(self, path):
+        try:
+            action = self.get_argument('action')
+        except:
+            raise tornado.web.HTTPError(400)
+        if action == "dir":
+            self.list_dir(self.db['dir'], path)
+        else:
+            raise tornado.web.HTTPError(400)
+
+    def list_dir(self, root, stub):
+        path = os.path.abspath(os.path.join(root, stub, "*.fits"))
+        files = [os.path.splitext(
+                    os.path.basename(file))[0] for file in glob.glob(path)]
+        self.write("\n".join(files))
+
+
+class RunHandler(websocket.WebSocketHandler):
+
+    def initialize(self, db):
+        self.db = db
+
+    def check_origin(self, origin):
+        # allow cross-origin connections
+        return True
+
+    def open(self, run_id):
+        print('Connection opened to access {}'.format(run_id))
+        self.run_id = run_id
+        self.ffp = self.get_ffp(run_id)
+
+    def on_message(self, message):
+        msg = json.loads(message)
+        action = msg['action']
+        if action == 'get_frame':
+            self.get_frame(msg['frame_number'])
+        elif action == 'get_hdr':
+            self.get_main_header()
+        elif action == 'get_next':
+            self.get_next_frame()
+
+    def on_close(self):
+        print('Socket closed')
+        self.ffp._fileobj.close()
+
+    def get_ffp(self, run_id):
+        fname = '{}.fits'.format(run_id)
+        path = os.path.join(self.db['dir'], fname)
+        return FastFITSPipe(open(path, 'rb'))
+
+    def get_main_header(self):
+        """
+        Send main FITS HDU as txt
+        """
+        hdr = self.hdr
+        self.write_message(hdr.tostring(sep='\n'))
+
+    def get_frame(self, frame_id):
+        """
+        Read data from HDU in FITS file and send FITS HDUs as binary data
+        """
+        self.ffp.seek_frame(frame_id)
+        self._send_frame()
+
+    def _send_frame(self):
+        fits_bytes = self.ffp.read_frame_bytes()
+        # write the stuff
+        self.write_message(fits_bytes, binary=True)
+
+    def get_next_frame(self):
+        self._send_frame()
+
+
+def make_app(db, debug):
+    return Application([
+        # url routing. look for runXXX pattern first, assume everything else
+        # is a directory for e.g uls
+        url(r"/(run[0-9]+)", RunHandler, dict(db=db)),
+        url(r"/(.*)", MainHandler, dict(db=db), name="path")
+    ], debug=debug)
+
+
+def run_fileserver(dir, debug):
+    # we pass around current run and reference to open fits object
+    # to minimise the overheads associated with each request.
+    # this will break if the fileserver is run with multiple processes!
+    db = {'dir': dir}
+    app = make_app(db, debug)
+    app.listen(8007)
+    tornado.ioloop.IOLoop.current().start()
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="HiPERCAM FileServer")
+    parser.add_argument('--dir', action='store', default='.', help="directory to serve")
+    parser.add_argument('--debug', action='store_true', help="debug fileserver")
+    args = parser.parse_args()
+    run_fileserver(os.path.abspath(args.dir), args.debug)

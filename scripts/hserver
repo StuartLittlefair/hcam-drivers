@@ -7,12 +7,13 @@ import yaml
 import subprocess
 import traceback
 
+from hcam_drivers.utils.web import MSG_TEMPLATE
+
 # This script provides a "thin client" that runs on the rack PC.
 # The thin client acts as a bridge between client software on
 # another machine and the ESO software, controlling the camera and
 # receiving info about the current status
 
-MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
 KNOWN_PARAMS = [
     'DET.NDIT',
     'DET.SEQ2.DIT',
