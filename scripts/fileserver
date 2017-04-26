@@ -1,0 +1,145 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+import glob
+import os
+
+import tornado.ioloop
+from tornado.web import Application, url
+
+from hcam_drivers.utils.web import BaseHandler, FastFITSPipe
+
+
+class MainHandler(BaseHandler):
+    def initialize(self, db):
+        self.db = db
+
+    def get(self, path):
+        try:
+            action = self.get_argument('action')
+        except:
+            raise tornado.web.HTTPError(400)
+        if action == "dir":
+            self.list_dir(self.db['dir'], path)
+        else:
+            raise tornado.web.HTTPError(400)
+
+    def list_dir(self, root, stub):
+        path = os.path.abspath(os.path.join(root, stub, "*.fits"))
+        files = [os.path.splitext(
+                    os.path.basename(file))[0] for file in glob.glob(path)]
+        self.write("\n".join(files))
+
+
+class RunHandler(BaseHandler):
+    def initialize(self, db):
+        self.db = db  # global db used for state
+
+    def _get_client_state(self, run_id):
+        self.client_key = self.request.remote_ip
+        # get state
+        make_new_ffp = False
+        try:
+            prev_run_id = self.db[self.client_key]['run_id']
+            if prev_run_id != run_id:
+                self.run_id = run_id
+                make_new_ffp = True
+        except:
+            self.run_id = run_id
+            make_new_ffp = True
+
+        if make_new_ffp:
+            print('loading {} for client {}'.format(
+                self.run_id, self.client_key
+            ))
+            self.ffp = self.get_ffp(self.run_id)
+        else:
+            self.ffp = self.db[self.client_key]['ffp']
+
+    def on_finish(self):
+        # TODO: how do we ever close open file handles??
+        # save state for next request
+        try:
+            self.db[self.client_key] = dict(run_id=self.run_id, ffp=self.ffp)
+        except:
+            pass
+
+    def get(self, run_id):
+        # get some info about a given run
+        action = self.get_argument('action')
+        if action not in ['get_hdr', 'get_frame', 'get_next_frame']:
+            raise tornado.web.HTTPError(400)
+        self._get_client_state(run_id)
+        try:
+            if action == "get_hdr":
+                try:
+                    self.get_main_header()
+                except:
+                    raise tornado.web.HTTPError(400)
+            elif action == "get_frame":
+                try:
+                    frame_id = int(self.get_argument('frame'))
+                    self.get_frame(frame_id)
+                except:
+                    raise tornado.web.HTTPError(400)
+            elif action == "get_next_frame":
+                try:
+                    self.get_next_frame()
+                except:
+                    raise tornado.web.HTTPError(400)
+        except:
+            raise tornado.web.HTTPError(400)
+
+    def get_ffp(self, run_id):
+        fname = '{}.fits'.format(run_id)
+        path = os.path.join(self.db['dir'], fname)
+        return FastFITSPipe(open(path, 'rb'))
+
+    def get_main_header(self):
+        """
+        Send main FITS HDU as txt
+        """
+        hdr = self.ffp.hdr
+        self.write(hdr.tostring(sep='\n').encode('UTF-8'))
+
+    def get_frame(self, frame_id):
+        """
+        Read data from HDU in FITS file and send FITS HDUs as binary data
+        """
+        self.ffp.seek_frame(frame_id)
+        self._send_frame()
+
+    def _send_frame(self):
+        fits_bytes = self.ffp.read_frame_bytes()
+        # write the stuff
+        self.set_header("Content-type",  "image/data")
+        self.set_header('Content-length', len(fits_bytes))
+        self.write(fits_bytes)
+
+    def get_next_frame(self):
+        self._send_frame()
+
+
+def make_app(db, debug):
+    return Application([
+        # url routing. look for runXXX pattern first, assume everything else
+        # is a directory for e.g uls
+        url(r"/(run[0-9]+)", RunHandler, dict(db=db), name="run"),
+        url(r"/(.*)", MainHandler, dict(db=db), name="path")
+    ], debug=debug)
+
+
+def run_fileserver(dir, debug):
+    db = {'dir': dir}
+    app = make_app(db, debug)
+    app.listen(8007)
+    tornado.ioloop.IOLoop.current().start()
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="HiPERCAM FileServer")
+    parser.add_argument('--dir', action='store', default='.', help="directory to serve")
+    parser.add_argument('--debug', action='store_true', help="debug fileserver")
+    args = parser.parse_args()
+    run_fileserver(os.path.abspath(args.dir), args.debug)
