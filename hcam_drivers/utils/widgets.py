@@ -2885,7 +2885,7 @@ class WinQuads(tk.Frame):
         self.nquad = ListInt(top, aq[0], aq, checker, width=2)
         if nquad > 1:
             # Second row: number of quads selector
-            tk.Label(top, text='Number of window quads').grid(
+            tk.Label(top, text='Number of window quads: ').grid(
                 row=1, column=0, sticky=tk.W)
             self.nquad.grid(row=row, column=1, sticky=tk.W, pady=2)
             row += 1
@@ -2916,7 +2916,7 @@ class WinQuads(tk.Frame):
                 self.label.append(tk.Label(bottom, text='Quad: '))
             else:
                 self.label.append(
-                    tk.Label(bottom, text='Pair ' + str(nr) + ': ')
+                    tk.Label(bottom, text='Quad ' + str(nr) + ': ')
                 )
 
             self.xsll.append(
@@ -3175,7 +3175,7 @@ class WinQuads(tk.Frame):
             yield (
                 self.xsll[n].value(), self.xsul[n].value(),
                 self.xslr[n].value(), self.xsur[n].value(),
-                self.ys[n].value(), self.nx[n].value, self.ny[n].value()
+                self.ys[n].value(), self.nx[n].value(), self.ny[n].value()
             )
             n += 1
 
