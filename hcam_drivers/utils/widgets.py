@@ -2887,7 +2887,7 @@ class WinQuads(tk.Frame):
             # Second row: number of quads selector
             tk.Label(top, text='Number of window quads').grid(
                 row=1, column=0, sticky=tk.W)
-            self.nquad.grid(ow=row, column=1, sticky=tk.W, pady=2)
+            self.nquad.grid(row=row, column=1, sticky=tk.W, pady=2)
             row += 1
 
         # bottom part of the frame contains the window settings
