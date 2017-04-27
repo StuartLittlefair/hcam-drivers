@@ -181,32 +181,59 @@ class InstPars(tk.LabelFrame):
         # right hand side: window parameters
         rhs = tk.Frame(self)
 
+        # We have two possible window frames. A single pair for
+        # drift mode, or a 2-quad frame for window mode.
+
+        # drift frame
         # xstart - LH window of pair
-        xsls = (1, 1, 1, 1)
-        xslmins = (1, 1, 1, 1)
-        xslmaxs = (1024, 1024, 1024, 1024)
+        xsls = (1,)
+        xslmins = (1,)
+        xslmaxs = (1024,)
         # xstart - RH window of pair
-        xsrs = (1025, 1025, 1025, 1025)
-        xsrmins = (1025, 1025, 1025, 1025)
-        xsrmaxs = (2048, 2048, 2048, 2048)
+        xsrs = (1025,)
+        xsrmins = (1025,)
+        xsrmaxs = (2048,)
         # ystart values
-        yss = (1, 513, 1, 513)
-        ysmins = (1, 513, 1, 513)
-        ysmaxs = (512, 1024, 512, 1024)
+        yss = (1,)
+        ysmins = (1,)
+        ysmaxs = (512,)
         # sizes of windows (start at FF)
-        nxs = (1024, 1024, 1024, 1024)
-        nys = (512, 512, 512, 512)
+        nxs = (100,)
+        nys = (100,)
         # allowed binning factors
         xbfac = (1, 2, 3, 4, 8)
         ybfac = (1, 2, 3, 4, 8)
-        self.old_npair = 2
-        self.wframe = w.WinPairs(rhs, xsls, xslmins, xslmaxs,
-                                 xsrs, xsrmins, xsrmaxs,
-                                 yss, ysmins, ysmaxs,
-                                 nxs, nys, xbfac, ybfac,
-                                 self.check)
-        self.wframe.grid(row=2, column=0, columnspan=3,
-                         sticky=tk.W+tk.N)
+        self.drift_frame = w.WinPairs(rhs, xsls, xslmins, xslmaxs,
+                                      xsrs, xsrmins, xsrmaxs,
+                                      yss, ysmins, ysmaxs,
+                                      nxs, nys, xbfac, ybfac,
+                                      self.check)
+
+        # window frame for quads
+        # xstart on LHS
+        xsll = xsul = (1, 1)
+        xsllmin = xsulmin = (1, 1)
+        xsllmax = xsulmax = (1024, 1024)
+        # xstart on RHS
+        xslr = xsur = (1025, 1025)
+        xslrmin = xsurmin = (1025, 1025)
+        xslrmax = xsurmax = (2048, 2048)
+        # ystart
+        ys = (1, 1)
+        ysmin = (1, 1)
+        ysmax = (512, 512)
+        # sizes (start at FF)
+        nx = (1024, 1024)
+        ny = (512, 512)
+        self.quad_frame = w.WinQuads(rhs, xsll, xsllmin, xsllmax,
+                                     xsul, xsulmin, xsulmax,
+                                     xslr, xslrmin, xslrmax,
+                                     xsur, xsurmin, xsurmax,
+                                     ys, ysmin, ysmax, nx, ny,
+                                     xbfac, ybfac, self.check)
+
+        self.quad_frame.grid(row=2, column=0, columnspan=3,
+                             sticky=tk.W+tk.N)
 
         # Pack two halfs
         lhs.pack(side=tk.LEFT, anchor=tk.N, padx=5)
@@ -216,6 +243,12 @@ class InstPars(tk.LabelFrame):
         self.frozen = False
 
         self.setExpertLevel()
+
+    @property
+    def wframe(self):
+        if self.isDrift():
+            return self.drift_frame
+        return self.quad_frame
 
     def setExpertLevel(self):
         g = get_root(self).globals
@@ -268,12 +301,22 @@ class InstPars(tk.LabelFrame):
         )
         # add window mode
         if not self.isFF():
-            for iw, (xsl, xsr, ys, nx, ny) in enumerate(self.wframe):
-                data['x{}start_left'.format(iw+1)] = xsl
-                data['x{}start_right'.format(iw+1)] = xsr
-                data['y{}start'.format(iw+1)] = ys
-                data['y{}size'.format(iw+1)] = ny
-                data['x{}size'.format(iw+1)] = nx
+            if self.isDrift():
+                for iw, (xsl, xsr, ys, nx, ny) in enumerate(self.wframe):
+                    data['x{}start_left'.format(iw+1)] = xsl
+                    data['x{}start_right'.format(iw+1)] = xsr
+                    data['y{}start'.format(iw+1)] = ys
+                    data['y{}size'.format(iw+1)] = ny
+                    data['x{}size'.format(iw+1)] = nx
+            else:
+                for iw, (xsll, xsul, xslr, xsur, ys, nx, ny) in enumerate(self.wframe):
+                    data['x{}start_upperleft'.format(iw+1)] = xsul
+                    data['x{}start_lowerleft'.format(iw+1)] = xsll
+                    data['x{}start_upperright'.format(iw+1)] = xsur
+                    data['x{}start_lowerright'.format(iw+1)] = xslr
+                    data['y{}start'.format(iw+1)] = ys
+                    data['x{}size'.format(iw+1)] = nx
+                    data['y{}size'.format(iw+1)] = ny
         return data
 
     def loadJSON(self, json_string):
@@ -332,25 +375,29 @@ class InstPars(tk.LabelFrame):
             elif app == 'Windows':
                 # enable clear mode if set
                 self.clear.set(data.get('clear', 0))
-                nwin = 0
-                for nw in range(4):
-                    labels = ('x{0}start_left y{0}start ' +
-                              'x{0}start_right x{0}size y{0}size').format(nw+1).split()
+                nquad = 0
+                for nw in range(2):
+                    labels = ('x{0}start_lowerleft y{0}start x{0}start_upperleft x{0}start_upperright ' +
+                              'x{0}start_lowerright x{0}size y{0}size').format(nw+1).split()
                     if all(label in data for label in labels):
-                        xsl = data[labels[0]]
-                        xsr = data[labels[2]]
+                        xsll = data[labels[0]]
+                        xslr = data[labels[4]]
+                        xsul = data[labels[2]]
+                        xsur = data[labels[3]]
                         ys = data[labels[1]]
-                        nx = data[labels[3]]
-                        ny = data[labels[4]]
-                        self.wframe.xsl[nw].set(xsl)
-                        self.wframe.xsr[nw].set(xsr)
+                        nx = data[labels[5]]
+                        ny = data[labels[6]]
+                        self.wframe.xsll[nw].set(xsll)
+                        self.wframe.xslr[nw].set(xslr)
+                        self.wframe.xsul[nw].set(xsul)
+                        self.wframe.xsur[nw].set(xsur)
                         self.wframe.ys[nw].set(ys)
                         self.wframe.nx[nw].set(nx)
                         self.wframe.ny[nw].set(ny)
-                        nwin += 1
+                        nquad += 1
                     else:
                         break
-                self.wframe.npair.set(nwin)
+                self.wframe.nquad.set(nquad)
 
     def check(self, *args):
         """
@@ -370,13 +417,22 @@ class InstPars(tk.LabelFrame):
             True or False according to whether the settings are OK.
         """
         status = True
+
+        # keep binning factors of drift mode and windowed mode up to date
+        xbin, ybin = self.wframe.xbin.value(), self.wframe.ybin.value()
+        frame = self.quad_frame if self.quad_frame is not self.wframe else self.drift_frame
+        frame.xbin.set(xbin)
+        frame.ybin.set(ybin)
+
         if self.isDrift():
             self.clearLab.config(state='disable')
+            if not self.drift_frame.winfo_ismapped():
+                self.quad_frame.grid_forget()
+                self.drift_frame.grid(row=2, column=0, columnspan=3,
+                                      sticky=tk.W+tk.N)
+
             if not self.frozen:
                 self.clear.config(state='disable')
-                self.old_npair = self.wframe.npair.value()
-                self.wframe.npair.set(1)
-                self.wframe.npair.allowed = (1,)
                 self.wframe.enable()
                 status = self.wframe.check()
 
@@ -388,11 +444,13 @@ class InstPars(tk.LabelFrame):
 
         else:
             self.clearLab.config(state='normal')
+            if not self.quad_frame.winfo_ismapped():
+                self.drift_frame.grid_forget()
+                self.quad_frame.grid(row=2, column=0, columnspan=3,
+                                     sticky=tk.W+tk.N)
+
             if not self.frozen:
                 self.clear.config(state='normal')
-                self.wframe.npair.allowed = (2, 4)
-                if self.wframe.npair.value() == 1:
-                    self.wframe.npair.set(self.old_npair)
                 self.wframe.enable()
                 status = self.wframe.check()
 
@@ -412,6 +470,7 @@ class InstPars(tk.LabelFrame):
             g.count.update()
         else:
             g.observe.start.disable()
+
         return status
 
     def freeze(self):
@@ -455,7 +514,7 @@ class InstPars(tk.LabelFrame):
         try:
             if self.isFF():
                 return ''
-            else:
+            elif self.isDrift():
                 xbin = self.wframe.xbin.value()
                 ybin = self.wframe.ybin.value()
                 nwin = 2*self.wframe.npair.value()
@@ -466,6 +525,25 @@ class InstPars(tk.LabelFrame):
                     )
                     ret += '{:d} {:d} {:d} {:d}'.format(
                         xsr, ys, nx, ny
+                    )
+                return ret
+            else:
+                xbin = self.wframe.xbin.value()
+                ybin = self.wframe.ybin.value()
+                nwin = 4*self.wframe.nquad.value()
+                ret = str(xbin) + ' ' + str(ybin) + ' ' + str(nwin) + '\r\n'
+                for xsll, xsul, xslr, xsur, ys, nx, ny in self.wframe:
+                    ret += '{:d} {:d} {:d} {:d}\r\n'.format(
+                        xsll, ys, nx, ny
+                    )
+                    ret += '{:d} {:d} {:d} {:d}\r\n'.format(
+                        xsul, ys, nx, ny
+                    )
+                    ret += '{:d} {:d} {:d} {:d}\r\n'.format(
+                        xslr, ys, nx, ny
+                    )
+                    ret += '{:d} {:d} {:d} {:d}\r\n'.format(
+                        xsur, ys, nx, ny
                     )
                 return ret
         except:
@@ -514,6 +592,7 @@ class InstPars(tk.LabelFrame):
         if isDriftMode:
             # dxleft = self.wframe.xsl[0].value()
             # dxright = self.wframe.xsr[0].value()
+            nwin=2
             dys = self.wframe.ys[0].value()
             dnx = self.wframe.nx[0].value()
             dny = self.wframe.ny[0].value()
@@ -525,13 +604,24 @@ class InstPars(tk.LabelFrame):
             ny = [512, 512, 512, 512]
         else:
             xs, ys, nx, ny = [], [], [], []
-            nwin = 2*self.wframe.npair.value()
-            for xsl, xsr, ysv, nxv, nyv in self.wframe:
-                xs.append(xsl)
+            nwin = 4*self.wframe.nquad.value()
+            for xsll, xsul, xslr, xsur, ysv, nxv, nyv in self.wframe:
+                xs.append(xsll)
                 ys.append(ysv)
                 nx.append(nxv)
                 ny.append(nyv)
-                xs.append(xsr)
+
+                xs.append(xsul)
+                ys.append(ysv)
+                nx.append(nxv)
+                ny.append(nyv)
+
+                xs.append(xslr)
+                ys.append(ysv)
+                nx.append(nxv)
+                ny.append(nyv)
+
+                xs.append(xsur)
                 ys.append(ysv)
                 nx.append(nxv)
                 ny.append(nyv)
