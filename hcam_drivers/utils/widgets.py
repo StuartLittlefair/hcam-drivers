@@ -3040,29 +3040,27 @@ class WinQuads(tk.Frame):
                     widg.config(bg=g.COL['error'])
                     status = False
 
-            # Quad overlap checks. Compare one quad with the next one
-            # in the same quadrant if there is one. Only bother if we
-            # have survived so far, which saves a lot of checks.
-            if status:
-                for index in range(nquad-1):
-                    ys1 = self.ys[index].value()
-                    ny1 = self.ny[index].value()
-                    ysw2 = self.ys[index+1]
-                    ys2 = ysw2.value()
+        # Quad overlap checks. Compare one quad with the next one
+        # in the same quadrant if there is one. Only bother if we
+        # have survived so far, which saves a lot of checks.
+        if status:
+            for index in range(nquad-1):
+                ys1 = self.ys[index].value()
+                ny1 = self.ny[index].value()
+                ysw2 = self.ys[index+1]
+                ys2 = ysw2.value()
+                if any([thing is None for thing in (ys1, ny1, ys2)]) or ys1 + ny1 > ys2:
+                    ysw2.config(bg=g.COL['error'])
+                    status = False
 
-                    if ys1 + ny1 > ys2:
-                        ysw2.config(bg=g.COL['error'])
-                        status = False
-
-            if synced:
-                self.sbutt.config(bg=g.COL['main'])
-                self.sbutt.disable()
-            else:
-                if not self.frozen:
-                    self.sbutt.enable()
-                self.sbutt.config(bg=g.COL['warn'])
-
-            return status
+        if synced:
+            self.sbutt.config(bg=g.COL['main'])
+            self.sbutt.disable()
+        else:
+            if not self.frozen:
+                self.sbutt.enable()
+            self.sbutt.config(bg=g.COL['warn'])
+        return status
 
     def sync(self):
         """
