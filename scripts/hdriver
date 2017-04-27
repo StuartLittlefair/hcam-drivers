@@ -52,35 +52,40 @@ class GUI(tk.Tk):
         # style
         utils.addStyle(self)
 
+        # define frames for LHS and RHS, and bottom
+        lhs = tk.Frame(self)
+        rhs = tk.Frame(self)
+        bottom = tk.Frame(self)
+
         # Now we make the various widgets. The order here is determined by the fact
         # that some widgets need to reference the simpler ones, so they have to
         # initialised first.
 
         # command log
-        self.globals.clog = w.LabelGuiLogger('CMM', self, 5, 56, 'Command log')
+        self.globals.clog = w.LabelGuiLogger('CMM', bottom, 5, 56, 'Command log')
         # server response log
-        self.globals.rlog = w.LabelGuiLogger('RSP', self, 5, 56, 'Response log')
+        self.globals.rlog = w.LabelGuiLogger('RSP', bottom, 5, 56, 'Response log')
 
         # Instrument params
-        self.globals.ipars = hcam.InstPars(self)
+        self.globals.ipars = hcam.InstPars(rhs)
 
         # Run parameters
-        self.globals.rpars = hcam.RunPars(self)
+        self.globals.rpars = hcam.RunPars(rhs)
 
         # Info (run number, frame number, exposure time)
-        self.globals.info = w.InfoFrame(self)
+        self.globals.info = w.InfoFrame(lhs)
 
         # container frame for switch options (observe, fps and setup)
-        topLhsFrame = tk.Frame(self)
+        topLhsFrame = tk.Frame(lhs)
         self.globals.fpslide = slide.FocalPlaneSlide(topLhsFrame)
         self.globals.setup = w.InstSetup(topLhsFrame)
         self.globals.observe = hcam.Observe(topLhsFrame)
 
-        # counts and S/N frmae
-        self.globals.count = hcam.CountsFrame(self)
+        # counts and S/N frame
+        self.globals.count = hcam.CountsFrame(lhs)
 
         # astronomical info
-        self.globals.astro = w.AstroFrame(self)
+        self.globals.astro = w.AstroFrame(lhs)
 
         # CCD temp monitoring
         if self.globals.cpars['ccd_temperature_on']:
@@ -100,14 +105,22 @@ class GUI(tk.Tk):
         # format the LHS
         topLhsFrame.grid(row=0, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
         self.globals.count.grid(row=1, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
-        self.globals.info.grid(row=2, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
-        self.globals.clog.grid(row=3, column=0, sticky=tk.W, padx=10, pady=10)
+        self.globals.astro.grid(row=2, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
+        self.globals.info.grid(row=3, column=0, sticky=tk.W+tk.N, padx=10, pady=10)
 
         # format the RHS
         self.globals.ipars.grid(row=0, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
         self.globals.rpars.grid(row=1, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
-        self.globals.astro.grid(row=2, column=1, sticky=tk.W+tk.N, padx=10, pady=10)
-        self.globals.rlog.grid(row=3, column=1, sticky=tk.W, padx=10, pady=10)
+
+        # format the bottom
+        self.globals.clog.grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
+        self.globals.rlog.grid(row=0, column=1, sticky=tk.W, padx=10, pady=10)
+
+        # now add the LHS, RHS and bottom frames
+        lhs.grid(row=0, column=0, sticky=tk.W+tk.N, padx=5, pady=5)
+        rhs.grid(row=0, column=1, sticky=tk.W+tk.N, padx=5, pady=5)
+        bottom.grid(row=1, column=0, columnspan=2,
+                    sticky=tk.W+tk.N, padx=5, pady=5)
 
         # menubar. 'Quit', configuration settings
         menubar = tk.Menu(self)

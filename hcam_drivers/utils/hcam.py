@@ -38,11 +38,11 @@ IFX = 2048  # and this
 
 class ExposureMultiplier(tk.LabelFrame):
     """
-    Left to right group of RangedInt entry items to specify Nblue etc. Has a max
-    number of columns after which it will jump to the left of next row and start over.
+    Top to bottom group of RangedInt entry items to specify Nblue etc. Has a max
+    number of rows after which it will jump to the left of next column and start over.
     """
     def __init__(self, master, labels, ivals, imins, imaxs,
-                 ncmax, checker, blank, **kw):
+                 nrmax, checker, blank, **kw):
         """
         Parameters
         ----------
@@ -56,8 +56,8 @@ class ExposureMultiplier(tk.LabelFrame):
             minimum values
         imaxs : list of int
             maximum values
-        ncmax : int
-            maximum number of columns before wrapping
+        nrmax : int
+            maximum number of rows before wrapping
         checker : callable
             command that is run on any change to the entry
         blank : bool
@@ -82,11 +82,11 @@ class ExposureMultiplier(tk.LabelFrame):
         col = 0
         for nw, widget in enumerate(self.widgets):
             tk.Label(self, text=labels[nw]).grid(row=row, column=col, sticky=tk.W)
-            widget.grid(row=row+1, column=col, sticky=tk.W)
-            col += 1
-            if col == ncmax:
-                row += 1
-                col = 0
+            widget.grid(row=row, column=col+1, sticky=tk.W)
+            row += 1
+            if row == nrmax:
+                col += 1
+                row = 0
 
     def value(self, index):
         return self.widgets[index].value()
@@ -125,6 +125,7 @@ class InstPars(tk.LabelFrame):
 
         # left hand side
         lhs = tk.Frame(self)
+        rhs = tk.Frame(self)
 
         # Application (mode)
         tk.Label(lhs, text='Mode').grid(row=0, column=0, sticky=tk.W)
@@ -173,13 +174,11 @@ class InstPars(tk.LabelFrame):
         ivals = (1, 1, 1, 1, 1)
         imins = (1, 1, 1, 1, 1)
         imaxs = (20, 20, 20, 20, 20)
-        self.nmult = ExposureMultiplier(lhs, labels, ivals, imins, imaxs,
+        self.nmult = ExposureMultiplier(rhs, labels, ivals, imins, imaxs,
                                         5, self.check, False, width=4)
-        self.nmult.grid(row=7, column=0, columnspan=2,
-                        pady=2, sticky=tk.W)
+        # grid (on RHS)
+        self.nmult.grid(row=0, column=0, pady=2, sticky=tk.W + tk.S)
 
-        # right hand side: window parameters
-        rhs = tk.Frame(self)
 
         # We have two possible window frames. A single pair for
         # drift mode, or a 2-quad frame for window mode.
@@ -203,7 +202,7 @@ class InstPars(tk.LabelFrame):
         # allowed binning factors
         xbfac = (1, 2, 3, 4, 8)
         ybfac = (1, 2, 3, 4, 8)
-        self.drift_frame = w.WinPairs(rhs, xsls, xslmins, xslmaxs,
+        self.drift_frame = w.WinPairs(lhs, xsls, xslmins, xslmaxs,
                                       xsrs, xsrmins, xsrmaxs,
                                       yss, ysmins, ysmaxs,
                                       nxs, nys, xbfac, ybfac,
@@ -225,14 +224,14 @@ class InstPars(tk.LabelFrame):
         # sizes (start at FF)
         nx = (1024, 1024)
         ny = (512, 512)
-        self.quad_frame = w.WinQuads(rhs, xsll, xsllmin, xsllmax,
+        self.quad_frame = w.WinQuads(lhs, xsll, xsllmin, xsllmax,
                                      xsul, xsulmin, xsulmax,
                                      xslr, xslrmin, xslrmax,
                                      xsur, xsurmin, xsurmax,
                                      ys, ysmin, ysmax, nx, ny,
                                      xbfac, ybfac, self.check)
 
-        self.quad_frame.grid(row=2, column=0, columnspan=3,
+        self.quad_frame.grid(row=7, column=0, columnspan=3,
                              sticky=tk.W+tk.N)
 
         # Pack two halfs
@@ -428,7 +427,7 @@ class InstPars(tk.LabelFrame):
             self.clearLab.config(state='disable')
             if not self.drift_frame.winfo_ismapped():
                 self.quad_frame.grid_forget()
-                self.drift_frame.grid(row=2, column=0, columnspan=3,
+                self.drift_frame.grid(row=7, column=0, columnspan=3,
                                       sticky=tk.W+tk.N)
 
             if not self.frozen:
@@ -446,7 +445,7 @@ class InstPars(tk.LabelFrame):
             self.clearLab.config(state='normal')
             if not self.quad_frame.winfo_ismapped():
                 self.drift_frame.grid_forget()
-                self.quad_frame.grid(row=2, column=0, columnspan=3,
+                self.quad_frame.grid(row=7, column=0, columnspan=3,
                                      sticky=tk.W+tk.N)
 
             if not self.frozen:
