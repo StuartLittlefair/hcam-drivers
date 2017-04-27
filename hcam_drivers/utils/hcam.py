@@ -179,7 +179,6 @@ class InstPars(tk.LabelFrame):
         # grid (on RHS)
         self.nmult.grid(row=0, column=0, pady=2, sticky=tk.W + tk.S)
 
-
         # We have two possible window frames. A single pair for
         # drift mode, or a 2-quad frame for window mode.
 
@@ -591,7 +590,7 @@ class InstPars(tk.LabelFrame):
         if isDriftMode:
             # dxleft = self.wframe.xsl[0].value()
             # dxright = self.wframe.xsr[0].value()
-            nwin=2
+            nwin = 2
             dys = self.wframe.ys[0].value()
             dnx = self.wframe.nx[0].value()
             dny = self.wframe.ny[0].value()
