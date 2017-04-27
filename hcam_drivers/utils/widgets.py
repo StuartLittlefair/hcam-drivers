@@ -3003,10 +3003,10 @@ class WinQuads(tk.Frame):
             if xsul is None or xsur is None or xsul >= xsur:
                 xsurw.config(bg=g.COL['error'])
                 status = False
-            if nx is None or xsll + nx > xslr:
+            if nx is None or xsll is None or xsll + nx > xslr:
                 xslrw.config(bg=g.COL['error'])
                 status = False
-            if xsul + nx > xsur:
+            if xsul is None or nx is None or xsul + nx > xsur:
                 xsurw.config(bg=g.COL['error'])
                 status = False
 
