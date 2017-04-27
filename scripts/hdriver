@@ -131,7 +131,7 @@ class GUI(tk.Tk):
 
         # expert settingsMenu
         expertMenu = w.ExpertMenu(settingsMenu, self.globals.observe, self.globals.setup,
-                                  # self.globals.ipars,
+                                  self.globals.ipars,
                                   self.globals.fpslide)
         settingsMenu.add_cascade(label='Expert', menu=expertMenu)
 
