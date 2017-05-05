@@ -1,6 +1,7 @@
 # Some utility tools to handle rising and setting etc.
 from __future__ import print_function, unicode_literals, absolute_import, division
 import traceback
+import struct
 
 import numpy as np
 import yaml
@@ -132,3 +133,46 @@ def raw_bytes_to_numpy(raw_data, bscale=1, bzero=32768, dtype='int16'):
     np.multiply(data, bscale, data)
     data += bzero
     return data
+
+
+def decode_timestamp(ts_bytes):
+    """
+    Decode timestamp tuple from values saved in FITS file
+
+    The timestamp is originally encoded to bytes as a series of
+    32bit (4 bytes) unsigned integers in little endian byte format.
+
+    However, this is then stored as fake pixels in a FITS file, which
+    performs some mangling of the data, since FITS assumes 16bit (2 byte)
+    integers, and has no way to store unsigned integers. The following
+    mangling occurs:
+
+    - decode the timestamp byte string as two 16bit (2 bytes) unsigned integers;
+    - subtract 32768 from each integer;
+    - encode these integers as two 16bit signed integers in BIG ENDIAN format;
+    - save to file as fits data.
+
+    This routine reverses this process to recover the original timestamp tuple.
+
+    The steps taken are:
+
+    - decode timestamp string as big endian 16bit integers
+    - add 32768 to each value
+    - encode these values as little endian 16bit unsigned integers
+    - re-interpret the new byte string as 32bit, little-endian unsigned integers
+
+    Parameters
+    ----------
+    ts_bytes: bytes
+        a Python bytes object which contains the timestamp bytes as written in the
+        FITS file
+
+    Returns
+    --------
+    timestamp : tuple
+        a tuple containing the (frameCount, timeStampCount,
+                                years, day_of_year, hours, mins,
+                                seconds, nanoseconds) values.
+    """
+    buf = struct.pack('<' + 'H'*16, *(val + 32768 for val in struct.unpack('>'+'h'*16, ts_string)))
+    return struct.unpack('<' + 'I'*8, buf)
