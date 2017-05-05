@@ -58,6 +58,7 @@ class ReadServer(object):
             self.state = None
             self.run = 0
             self.err = ''
+            self.msg = self.root['MESSAGEBUFFER']
             return
 
         # Determine state of the camera
@@ -251,6 +252,28 @@ def isRunActive(g):
             raise DriverError('isRunActive error, state = ' + rs.state)
     else:
         raise DriverError('isRunActive error: servers are not active')
+
+
+def getFrameNumber(g):
+    """
+    Polls the data server to find the current frame number.
+
+    Throws an exceotion if it cannot determine it.
+    """
+    if not g.cpars['hcam_server_on']:
+        raise DriverError('getRunNumber error: servers are not active')
+    url = g.cpars['hipercam_server'] + 'status/DET.FRAM2.NO'
+    response = urllib.request.urlopen(url)
+    rs = ReadServer(response.read(), status_msg=False)
+    try:
+        msg = rs.msg
+    except:
+        raise DriverError('getFrameNumber error: no message found')
+    try:
+        frame_no = int(msg.split()[1])
+    except:
+        raise DriverError('getFrameNumber error: invalid msg ' + msg)
+    return frame_no
 
 
 def getRunNumber(g):
