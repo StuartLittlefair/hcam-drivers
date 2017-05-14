@@ -147,14 +147,18 @@ def decode_timestamp(ts_bytes):
     integers, and has no way to store unsigned integers. The following
     mangling occurs:
 
-    - decode the timestamp byte string as two 16bit (2 bytes) unsigned integers;
+    - decode the timestamp byte string as two 16bit (2 bytes) little-endian unsigned integers;
     - subtract 32768 from each integer;
     - encode these integers as two 16bit signed integers in BIG ENDIAN format;
     - save to file as fits data.
 
-    This routine reverses this process to recover the original timestamp tuple.
+    This routine reverses this process to recover the original timestamp tuple. We have to
+    take some care because of all the endian-swapping going on. For example, the number 27
+    starts off as \x1b\x00\x00\x00, which is interpreted by the FITS save process as (27, 0).
+    If we ignore the signing issue for clarity, then (27, 0) encoded in big endian format is
+    \x00\x1b, \x00\x00 so we've swapped the byte pairs around.
 
-    The steps taken are:
+    The steps taken by this routine are:
 
     - decode timestamp string as big endian 16bit integers
     - add 32768 to each value
@@ -174,5 +178,5 @@ def decode_timestamp(ts_bytes):
                                 years, day_of_year, hours, mins,
                                 seconds, nanoseconds) values.
     """
-    buf = struct.pack('<' + 'H'*16, *(val + 32768 for val in struct.unpack('>'+'h'*16, ts_string)))
+    buf = struct.pack('<' + 'H'*16, *(val + 32768 for val in struct.unpack('>'+'h'*16, ts_bytes)))
     return struct.unpack('<' + 'I'*8, buf)
