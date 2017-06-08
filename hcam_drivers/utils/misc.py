@@ -82,13 +82,16 @@ class ReadServer(object):
             run_number = int(re.match(pattern, newDataFileName).group(1))
             if exposure_state == "success":
                 self.run = run_number
+            elif exposure_state == "aborted":
+                # We use abort instead of end. Don't know why
+                self.run = run_number
             elif exposure_state == "integrating":
                 self.run = run_number + 1
             else:
                 raise ValueError("unknown exposure state {}".format(
                     exposure_state
                 ))
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, AttributeError):
             self.run = 0
 
     def resp(self):
