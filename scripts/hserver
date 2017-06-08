@@ -7,7 +7,7 @@ import yaml
 import subprocess
 import traceback
 
-from hcam_drivers.utils.web import MSG_TEMPLATE
+MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
 
 # This script provides a "thin client" that runs on the rack PC.
 # The thin client acts as a bridge between client software on
