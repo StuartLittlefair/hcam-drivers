@@ -14,7 +14,7 @@ import tkinter as tk
 from .logs import Logger
 from .widgets import GuiLogger, IntegerEntry
 from .misc import FifoThread
-from . import get_root
+from .tkutils import get_root
 
 
 class SlideError(Exception):

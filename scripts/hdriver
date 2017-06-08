@@ -50,7 +50,7 @@ class GUI(tk.Tk):
             logging.basicConfig(level=logging.INFO)
 
         # style
-        utils.addStyle(self)
+        utils.tkutils.addStyle(self)
 
         # define frames for LHS and RHS, and bottom
         lhs = tk.Frame(self)

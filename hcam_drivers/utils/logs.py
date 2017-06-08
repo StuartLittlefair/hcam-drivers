@@ -4,7 +4,7 @@ import time
 import tkinter as tk
 import sys
 
-from . import get_root
+from .tkutils import get_root
 
 
 class GuiHandler(logging.Handler):

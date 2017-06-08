@@ -7,7 +7,8 @@ import json
 
 # internal imports
 from . import widgets as w
-from . import get_root, DriverError
+from . import DriverError
+from .tkutils import get_root
 from .misc import (createJSON, saveJSON, postJSON,
                    execCommand, isRunActive)
 

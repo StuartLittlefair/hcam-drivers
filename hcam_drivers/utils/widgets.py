@@ -14,7 +14,8 @@ from astropy import units as u
 from astropy.time import Time
 
 # internal
-from . import get_root, DriverError, tcs
+from . import DriverError, tcs
+from .tkutils import get_root
 from .logs import Logger, GuiHandler
 from .astro import calc_riseset
 from .misc import (execCommand, checkSimbad, isRunActive,

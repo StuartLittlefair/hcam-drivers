@@ -5,16 +5,12 @@ import struct
 
 import numpy as np
 import yaml
-from tornado.web import RequestHandler, HTTPError
+from tornado.web import RequestHandler
 from tornado.escape import json_encode
 from astropy.io import fits
 from astropy.utils.decorators import lazyproperty
 
 MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
-
-
-class HServerException(HTTPError):
-    pass
 
 
 class BaseHandler(RequestHandler):
@@ -50,10 +46,14 @@ class FastFITSPipe:
 
         Parameters
         -----------
-        fileobj : file-like object
+        fileobj : file-like object or str
             the file-like object representing a FITS file, readonly
         """
-        self._fileobj = fileobj
+        # assume fileobj is string
+        try:
+            self._fileobj = open(fileobj, 'rb')
+        except:
+            self._fileobj = fileobj
         self.header_bytesize = 80*64*36  # 64 blocks of 36 with 80 chars
         self.dtype = np.dtype('int16')
 
@@ -62,24 +62,13 @@ class FastFITSPipe:
         self._fileobj.seek(0)
         return fits.Header.fromfile(self._fileobj)
 
-    #  TODO: need a robust way of finding this for all applications
     @lazyproperty
     def framesize(self):
         size = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']
         bitpix = self.hdr['BITPIX']
         size = abs(bitpix) * size // 8
-        return size
-
-    #  TODO: need a robust way of finding this for all applications
-    @lazyproperty
-    def output_shape(self):
-        naxis = self.hdr.get('NAXIS', 0)
-        dims = []
-        if naxis > 0:
-            # loop over all but leading axis (which indexes frame)
-            for idx in range(1, naxis):
-                dims.append(self.hdr['NAXIS' + str(idx)])
-        return tuple(dims)
+        # currently metadata consists of 32 bytes per frame (for timestamp)
+        return size + 32
 
     def seek_frame(self, frame_number):
         """
