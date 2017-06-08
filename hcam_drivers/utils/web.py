@@ -65,15 +65,9 @@ class FastFITSPipe:
     #  TODO: need a robust way of finding this for all applications
     @lazyproperty
     def framesize(self):
-        size = 0
-        naxis = self.hdr.get('NAXIS', 0)
-        if naxis > 0:
-            size = 1
-            # loop over all but leading axis (which indexes frame)
-            for idx in range(1, naxis):
-                size = size * self.hdr['NAXIS' + str(idx)]
-            bitpix = self.hdr['BITPIX']
-            size = abs(bitpix) * size // 8
+        size = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']
+        bitpix = self.hdr['BITPIX']
+        size = abs(bitpix) * size // 8
         return size
 
     #  TODO: need a robust way of finding this for all applications
