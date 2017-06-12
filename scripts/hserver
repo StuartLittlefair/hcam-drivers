@@ -240,7 +240,7 @@ class PostRunHandler(BaseHandler):
         for cmd in obsmode.ngc_commands:
             response = sendCommand(cmd)
             responses[cmd] = response
-        self.write(parse_response(responses))
+        self.write(json_encode(responses))
 
 
 if __name__ == '__main__':
