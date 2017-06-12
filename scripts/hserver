@@ -7,19 +7,15 @@ import yaml
 import subprocess
 import traceback
 
+from hcam_drivers.utils.obsmodes import get_obsmode
+
+
 MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
 
 # This script provides a "thin client" that runs on the rack PC.
 # The thin client acts as a bridge between client software on
 # another machine and the ESO software, controlling the camera and
 # receiving info about the current status
-
-KNOWN_PARAMS = [
-    'DET.NDIT',
-    'DET.SEQ2.DIT',
-    'DET.SEQ3.DIT',
-    'DET.SEQ4.DIT',
-    'DET.SEQ5.DIT']
 
 
 def sendCommand(command, *command_pars):
@@ -193,21 +189,11 @@ class StatusHandler(BaseHandler):
             self.set_header('Content-Type', 'application/json')
             self.finish(parse_response(response))
         else:
-            # get status of requested parameter
-            # TODO: Use a helper class
-            # to convert the values in JSON data to Naidu's
-            # parameter names for a given app.
-            if param_id not in KNOWN_PARAMS:
-                raise HServerException(reason='Invalid Parameter',
-                                       status_code=404)
             response = sendCommand('status', [param_id])
             self.set_header('Content-Type', 'application/json')
             self.finish(parse_response(response))
 
     def post(self, param_id):
-        if param_id not in KNOWN_PARAMS:
-            raise HServerException(reason='Invalid Parameter',
-                                   status_code=404)
         try:
             req_json = json_decode(self.request.body.decode())
             if not req_json or 'value' not in req_json:
@@ -243,9 +229,14 @@ class PostRunHandler(BaseHandler):
         if not req_json or 'appdata' not in req_json:
                 raise HServerException(reason='No appdata supplied',
                                        status_code=400)
-        response = MSG_TEMPLATE.format("Not currently supported", "OK")
+
+        obsmode = get_obsmode(req_json)
         self.set_header('Content-Type', 'application/json')
-        self.write(parse_response(response))
+        responses = {}
+        for cmd in obsmode.ngc_commands:
+            response = sendCommand(cmd)
+            responses[cmd] = response
+        self.write(parse_response(responses))
 
 
 if __name__ == '__main__':
