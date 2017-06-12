@@ -26,8 +26,6 @@ class ObsMode(object):
         setup_data : dict
             Dictionary of HiPerCAM setup data
         """
-        # default is FF, Slow
-        self.readoutMode = 1
         app_data = setup_data['appdata']
         nb, ng, nr, ni, nz = app_data['multipliers']
         self.detpars = {
