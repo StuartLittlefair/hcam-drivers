@@ -285,6 +285,7 @@ class InstPars(tk.LabelFrame):
         Encodes current parameters to JSON compatible dictionary
         """
         numexp = self.number.get()
+        expTime, _, _, _, _ = self.timing()
         if numexp == 0:
             numexp = -1
         data = dict(
@@ -293,6 +294,8 @@ class InstPars(tk.LabelFrame):
             led_flsh=self.led.value(),
             readout=self.readSpeed(),
             dwell=self.expose.value(),
+            exptime=expTime,
+            oscan=self.oscan(),
             xbin=self.wframe.xbin.value(),
             ybin=self.wframe.ybin.value(),
             multipliers=self.nmult.getall(),
