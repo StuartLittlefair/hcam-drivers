@@ -229,7 +229,7 @@ class PostRunHandler(BaseHandler):
 
     First we extract the application and load the correct sequencer file.
     Then we use 'ngcbCmd setup <key1> <value1> [<key2> <value2>] ....' to
-    load remaining parameters.abort
+    load remaining parameters.
 
     The remaining parameters are read from the dictionary created
     from the JSON data.
