@@ -12,7 +12,7 @@ def get_obsmode(setup_data):
         return Drift(setup_data)
 
 
-class ObsMode:
+class ObsMode(object):
 
     def __init__(self, setup_data):
         """
