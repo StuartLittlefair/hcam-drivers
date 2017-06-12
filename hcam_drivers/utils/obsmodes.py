@@ -4,12 +4,15 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 
 
 def get_obsmode(setup_data):
-    if 'FullFrame' in setup_data['appdata']:
+    mode = setup_data['appdata']['app']
+    if mode == 'FullFrame':
         return FullFrame(setup_data)
-    elif 'Windows' in setup_data['appdata']:
+    elif mode == 'Windows':
         return Windows(setup_data)
-    else:
+    elif mode == 'Drift':
         return Drift(setup_data)
+    else:
+        raise ValueError('Unrecognised mode: {}'.format(mode))
 
 
 class ObsMode(object):

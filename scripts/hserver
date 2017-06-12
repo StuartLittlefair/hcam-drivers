@@ -230,7 +230,11 @@ class PostRunHandler(BaseHandler):
                 raise HServerException(reason='No appdata supplied',
                                        status_code=400)
 
-        obsmode = get_obsmode(req_json)
+        try:
+            obsmode = get_obsmode(req_json)
+        except ValueError:
+            raise HServerException(reason='Error parsing readout mode', status_code=500)
+
         self.set_header('Content-Type', 'application/json')
         responses = {}
         for cmd in obsmode.ngc_commands:

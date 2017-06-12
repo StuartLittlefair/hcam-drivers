@@ -1302,7 +1302,13 @@ class Start(w.ActButton):
         data = createJSON(g)
 
         # POST
-        success = postJSON(g, data)
+        try:
+            success = postJSON(g, data)
+        except Exception as err:
+            g.clog.warn("Failed to post data to servers")
+            g.clog.warn(str(err))
+            return False
+
         if not success:
             return False
 
