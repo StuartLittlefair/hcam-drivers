@@ -71,8 +71,8 @@ class Windows(ObsMode):
             'DET.WIN1.NX': app_data['x1size'],
             'DET.WIN1.NY': app_data['y1size'],
             'DET.WIN1.XSE': app_data['x1start_lowerleft'],
-            'DET.WIN1.XSF': app_data['x1start_lowerright'],
-            'DET.WIN1.XSG': app_data['x1start_upperright'],
+            'DET.WIN1.XSF': app_data['x1start_lowerright'] -1024,
+            'DET.WIN1.XSG': app_data['x1start_upperright'] - 1024,
             'DET.WIN1.XSH': app_data['x1start_upperleft'],
             'DET.WIN1.YS': app_data['y1start']
         }
@@ -82,8 +82,8 @@ class Windows(ObsMode):
                 'DET.WIN2.NX': app_data['x2size'],
                 'DET.WIN2.NY': app_data['y2size'],
                 'DET.WIN2.XSE': app_data['x2start_lowerleft'],
-                'DET.WIN2.XSF': app_data['x2start_lowerright'],
-                'DET.WIN2.XSG': app_data['x2start_upperright'],
+                'DET.WIN2.XSF': app_data['x2start_lowerright'] - 1024,
+                'DET.WIN2.XSG': app_data['x2start_upperright'] - 1024,
                 'DET.WIN2.XSH': app_data['x2start_upperleft'],
                 'DET.WIN2.YS': app_data['y2start']
             }
@@ -108,9 +108,9 @@ class Drift(ObsMode):
             'DET.WIN1.NY': app_data['y1size'],
             'DET.WIN1.YS': app_data['y1start'],
             'DET.WIN1.XSE': app_data['x1start_left'],
-            'DET.WIN1.XSF': app_data['x1start_right'],
+            'DET.WIN1.XSF': app_data['x1start_right'] - 1024,
             'DET.WIN1.XSH': app_data['x1start_left'],
-            'DET.WIN1.XSG': app_data['x1start_right']
+            'DET.WIN1.XSG': app_data['x1start_right'] - 1024
         }
         self.detpars.update(win1)
         self.detpars['DET.WIN1.NW'] = self.num_stacked
