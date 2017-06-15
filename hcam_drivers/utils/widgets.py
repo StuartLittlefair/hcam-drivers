@@ -19,7 +19,7 @@ from .tkutils import get_root
 from .logs import Logger, GuiHandler
 from .astro import calc_riseset
 from .misc import (execCommand, checkSimbad, isRunActive,
-                   getRunNumber)
+                   getRunNumber, getFrameNumber)
 
 
 # GENERAL UI WIDGETS
@@ -1490,7 +1490,7 @@ class Stop(ActButton):
         def stop_in_background():
             try:
                 self.stopping = True
-                if execCommand(g, 'stop'):
+                if execCommand(g, 'abort'):
                     # Report that run has stopped
                     g.clog.info('Run stopped')
                     self.stopped_ok = True
@@ -2192,9 +2192,9 @@ class InfoFrame(tk.LabelFrame):
                     self.run.configure(text='{0:03d}'.format(run))
 
                     # Find the number of frames in this run
-                    # TODO: implement this when server is finalised
                     try:
-                        pass
+                        frame_no = getFrameNumber(g)
+                        self.frame.configure(text='{0:04d}'.format(frame_no))
                     except Exception as err:
                         if err.code == 404:
                             self.frame.configure(text='0')
