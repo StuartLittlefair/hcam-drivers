@@ -71,7 +71,7 @@ class RunHandler(websocket.WebSocketHandler):
         Send main FITS HDU as txt
         """
         hdr = self.ffp.hdr
-        self.write_message(hdr.tostring(sep='\n'))
+        self.write_message(hdr.tostring())
 
     def get_frame(self, frame_id):
         """
