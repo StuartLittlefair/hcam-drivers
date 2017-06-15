@@ -46,14 +46,15 @@ class ObsMode(object):
         }
 
     @property
-    def ngc_commands(self):
-        commands = []
-        commands.append('setup DET.READ.CURID {}'.format(self.readoutMode))
+    def readmode_command(self):
+        return 'setup DET.READ.CURID {}'.format(self.readoutMode)
+
+    @property
+    def setup_command(self):
         setup_string = 'setup'
         for key in self.detpars:
             setup_string += ' {} {} '.format(key, self.detpars[key])
-        commands.append(setup_string)
-        return commands
+        return setup_string
 
 
 class FullFrame(ObsMode):
