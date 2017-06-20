@@ -195,7 +195,7 @@ class InstPars(tk.LabelFrame):
         # ystart values
         yss = (1,)
         ysmins = (1,)
-        ysmaxs = (512,)
+        ysmaxs = (520,)
         # sizes of windows (start at FF)
         nxs = (100,)
         nys = (100,)
@@ -220,10 +220,10 @@ class InstPars(tk.LabelFrame):
         # ystart
         ys = (1, 1)
         ysmin = (1, 1)
-        ysmax = (512, 512)
+        ysmax = (520, 520)
         # sizes (start at FF)
         nx = (1024, 1024)
-        ny = (512, 512)
+        ny = (520, 520)
         self.quad_frame = w.WinQuads(lhs, xsll, xsllmin, xsllmax,
                                      xsul, xsulmin, xsulmax,
                                      xslr, xslrmin, xslrmax,
@@ -601,9 +601,9 @@ class InstPars(tk.LabelFrame):
         elif isFF:
             nwin = 4
             xs = [1, 1024, 1, 1024]
-            ys = [1, 513, 1, 513]
+            ys = [1, 521, 1, 521]
             nx = [1023, 1023, 1023, 1023]
-            ny = [512, 512, 512, 512]
+            ny = [520, 520, 520, 520]
         else:
             xs, ys, nx, ny = [], [], [], []
             nwin = 4*self.wframe.nquad.value()
