@@ -11,6 +11,8 @@ def get_obsmode(setup_data):
         return Windows(setup_data)
     elif mode == 'Drift':
         return Drift(setup_data)
+    elif mode == 'Idle':
+        return Idle()
     else:
         raise ValueError('Unrecognised mode: {}'.format(mode))
 
@@ -28,12 +30,13 @@ class ObsMode(object):
         """
         app_data = setup_data['appdata']
         nb, ng, nr, ni, nz = app_data['multipliers']
+        dummy = app_data.get('dummy', 0)  # works even if dummy not set in app, default 0
         self.detpars = {
             'DET.BINX1': app_data['xbin'],
             'DET.BINY1': app_data['ybin'],
             'DET.CLRCCD': 'T' if app_data['clear'] else 'F',
             'DET.NCLRS': 10,
-            'DET.DUMMY': 0,
+            'DET.DUMMY': dummy,
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
             'DET.GPS': 'T',
             'DET.INCPRSCX': 'T' if app_data['oscan'] else 'F',
@@ -62,6 +65,25 @@ class FullFrame(ObsMode):
         super(FullFrame, self).__init__(setup_data)
         modes = dict(Slow=1, Medium=1, Fast=1)
         self.readoutMode = modes[setup_data['appdata']['readout']]
+
+
+class Idle(ObsMode):
+    """
+    An idle mode to keep clearing the chip and stop taking GPS timestamps.
+    """
+    def __init__(self):
+        app_data = {
+            'xbin': 1,
+            'ybin': 1,
+            'clear': True,
+            'led_flsh': False,
+            'oscan': False,
+            'exptime': 10
+        }
+        setup_data = {'appdata': app_data}
+        super(Idle, self).__init__(setup_data)
+        self.detpars['DET.GPS'] = 'F'
+        self.readoutMode = 1  # FF, Slow
 
 
 class Windows(ObsMode):
@@ -105,24 +127,24 @@ class Drift(ObsMode):
         super(Drift, self).__init__(setup_data)
         app_data = setup_data['appdata']
         win1 = {
-            'DET.WIN1.NX': app_data['x1size'],
-            'DET.WIN1.NY': app_data['y1size'],
-            'DET.WIN1.YS': app_data['y1start'] - 1,
-            'DET.WIN1.XSE': app_data['x1start_left'] - 1,
-            'DET.WIN1.XSF': app_data['x1start_right'] - 1025,
-            'DET.WIN1.XSH': app_data['x1start_left'] - 1,
-            'DET.WIN1.XSG': app_data['x1start_right'] - 1025
+            'DET.DRWIN.NX': app_data['x1size'],
+            'DET.DRWIN.NY': app_data['y1size'],
+            'DET.DRWIN.YS': app_data['y1start'] - 1,
+            'DET.DRWIN.XSE': app_data['x1start_left'] - 1,
+            'DET.DRWIN.XSF': app_data['x1start_right'] - 1025,
+            'DET.DRWIN.XSH': app_data['x1start_left'] - 1,
+            'DET.DRWIN.XSG': app_data['x1start_right'] - 1025
         }
         self.detpars.update(win1)
-        self.detpars['DET.WIN1.NW'] = self.num_stacked
-        self.detpars['DET.WIN1.PSH'] = self.pipe_shift
+        self.detpars['DET.DRWIN.NW'] = self.num_stacked
+        self.detpars['DET.DRWIN.PSH'] = self.pipe_shift
 
     @property
     def num_stacked(self):
         """
         Number of windows stacked in frame transfer area
         """
-        ny = self.detpars['DET.WIN1.NY']
+        ny = self.detpars['DET.DRWIN.NY']
         return int((self.nrows/ny + 1) / 2)
 
     @property
@@ -133,5 +155,5 @@ class Drift(ObsMode):
         Returned in units of vertical clocks. Should be multiplied by the
         vclock time to obtain pipe_shift in seconds.
         """
-        ny = self.detpars['DET.WIN1.NY']
+        ny = self.detpars['DET.DRWIN.NY']
         return (self.nrows - (2*self.num_stacked - 1)*ny)
