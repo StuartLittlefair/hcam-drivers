@@ -2894,8 +2894,8 @@ class WinQuads(tk.Frame):
         """
         # check we have a consistent number of quads in all parameters
         nquad = len(xsll)
-        checks = (xsll, xsllmin, xsllmax, xsul, xsulmin, xsulmax,
-                  xslr, xslrmin, xslrmax, xsur, xsurmin, xsurmax,
+        checks = (xsll, xsllmin, xsllmax, xslr, xslrmin, xslrmax,
+                  xsul, xsulmin, xsulmax, xsur, xsurmin, xsurmax,
                   ys, ysmin, ysmax, nx, ny)
         for check in checks:
             if nquad != len(check):
@@ -2936,8 +2936,8 @@ class WinQuads(tk.Frame):
 
         # top row - labels
         tk.Label(bottom, text='xsll').grid(row=row, column=1, ipady=5, sticky=tk.S)
-        tk.Label(bottom, text='xsul').grid(row=row, column=2, ipady=5, sticky=tk.S)
-        tk.Label(bottom, text='xslr').grid(row=row, column=3, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='xslr').grid(row=row, column=2, ipady=5, sticky=tk.S)
+        tk.Label(bottom, text='xsul').grid(row=row, column=3, ipady=5, sticky=tk.S)
         tk.Label(bottom, text='xsur').grid(row=row, column=4, ipady=5, sticky=tk.S)
         tk.Label(bottom, text='ys').grid(row=row, column=5, ipady=5, sticky=tk.S)
         tk.Label(bottom, text='nx').grid(row=row, column=6, ipady=5, sticky=tk.S)
@@ -2947,8 +2947,8 @@ class WinQuads(tk.Frame):
         (self.label, self.xsll, self.xsul, self.xslr, self.xsur,
          self.ys, self.nx, self.ny) = [], [], [], [], [], [], [], []
         nr = 0
-        for (xsll, xsllmin, xsllmax, xsul, xsulmin, xsulmax,
-             xslr, xslrmin, xslrmax, xsur, xsurmin, xsurmax,
+        for (xsll, xsllmin, xsllmax, xslr, xslrmin, xslrmax,
+             xsul, xsulmin, xsulmax, xsur, xsurmin, xsurmax,
              ys, ysmin, ysmax, nx, ny) in zip(*checks):
 
             # create
@@ -2979,8 +2979,8 @@ class WinQuads(tk.Frame):
             # arrange
             self.label[-1].grid(row=row, column=0)
             self.xsll[-1].grid(row=row, column=1)
-            self.xsul[-1].grid(row=row, column=2)
-            self.xslr[-1].grid(row=row, column=3)
+            self.xslr[-1].grid(row=row, column=2)
+            self.xsul[-1].grid(row=row, column=3)
             self.xsur[-1].grid(row=row, column=4)
             self.ys[-1].grid(row=row, column=5)
             self.nx[-1].grid(row=row, column=6)
