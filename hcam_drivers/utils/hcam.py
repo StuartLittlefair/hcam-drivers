@@ -200,8 +200,8 @@ class InstPars(tk.LabelFrame):
         nxs = (100,)
         nys = (100,)
         # allowed binning factors
-        xbfac = (1, 2, 3, 4, 8)
-        ybfac = (1, 2, 3, 4, 8)
+        xbfac = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+        ybfac = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
         self.drift_frame = w.WinPairs(lhs, xsls, xslmins, xslmaxs,
                                       xsrs, xsrmins, xsrmaxs,
                                       yss, ysmins, ysmaxs,
