@@ -91,6 +91,9 @@ class IntegerEntry(tk.Entry):
         self.blank = blank
         self.set_bind()
 
+        # Checking for repeated keys
+        self.has_prev_key_release = None
+
         # Nasty stuff to do with holding mouse
         # buttons down
         self._leftMousePressed = False
@@ -168,17 +171,49 @@ class IntegerEntry(tk.Entry):
         self.configure(state='disable')
         self.set_unbind()
 
+    def on_key_release(self, *dummy):
+        self.has_prev_key_release = None
+        if self.checker:
+            self.checker(dummy)
+
+    def on_key_release_repeat(self, *dummy):
+        """
+        Avoid repeated trigger of callback.
+
+        When holding a key down, multiple key press and release events
+        are fired in succession. Debouncing is implemented to squash these.
+        """
+        self.has_prev_key_release = self.after_idle(self.on_key_release, dummy)
+
+    def on_key_press_repeat(self, keysym):
+        if self.has_prev_key_release:
+            # stop the key release callback being called yet
+            self.after_cancel(self.has_prev_key_release)
+            # set prev_key_release to None, so next key release will reactivate
+            self.has_prev_key_release = None
+        # increment the value
+        increment = 1
+        if 'Shift' in keysym:
+            increment = 10
+        elif 'Control' in keysym:
+            increment = 100
+        if 'Up' in keysym:
+            self.add(increment)
+        elif 'Down' in keysym:
+            self.sub(increment)
+
     def set_bind(self):
         """
         Sets key bindings.
         """
         # Arrow keys and enter
-        self.bind('<Up>', lambda e: self.add(1))
-        self.bind('<Down>', lambda e: self.sub(1))
-        self.bind('<Shift-Up>', lambda e: self.add(10))
-        self.bind('<Shift-Down>', lambda e: self.sub(10))
-        self.bind('<Control-Up>', lambda e: self.add(100))
-        self.bind('<Control-Down>', lambda e: self.sub(100))
+        self.bind('<Up>', lambda e: self.on_key_press_repeat('Up'))
+        self.bind('<Down>', lambda e: self.on_key_press_repeat('Down'))
+        self.bind('<Shift-Up>', lambda e: self.on_key_press_repeat('Shift-Up'))
+        self.bind('<Shift-Down>', lambda e: self.on_key_press_repeat('Shift-Down'))
+        self.bind('<Control-Up>', lambda e: self.on_key_press_repeat('Control-Up'))
+        self.bind('<Control-Down>', lambda e: self.on_key_press_repeat('Control-Down'))
+        self.bind('<KeyRelease>', lambda e: self.on_key_release_repeat())
 
         # Mouse buttons: bit complex since they don't automatically
         # run in continuous mode like the arrow keys
@@ -212,6 +247,8 @@ class IntegerEntry(tk.Entry):
         if self._leftMousePressed:
             self._leftMousePressed = False
             self.after_cancel(self.after_id)
+            if self.checker:
+                self.checker()
 
     def _shiftLeftMouseDown(self, event):
         self._shiftLeftMousePressed = True
@@ -222,6 +259,8 @@ class IntegerEntry(tk.Entry):
         if self._shiftLeftMousePressed:
             self._shiftLeftMousePressed = False
             self.after_cancel(self.after_id)
+            if self.checker:
+                self.checker()
 
     def _rightMouseDown(self, event):
         self._rightMousePressed = True
@@ -232,6 +271,8 @@ class IntegerEntry(tk.Entry):
         if self._rightMousePressed:
             self._rightMousePressed = False
             self.after_cancel(self.after_id)
+            if self.checker:
+                self.checker()
 
     def _shiftRightMouseDown(self, event):
         self._shiftRightMousePressed = True
@@ -242,6 +283,8 @@ class IntegerEntry(tk.Entry):
         if self._shiftRightMousePressed:
             self._shiftRightMousePressed = False
             self.after_cancel(self.after_id)
+            if self.checker:
+                self.checker()
 
     def _pollMouse(self):
         """
@@ -317,13 +360,9 @@ class IntegerEntry(tk.Entry):
             # Store new value.
             self._value = newvalue
             self._variable.set(self.newvalue)
-            if self.checker:
-                self.checker(*dummy)
         else:
             # Store new value
             self._value = value
-            if self.checker:
-                self.checker(*dummy)
 
     # following are callbacks for bindings
     def _dadd1(self, event):
