@@ -189,7 +189,7 @@ def createJSON(g):
     return data
 
 
-def execCommand(g, command):
+def execCommand(g, command, timeout=10):
     """
     Executes a command by sending it to the rack server
 
@@ -219,7 +219,7 @@ def execCommand(g, command):
     try:
         url = g.cpars['hipercam_server'] + command
         g.clog.info('execCommand, command = "' + command + '"')
-        response = urllib.request.urlopen(url)
+        response = urllib.request.urlopen(url, timeout=timeout)
         rs = ReadServer(response.read(), status_msg=False)
 
         g.rlog.info('Server response =\n' + rs.resp())
