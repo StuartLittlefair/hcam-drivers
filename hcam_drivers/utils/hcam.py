@@ -1304,8 +1304,22 @@ class Start(w.ActButton):
         if not messagebox.askokcancel('Confirm', 'Really start?'):
             return False
 
-        # Check instrument pars are OK
         g = get_root(self).globals
+        # check binning against overscan
+        msg = """
+        HiperCAM has an o/scan of 50 pixels.
+        Your binning does not fit into this
+        region. Some columns will contain a
+        mix of o/scan and data.
+
+        Click OK if you wish to continue."""
+        if g.ipars.oscan():
+            xbin, ybin = g.ipars.wframe.xbin.value(), g.ipars.wframe.ybin.value()
+            if xbin not in (1, 2, 5, 10) or ybin not in (1, 2, 5, 10):
+                if not messagebox.askokcancel('Binning alert', msg):
+                    return False
+
+        # Check instrument pars are OK
         if not g.ipars.check():
             g.clog.warn('Invalid instrument parameters; save failed.')
             return False
