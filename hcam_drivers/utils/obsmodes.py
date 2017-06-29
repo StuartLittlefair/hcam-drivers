@@ -30,7 +30,7 @@ class ObsMode(object):
         """
         app_data = setup_data['appdata']
         nb, ng, nr, ni, nz = app_data['multipliers']
-        dummy = app_data.get('dummy', 0)  # works even if dummy not set in app, default 0
+        dummy = app_data.get('dummy_out', 0)  # works even if dummy not set in app, default 0
         self.detpars = {
             'DET.BINX1': app_data['xbin'],
             'DET.BINY1': app_data['ybin'],
