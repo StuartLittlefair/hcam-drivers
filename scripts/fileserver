@@ -6,6 +6,8 @@ import os
 
 import tornado.ioloop
 from tornado.web import Application, url
+from tornado import websocket
+import json
 
 from hcam_drivers.utils.web import BaseHandler, FastFITSPipe
 
@@ -31,64 +33,33 @@ class MainHandler(BaseHandler):
         self.write("\n".join(files))
 
 
-class RunHandler(BaseHandler):
+class RunHandler(websocket.WebSocketHandler):
+
     def initialize(self, db):
-        self.db = db  # global db used for state
+        self.db = db
 
-    def _get_client_state(self, run_id):
-        self.client_key = self.request.remote_ip
-        # get state
-        make_new_ffp = False
-        try:
-            prev_run_id = self.db[self.client_key]['run_id']
-            if prev_run_id != run_id:
-                self.run_id = run_id
-                make_new_ffp = True
-        except:
-            self.run_id = run_id
-            make_new_ffp = True
+    def check_origin(self, origin):
+        # allow cross-origin connections
+        return True
 
-        if make_new_ffp:
-            print('loading {} for client {}'.format(
-                self.run_id, self.client_key
-            ))
-            self.ffp = self.get_ffp(self.run_id)
-        else:
-            self.ffp = self.db[self.client_key]['ffp']
+    def open(self, run_id):
+        print('Connection opened to access {}'.format(run_id))
+        self.run_id = run_id
+        self.ffp = self.get_ffp(run_id)
 
-    def on_finish(self):
-        # TODO: how do we ever close open file handles??
-        # save state for next request
-        try:
-            self.db[self.client_key] = dict(run_id=self.run_id, ffp=self.ffp)
-        except:
-            pass
+    def on_message(self, message):
+        msg = json.loads(message)
+        action = msg['action']
+        if action == 'get_frame':
+            self.get_frame(msg['frame_number'])
+        elif action == 'get_hdr':
+            self.get_main_header()
+        elif action == 'get_next':
+            self.get_next_frame()
 
-    def get(self, run_id):
-        # get some info about a given run
-        action = self.get_argument('action')
-        if action not in ['get_hdr', 'get_frame', 'get_next_frame']:
-            raise tornado.web.HTTPError(400)
-        self._get_client_state(run_id)
-        try:
-            if action == "get_hdr":
-                try:
-                    self.get_main_header()
-                except:
-                    raise tornado.web.HTTPError(400)
-            elif action == "get_frame":
-                try:
-                    frame_id = int(self.get_argument('frame'))
-                    self.get_frame(frame_id)
-                except:
-                    raise tornado.web.HTTPError(400)
-            elif action == "get_next_frame":
-                try:
-                    self.get_next_frame()
-                except:
-                    raise tornado.web.HTTPError(400)
-        except:
-            raise tornado.web.HTTPError(400)
+    def on_close(self):
+        print('Socket closed')
+        self.ffp._fileobj.close()
 
     def get_ffp(self, run_id):
         fname = '{}.fits'.format(run_id)
@@ -100,7 +71,7 @@ class RunHandler(BaseHandler):
         Send main FITS HDU as txt
         """
         hdr = self.ffp.hdr
-        self.write(hdr.tostring(sep='\n').encode('UTF-8'))
+        self.write_message(hdr.tostring())
 
     def get_frame(self, frame_id):
         """
@@ -110,11 +81,13 @@ class RunHandler(BaseHandler):
         self._send_frame()
 
     def _send_frame(self):
-        fits_bytes = self.ffp.read_frame_bytes()
+        try:
+            fits_bytes = self.ffp.read_frame_bytes()
+        except EOFError:
+            # frame is not ready yet, so send empty bytes
+            fits_bytes = b''
         # write the stuff
-        self.set_header("Content-type",  "image/data")
-        self.set_header('Content-length', len(fits_bytes))
-        self.write(fits_bytes)
+        self.write_message(fits_bytes, binary=True)
 
     def get_next_frame(self):
         self._send_frame()
@@ -124,12 +97,15 @@ def make_app(db, debug):
     return Application([
         # url routing. look for runXXX pattern first, assume everything else
         # is a directory for e.g uls
-        url(r"/(run[0-9]+)", RunHandler, dict(db=db), name="run"),
+        url(r"/(run[0-9]+)", RunHandler, dict(db=db)),
         url(r"/(.*)", MainHandler, dict(db=db), name="path")
     ], debug=debug)
 
 
 def run_fileserver(dir, debug):
+    # we pass around current run and reference to open fits object
+    # to minimise the overheads associated with each request.
+    # this will break if the fileserver is run with multiple processes!
     db = {'dir': dir}
     app = make_app(db, debug)
     app.listen(8007)
