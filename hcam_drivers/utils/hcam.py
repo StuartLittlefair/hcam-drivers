@@ -149,26 +149,31 @@ class InstPars(tk.LabelFrame):
         # led on (expert mode only)
         self.ledLab = tk.Label(lhs, text='LED setting')
         self.ledLab.grid(row=3, column=0, sticky=tk.W)
-        self.led = w.RangedInt(lhs, 0, 0, 4095, None, False, width=7)
+        self.led = w.OnOff(lhs, False, None)
         self.led.grid(row=3, column=1, pady=2, sticky=tk.W)
-        self.ledValue = self.led.value()
+
+        # dummy mode enabled (expert mode only)
+        self.dummyLab = tk.Label(lhs, text='Dummy Output')
+        self.dummyLab.grid(row=4, column=0, sticky=tk.W)
+        self.dummy = w.OnOff(lhs, False, None)
+        self.dummy.grid(row=4, column=1, pady=2, sticky=tk.W)
 
         # Readout speed
-        tk.Label(lhs, text='Readout speed').grid(row=4, column=0, sticky=tk.W)
+        tk.Label(lhs, text='Readout speed').grid(row=5, column=0, sticky=tk.W)
         self.readSpeed = w.Select(lhs, 2, ('Fast', 'Medium', 'Slow'), self.check)
-        self.readSpeed.grid(row=4, column=1, pady=2, sticky=tk.W)
+        self.readSpeed.grid(row=5, column=1, pady=2, sticky=tk.W)
 
         # Exp delay
-        tk.Label(lhs, text='Exposure delay (s)').grid(row=5, column=0,
+        tk.Label(lhs, text='Exposure delay (s)').grid(row=6, column=0,
                                                       sticky=tk.W)
         self.expose = w.Expose(lhs, 0.1, 0., 1677.7207,
                                self.check, width=7)
-        self.expose.grid(row=5, column=1, pady=2, sticky=tk.W)
+        self.expose.grid(row=6, column=1, pady=2, sticky=tk.W)
 
         # num exp
-        tk.Label(lhs, text='Num. exposures  ').grid(row=6, column=0,  sticky=tk.W)
+        tk.Label(lhs, text='Num. exposures  ').grid(row=7, column=0,  sticky=tk.W)
         self.number = w.PosInt(lhs, 1, None, False, width=7)
-        self.number.grid(row=6, column=1, pady=2, sticky=tk.W)
+        self.number.grid(row=7, column=1, pady=2, sticky=tk.W)
 
         # nb, ng, nr etc
         labels = ('nb', 'ng', 'nr', 'ni', 'nz')
@@ -255,12 +260,14 @@ class InstPars(tk.LabelFrame):
         if level == 0:
             self.ledLab.grid_forget()
             self.led.grid_forget()
-            self.ledValue = self.led.value()
             self.led.set(0)
+            self.dummyLab.grid_forget()
+            self.dummy.grid_forget()
         else:
-            self.led.set(self.ledValue)
             self.ledLab.grid(row=3, column=0, sticky=tk.W)
             self.led.grid(row=3, column=1, pady=2, sticky=tk.W)
+            self.dummyLab.grid(row=4, column=0, sticky=tk.W)
+            self.dummy.grid(row=4, column=1, pady=2, sticky=tk.W)
 
     def isDrift(self):
         if self.app.value() == 'Drift':
@@ -291,7 +298,8 @@ class InstPars(tk.LabelFrame):
         data = dict(
             numexp=self.number.value(),
             app=self.app.value(),
-            led_flsh=self.led.value(),
+            led_flsh=self.led(),
+            dummy_out=self.dummy(),
             readout=self.readSpeed(),
             dwell=self.expose.value(),
             exptime=expTime,
@@ -334,6 +342,8 @@ class InstPars(tk.LabelFrame):
         self.number.set(numexp)
         # LED setting
         self.led.set(data.get('led_flsh', 0))
+        # Dummy output enabled
+        self.dummy.set(data.get('dummy_out', 0))
         # readout speed
         self.readSpeed.set(data.get('readout', 'Slow'))
         # dwell
@@ -482,6 +492,7 @@ class InstPars(tk.LabelFrame):
         self.app.disable()
         self.clear.disable()
         self.led.disable()
+        self.dummy.disable()
         self.readSpeed.disable()
         self.expose.disable()
         self.number.disable()
@@ -496,6 +507,7 @@ class InstPars(tk.LabelFrame):
         self.app.enable()
         self.clear.enable()
         self.led.enable()
+        self.dummy.enable()
         self.readSpeed.enable()
         self.expose.enable()
         self.number.enable()
