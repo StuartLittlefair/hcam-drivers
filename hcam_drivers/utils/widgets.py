@@ -19,7 +19,7 @@ from .tkutils import get_root
 from .logs import Logger, GuiHandler
 from .astro import calc_riseset
 from .misc import (execCommand, checkSimbad, isRunActive,
-                   getRunNumber, getFrameNumber)
+                   getRunNumber, postJSON, getFrameNumber)
 
 
 # GENERAL UI WIDGETS
@@ -1533,6 +1533,16 @@ class Stop(ActButton):
                     # Report that run has stopped
                     g.clog.info('Run stopped')
                     self.stopped_ok = True
+                    
+                    idle = {'appdata': {'app': 'Idle'}}
+                    try:
+                        success = postJSON(g, idle)
+                        if not success:
+                            raise Exception('postJSON returned false')
+                    except Exception as err:
+                        g.clog.warn('Failed to enable idle mode')
+                        g.clog.warn(str(err))
+                        
                 else:
                     g.clog.warn('Failed to stop run')
                     self.stopped_ok = False
