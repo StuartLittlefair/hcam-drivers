@@ -16,9 +16,10 @@ from .misc import (createJSON, saveJSON, postJSON,
 # from astropy import units as u
 
 # Timing, Gain, Noise parameters
-# TODO: insert real numbers here
+# Times in seconds
 VCLOCK = 14.4e-6  # vertical clocking time
 HCLOCK = 0.48e-6  # horizontal clocking time
+SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
 VIDEO_SLOW = 11.2e-6
 VIDEO_MED = 6.24e-6
 VIDEO_FAST = 3.2e-6
@@ -31,10 +32,9 @@ RNO_SLOW = 1.0
 DARK_E = 0.001  # e/pix/s
 
 
-FFX = 2048
-FFY = 1024
-IFY = 1024  # what is this?
-IFX = 2048  # and this
+FFX = 1024  # X pixels per output
+FFY = 520   # Y pixels per output
+PRSCX = 50  # number of pre-scan pixels
 
 
 class ExposureMultiplier(tk.LabelFrame):
@@ -597,6 +597,9 @@ class InstPars(tk.LabelFrame):
         # clear chip on/off?
         lclear = not isDriftMode and self.clear()
 
+        # overscan read or not
+        oscan = not isDriftMode and self.oscan()
+
         # get exposure delay
         expose = self.expose.value()
 
@@ -604,52 +607,29 @@ class InstPars(tk.LabelFrame):
         xbin = self.wframe.xbin.value()
         ybin = self.wframe.ybin.value()
         if isDriftMode:
-            # dxleft = self.wframe.xsl[0].value()
-            # dxright = self.wframe.xsr[0].value()
-            nwin = 2
-            dys = self.wframe.ys[0].value()
+            nwin = 1  # number of windows per output
+            dys = self.wframe.ys[0].value() - 1
             dnx = self.wframe.nx[0].value()
             dny = self.wframe.ny[0].value()
         elif isFF:
-            nwin = 4
-            xs = [1, 1024, 1, 1024]
-            ys = [1, 521, 1, 521]
-            nx = [1023, 1023, 1023, 1023]
-            ny = [520, 520, 520, 520]
+            nwin = 1
+            ys = [0]
+            nx = [1024]
+            ny = [520]
         else:
-            xs, ys, nx, ny = [], [], [], []
-            nwin = 4*self.wframe.nquad.value()
+            ys, nx, ny = [], [], []
+            nwin = self.wframe.nquad.value()
             for xsll, xsul, xslr, xsur, ysv, nxv, nyv in self.wframe:
-                xs.append(xsll)
-                ys.append(ysv)
+                ys.append(ysv-1)
                 nx.append(nxv)
                 ny.append(nyv)
-
-                xs.append(xsul)
-                ys.append(ysv)
-                nx.append(nxv)
-                ny.append(nyv)
-
-                xs.append(xslr)
-                ys.append(ysv)
-                nx.append(nxv)
-                ny.append(nyv)
-
-                xs.append(xsur)
-                ys.append(ysv)
-                nx.append(nxv)
-                ny.append(nyv)
-
-        # TODO: enable extra time for overscan
 
         # convert timing parameters to seconds
         expose_delay = expose
 
         # clear chip by VCLOCK-ing the image and storage areas
         if lclear:
-            # accomodate changes to clearing made by DA to fix dark current
-            # when clearing charge along normal output
-            clear_time = 2.0*(FFY*VCLOCK+39.e-6) + FFX*HCLOCK
+            clear_time = (FFY*VCLOCK) + (FFX + PRSCX)*HCLOCK
         else:
             clear_time = 0.0
 
@@ -657,55 +637,45 @@ class InstPars(tk.LabelFrame):
             # for drift mode, we need the number of windows in the pipeline
             # and the pipeshift
             # TODO - correct for HiperCam
-            pnwin = int(((1037 / dny) + 1)/2)
-            pshift = 1037 - (2*pnwin-1)*dny
-            frame_transfer = (dny+dys-1)*VCLOCK + 49.0e-6
+            pnwin = int(((520 / dny) + 1)/2)
+            pshift = 520 - (2*pnwin-1)*dny
+            frame_transfer = (dny+dys)*VCLOCK
 
-            yshift = [0.]
-            yshift[0] = (dys-1.0)*VCLOCK
+            yshift = [dys*VCLOCK]
 
             # After placing the window adjacent to the serial register, the
             # register must be cleared by clocking out the entire register,
-            # taking FFX hclocks (we no longer open the dump gates, which
-            # took only 8 hclock cycles to complete, but gave ramps and
-            # bright rows in the bias).
+            # taking FFX hclocks.
             line_clear = [0.]
             if yshift[0] != 0:
-                line_clear[0] = FFX*HCLOCK
+                line_clear[0] = (FFX + PRSCX)*HCLOCK
 
             numhclocks = [0]
             numhclocks[0] = FFX
 
             line_read = [0.]
             line_read[0] = (VCLOCK*ybin + numhclocks[0]*HCLOCK +
-                            video*2.0*dnx/xbin)
+                            video*2.0*dnx/xbin) + 3*SETUP_READ
 
             readout = [0.]
             readout[0] = (dny/ybin) * line_read[0]
 
         else:
             # If not drift mode, move entire image into storage area
-            # the -35 component is because Derek only shifts 1037 pixels
-            # (composed of 1024 active rows, 5 dark reference rows, 2
-            # transition rows and 6 extra overscan rows for good measure)
-            # If drift mode, just move the window into the storage area
-            frame_transfer = (FFY-35)*VCLOCK + 49.0e-6
+            frame_transfer = FFY*VCLOCK + (FFX + PRSCX)*HCLOCK
 
             yshift = nwin*[0.]
-            yshift[0] = (ys[0]-1.0)*VCLOCK
+            yshift[0] = ys[0]*VCLOCK
             for nw in range(1, nwin):
                 yshift[nw] = (ys[nw]-ys[nw-1]-ny[nw-1])*VCLOCK
 
             line_clear = nwin*[0.]
             for nw in range(nwin):
                 if yshift[nw] != 0:
-                    line_clear[nw] = FFX*HCLOCK
+                    line_clear[nw] = (FFX + PRSCX)*HCLOCK
 
             # calculate how long it takes to shift one row into the serial
             # register shift along serial register and then read out the data.
-            # The charge in a row after a window used to be dumped, taking
-            # 8 HCLOCK cycles. This created ramps and bright rows/columns in
-            # the images, so was removed.
             numhclocks = nwin*[0]
             for nw in range(nwin):
                 numhclocks[nw] = FFX
@@ -713,7 +683,9 @@ class InstPars(tk.LabelFrame):
             line_read = nwin*[0.]
             for nw in range(nwin):
                 line_read[nw] = (VCLOCK*ybin + numhclocks[nw]*HCLOCK +
-                                 video*nx[nw]/xbin)
+                                 video*nx[nw]/xbin) + 3*SETUP_READ
+                if oscan:
+                    line_read[nw] += PRSCX*HCLOCK + video*PRSCX/xbin
 
             # multiply time to shift one row into serial register by
             # number of rows for total readout time
@@ -724,7 +696,7 @@ class InstPars(tk.LabelFrame):
         # now get the total time to read out one exposure.
         cycleTime = expose_delay + clear_time + frame_transfer
         if isDriftMode:
-            cycleTime += pshift*VCLOCK+yshift[0]+line_clear[0]+readout[0]
+            cycleTime += pshift*VCLOCK + yshift[0] + line_clear[0] + readout[0]
         else:
             for nw in range(nwin):
                 cycleTime += yshift[nw] + line_clear[nw] + readout[nw]
