@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+import glob
+import os
+import shutil
+
+
+header_items = dict(
+    OBSERVER='Littlefair',
+    FILTERS='ugriz',
+    PROGRAMME='GTO',
+    PI="Littlefair",
+    RUN_COMMENT='None',
+    IMAGETYPE="BIAS"
+)
+
+
+def backup_dsup_file(path):
+    shutil.copy(path, path+'.bak')
+
+
+def insert_header_items(path):
+    hdr = """
+
+    #
+    # USER HEADER INFO
+    #
+    """
+    lines = open(path).readlines()
+    lines.pop()  # remove end line
+    with open(path, 'w') as f:
+        for line in lines:
+            f.write(line)
+        f.write(hdr)
+        for item in header_items:
+            f.write('{}\t{}\n'.format(item, header_items[item]))
+        f.write('# --- oOo ---')
+
+
+dsup_path = os.path.expanduser('~/hipircfg/NGCIRSW')
+dsup_files = glob.glob(os.path.join(dsup_path, 'hipercam*.dsup'))
+for path in dsup_files:
+    backup_dsup_file(path)
+    insert_header_items(path)
