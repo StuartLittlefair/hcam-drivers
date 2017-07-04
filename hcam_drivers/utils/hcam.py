@@ -176,7 +176,7 @@ class InstPars(tk.LabelFrame):
         self.number.grid(row=7, column=1, pady=2, sticky=tk.W)
 
         # nb, ng, nr etc
-        labels = ('nb', 'ng', 'nr', 'ni', 'nz')
+        labels = ('nu', 'ng', 'nr', 'ni', 'nz')
         ivals = (1, 1, 1, 1, 1)
         imins = (1, 1, 1, 1, 1)
         imaxs = (20, 20, 20, 20, 20)

@@ -29,7 +29,7 @@ class ObsMode(object):
             Dictionary of HiPerCAM setup data
         """
         app_data = setup_data['appdata']
-        nb, ng, nr, ni, nz = app_data['multipliers']
+        nu, ng, nr, ni, nz = app_data['multipliers']
         dummy = app_data.get('dummy_out', 0)  # works even if dummy not set in app, default 0
         self.detpars = {
             'DET.BINX1': app_data['xbin'],
@@ -40,7 +40,7 @@ class ObsMode(object):
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
             'DET.GPS': 'T',
             'DET.INCPRSCX': 'T' if app_data['oscan'] else 'F',
-            'DET.NSKIPS1': nb-1,
+            'DET.NSKIPS1': nu-1,
             'DET.NSKIPS2': ng-1,
             'DET.NSKIPS3': nr-1,
             'DET.NSKIPS4': ni-1,
@@ -78,6 +78,7 @@ class Idle(ObsMode):
             'clear': True,
             'led_flsh': False,
             'oscan': False,
+            'multipliers': (1, 1, 1, 1, 1),
             'exptime': 10
         }
         setup_data = {'appdata': app_data}
