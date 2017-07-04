@@ -35,7 +35,7 @@ class ObsMode(object):
             'DET.BINX1': app_data['xbin'],
             'DET.BINY1': app_data['ybin'],
             'DET.CLRCCD': 'T' if app_data['clear'] else 'F',
-            'DET.NCLRS': 10,
+            'DET.NCLRS': 1,
             'DET.DUMMY': dummy,
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
             'DET.GPS': 'T',
@@ -137,6 +137,7 @@ class Drift(ObsMode):
             'DET.DRWIN.XSG': 2049 - app_data['x1start_upperright'] - app_data['x1size']
         }
         self.detpars.update(win1)
+        self.nrows = 520
         self.detpars['DET.DRWIN.NW'] = self.num_stacked
         self.detpars['DET.DRWIN.PSH'] = self.pipe_shift
 
