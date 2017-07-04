@@ -1533,7 +1533,7 @@ class Stop(ActButton):
                     # Report that run has stopped
                     g.clog.info('Run stopped')
                     self.stopped_ok = True
-                    
+
                     idle = {'appdata': {'app': 'Idle'}}
                     try:
                         success = postJSON(g, idle)
@@ -1542,7 +1542,7 @@ class Stop(ActButton):
                     except Exception as err:
                         g.clog.warn('Failed to enable idle mode')
                         g.clog.warn(str(err))
-                        
+
                 else:
                     g.clog.warn('Failed to stop run')
                     self.stopped_ok = False
@@ -1770,6 +1770,38 @@ class NGCReset(ActButton):
             return False
 
 
+class NGCStandby(ActButton):
+    """
+    Class defining the standby button.
+
+    In standby, the NGC server will respond to commands, but processes (sequencer) etc are
+    halted, and power is off to controller.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        super(NGCStandby, self).__init__(master, width, text='NGC Standby')
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('NGC Standby pressed')
+
+        if execCommand(g, 'standby'):
+            g.clog.info('Standby command successful')
+
+            # alter buttons here
+            g.observe.start.disable()
+            g.observe.stop.disable()
+            g.setup.powerOn.enable()
+            g.setup.powerOff.enable()
+            return True
+        else:
+            g.clog.warn("NGC Standby failed")
+            return False
+
+
 class PowerOn(ActButton):
     """
     Class defining the 'Power on' button's operation
@@ -1859,6 +1891,7 @@ class InstSetup(tk.LabelFrame):
         # Define all buttons
         width = 17
         self.ngcReset = NGCReset(self, width)
+        self.ngcStandby = NGCStandby(self, width)
         self.powerOn = PowerOn(self, width)
         self.powerOff = PowerOff(self, width)
 
@@ -1876,6 +1909,7 @@ class InstSetup(tk.LabelFrame):
         if level == 0:
             # simple layout
             self.ngcReset.grid_forget()
+            self.ngcStandby.grid_forget()
             self.powerOn.grid_forget()
             self.powerOff.grid_forget()
 
@@ -1886,6 +1920,7 @@ class InstSetup(tk.LabelFrame):
         elif level == 1 or level == 2:
             # first remove all possible buttons
             self.ngcReset.grid_forget()
+            self.ngcStandby.grid_forget()
             self.powerOn.grid_forget()
             self.powerOff.grid_forget()
 
@@ -1893,17 +1928,20 @@ class InstSetup(tk.LabelFrame):
             self.powerOn.grid(row=0, column=0)
             self.powerOff.grid(row=1, column=0)
             self.ngcReset.grid(row=0, column=1)
+            self.ngcStandby.grid(row=1, column=1)
 
         # now set whether buttons are permanently enabled or not
         if level == 0 or level == 1:
             self.ngcReset.setNonExpert()
             self.powerOn.setNonExpert()
             self.powerOff.setNonExpert()
+            self.ngcStandby.setNonExpert()
 
         elif level == 2:
             self.ngcReset.setExpert()
             self.powerOn.setExpert()
             self.powerOff.setExpert()
+            self.ngcStandby.setExpert()
 
 
 class Switch(tk.Frame):
