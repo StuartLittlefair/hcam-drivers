@@ -12,7 +12,7 @@ header_items = dict(
     PROGRAMME='GTO',
     PI="None",
     RUN_COMMENT='None',
-    IMAGETYPE="BIAS"
+    IMAGETYP="BIAS"
 )
 
 
