@@ -29,14 +29,15 @@ import os
 import shutil
 
 
-header_items = dict(
-    OBSERVER='None',
-    FILTERS='ugriz',
-    PROGRAMME='GTO',
-    PI="None",
-    RUNCOM='None',
-    IMAGETYP="BIAS"
-)
+header_items = {
+    'OBSERVER': 'None',
+    'FILTERS': 'ugriz',
+    'PROGRM': 'GTO',
+    'PI': "None",
+    'COMMENT': 'None',
+    'OBJECT': 'None',
+    'IMAGETYP': "BIAS"
+}
 
 
 def backup_dsup_file(path):
