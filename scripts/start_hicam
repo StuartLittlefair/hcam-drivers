@@ -61,6 +61,6 @@ test ngcbCmd setup DET.FRAM.NAMING auto
 test ngcbCmd setup DET.FRAM.FILENAME run
 
 # launch server for GUI communication
-xterm -ls -sb -title "HServer" -e "/home/observer/.local/bin/hserver" &
+xterm -ls -sb -title "HServer" -e "hserver" &
 # launch server for File Transfer
-xterm -ls -sb -title "FileServer" -e "/home/observer/.local/bin/fileserver --dir /insroot/observer/SYSTEM/DETDATA/" &
+xterm -ls -sb -title "FileServer" -e "fileserver --dir /insroot/observer/SYSTEM/DETDATA/" &
