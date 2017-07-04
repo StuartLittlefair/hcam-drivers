@@ -253,6 +253,7 @@ if __name__ == '__main__':
         url(r'/online', OnlineHandler, dict(db=db), name="online"),
         url(r'/off', OffHandler, dict(db=db), name="off"),
         url(r'/reset', ResetHandler, dict(db=db), name="reset"),
+        url(r'/standby', StandbyHandler, dict(db=db), name="standby"),
         url(r'/summary', SummaryHandler, dict(db=db), name="summary"),
         url(r'/status', StatusHandler, dict(db=db)),
         url(r'/setup', PostRunHandler, dict(db=db), name='setup'),
