@@ -477,6 +477,7 @@ class InstPars(tk.LabelFrame):
         # allow posting if parameters are OK. update count and SN estimates too
         if status:
             if (g.cpars['hcam_server_on'] and g.cpars['eso_server_online'] and
+                    g.observe.start['state'] == 'disabled' and
                     not isRunActive(g)):
                 g.observe.start.enable()
             g.count.update()
