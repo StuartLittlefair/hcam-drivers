@@ -1,0 +1,66 @@
+#!/usr/bin/bash
+
+# usage info
+function show_help {
+cat <<EOF
+Usage: ${0##*/} [-h] [-g]
+Start the hipercam software.
+
+    -h    display this help and exit
+    -g    start eso engineering GUI (for debugging)
+EOF
+}
+
+function test {
+    echo "RUN:  $@"
+    "$@"
+    local status=$?
+    if [ $status -ne 0 ]; then
+        echo "error with $1" >&2
+    fi
+    return $status
+}
+
+gui=0
+OPTIND=1
+while getopts hg opt; do
+    case $opt in
+        h)
+            show_help
+            exit 0
+            ;;
+        g)  gui=1
+            ;;
+        *)
+            show_help >&2
+            exit 1
+            ;;
+    esac
+done
+shift "$((OPTIND-1))"
+
+
+test ngcdcsStopServer IRCAM1
+sleep 2
+if [ $gui -eq 1 ]
+then
+    test ngcdcsStartServer IRCAM1 -port $NGC_PORT -gui &
+else
+    test ngcdcsStartServer IRCAM1 -port $NGC_PORT &
+fi
+sleep 2
+test ngcbCmd off
+sleep 1
+
+# load default setup and switch to standby mode
+test ngcbCmd setup DET.SYSCFG hipercam_5ccd.cfg
+test ngcbCmd standby
+
+# set file naming
+test ngcbCmd setup DET.FRAM.NAMING auto
+test ngcbCmd setup DET.FRAM.FILENAME run
+
+# launch server for GUI communication
+xterm -ls -sb -title "HServer" -e "/home/observer/.local/bin/hserver" &
+# launch server for File Transfer
+xterm -ls -sb -title "FileServer" -e "/home/observer/.local/bin/fileserver --dir /insroot/observer/SYSTEM/DETDATA/" &
