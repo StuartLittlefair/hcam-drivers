@@ -7,10 +7,10 @@ import shutil
 
 
 header_items = dict(
-    OBSERVER='Littlefair',
+    OBSERVER='None',
     FILTERS='ugriz',
     PROGRAMME='GTO',
-    PI="Littlefair",
+    PI="None",
     RUN_COMMENT='None',
     IMAGETYPE="BIAS"
 )
@@ -22,11 +22,9 @@ def backup_dsup_file(path):
 
 def insert_header_items(path):
     hdr = """
-
-    #
-    # USER HEADER INFO
-    #
-    """
+#
+# USER HEADER INFO
+#"""
     lines = open(path).readlines()
     lines.pop()  # remove end line
     with open(path, 'w') as f:
@@ -38,7 +36,7 @@ def insert_header_items(path):
         f.write('# --- oOo ---')
 
 
-dsup_path = os.path.expanduser('~/hipircfg/NGCIRSW')
+dsup_path = os.path.expanduser('~/hipircfg/config/NGCIRSW')
 dsup_files = glob.glob(os.path.join(dsup_path, 'hipercam*.dsup'))
 for path in dsup_files:
     backup_dsup_file(path)
