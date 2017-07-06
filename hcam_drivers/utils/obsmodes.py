@@ -71,7 +71,8 @@ class ObsMode(object):
         for key in self.detpars:
             setup_string += ' {} {} '.format(key, self.detpars[key])
         for key in self.userpars:
-            setup_string += ' {} {} '.format(key, self.userpars[key])
+            if self.userpars[key] != '':
+                setup_string += ' {} {} '.format(key, self.userpars[key])
         return setup_string
 
 
