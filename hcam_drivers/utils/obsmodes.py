@@ -48,6 +48,19 @@ class ObsMode(object):
             'DET.SEQ.DIT': app_data['exptime']
         }
 
+        # parameters for user-defined headers
+        user_data = setup_data.get('user', {})
+        self.userpars = {
+            'OBSERVER': user_data.get('Observers', ''),
+            'OBJECT': user_data.get('target', ''),
+            'RUNCOM': user_data.get('comment', ''),
+            'IMAGETYP': user_data.get('flags', ''),
+            'FILTERS': user_data.get('filters', ''),
+            'PROGRM': user_data.get('ID', ''),
+            'PI': user_data.get('PI', '')
+        }
+
+
     @property
     def readmode_command(self):
         return 'setup DET.READ.CURID {}'.format(self.readoutMode)
@@ -57,6 +70,8 @@ class ObsMode(object):
         setup_string = 'setup'
         for key in self.detpars:
             setup_string += ' {} {} '.format(key, self.detpars[key])
+        for key in self.userpars:
+            setup_string += ' {} {} '.format(key, self.userpars[key])
         return setup_string
 
 
