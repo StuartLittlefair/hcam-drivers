@@ -76,7 +76,7 @@ class ObsMode(object):
                 # add quotes to strings with spaces
                 if ' ' in value:
                     value = '"' + value + '"'
-                setup_string += ' {} {} '.format(key, self.userpars[key])
+                setup_string += ' {} {} '.format(key, value)
         return setup_string
 
 
