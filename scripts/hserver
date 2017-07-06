@@ -27,6 +27,7 @@ def sendCommand(command, *command_pars):
         command_array.extend(*command_pars)
     # must contain only strings
     command_array = [str(val) for val in command_array]
+    print(command_array)
     # now attempt to send command to control server
     try:
         ret_msg = subprocess.check_output(command_array).strip()
