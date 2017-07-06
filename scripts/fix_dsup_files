@@ -54,14 +54,16 @@ def insert_header_items(path):
     already_done = any([line.startswith('OBSERVER') for line in lines])
     if already_done:
         return
-    lines.pop()  # remove end line
+
     with open(path, 'w') as f:
         for line in lines:
             f.write(line)
-        f.write(hdr)
-        for item in header_items:
-            f.write('{}\t{}\n'.format(item, header_items[item]))
-        f.write('# --- oOo ---')
+            if not already_done and not line.startswith('#'):
+                # first non comment line
+                f.write(hdr)
+                for item in header_items:
+                    f.write('{}\t{}\n'.format(item, header_items[item]))
+                already_done = True
 
 
 dsup_path = os.path.expanduser('~/hipircfg/config/NGCIRSW')
