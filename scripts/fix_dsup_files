@@ -34,7 +34,7 @@ header_items = {
     'FILTERS': 'ugriz',
     'PROGRM': 'GTO',
     'PI': "None",
-    'COMMENT': 'None',
+    'RUNCOM': 'None',
     'OBJECT': 'None',
     'IMAGETYP': "BIAS"
 }
