@@ -57,14 +57,14 @@ def insert_header_items(path):
 
     with open(path, 'w') as f:
         for line in lines:
-            f.write(line)
             if not already_done and not line.startswith('#'):
                 # first non comment line
                 f.write(hdr)
                 for item in header_items:
                     f.write('{}\t{}\n'.format(item, header_items[item]))
                 already_done = True
-
+                f.write('\n\n')
+            f.write(line)
 
 dsup_path = os.path.expanduser('~/hipircfg/config/NGCIRSW')
 dsup_files = glob.glob(os.path.join(dsup_path, 'hipercam*.dsup'))
