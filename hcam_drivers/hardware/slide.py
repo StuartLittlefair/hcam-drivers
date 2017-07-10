@@ -15,14 +15,15 @@ else:
     import tkinter as tk
 
 # internal imports
-from .logs import Logger
-from .widgets import GuiLogger, IntegerEntry
-from .misc import FifoThread
-from .tkutils import get_root
+from ..utils.logs import Logger
+from ..utils.widgets import GuiLogger, IntegerEntry
+from ..utils.misc import FifoThread
+from ..utils.tkutils import get_root
 
 
 class SlideError(Exception):
     pass
+
 
 # number of bytes to transmit & recieve
 PACKET_SIZE = 6

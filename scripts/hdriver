@@ -19,13 +19,13 @@ else:
 import hcam_drivers.utils as utils
 from hcam_drivers.globals import Container
 import hcam_drivers.utils.widgets as w
-from hcam_drivers.utils import slide
 from hcam_drivers.utils import hcam
 from hcam_drivers.utils.rtplot import RtplotServer
 from hcam_drivers.utils.misc import execCommand
 from hcam_drivers.config import (load_config, write_config,
                                  check_user_dir, dump_app)
-from hcam_drivers import honeywell as honey
+from hcam_drivers.hardware import honeywell as honey
+from hcam_drivers.hardware import slide
 
 usage = """
 Python GUI for HiperCAM
