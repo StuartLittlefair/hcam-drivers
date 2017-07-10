@@ -26,8 +26,8 @@ expert_level = 0
 # If enabled, all log msgs are also printed to a file.
 file_logging_on = 1
 # Name of telescope. Must be one of the keys in utils.globals.Container.TINS.
-# Currently that is WHT-HICAM or GTC-HICAM
-telins_name = WHT-HICAM
+# Currently that is WHT or GTC
+telins_name = WHT
 
 # ===========================================
 #

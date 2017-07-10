@@ -1993,6 +1993,38 @@ class Switch(tk.Frame):
             raise DriverError('Unrecognised Switch value')
 
 
+class TelChooser(tk.Menu):
+    """
+    Provides a menu to choose the telescope.
+
+    The telescope setting affects the signal/noise calculations
+    and routines for pulling RA/Dec etc from the TCS.
+    """
+    def __init__(self, master, *args):
+        """
+        Parameters
+        ----------
+        master : tk.Widget
+            the containing widget, .e.g toolbar menu
+        """
+        super(TelChooser, self).__init__(master, tearoff=0)
+        g = get_root(self).globals
+
+        self.val = tk.StringVar()
+        tel = g.cpars.get('telins_name', list(g.TINS)[0])
+        self.val.set(tel)
+        self.val.trace('w', self._change)
+        for tel_name in g.TINS.keys():
+            self.add_radiobutton(label=tel_name, value=tel_name, variable=self.val)
+        self.args = args
+        self.root = master
+
+    def _change(self, *args):
+        g = get_root(self).globals
+        g.cpars['telins_name'] = self.val.get()
+        g.count.update()
+
+
 class ExpertMenu(tk.Menu):
     """
     Provides a menu to select the level of expertise wanted
@@ -2186,88 +2218,90 @@ class InfoFrame(tk.LabelFrame):
             return
 
         try:
-
             if g.cpars['tcs_on']:
-                if g.cpars['telins_name'] == 'WHT-HICAM':
-                    try:
-                        # Poll TCS for ra,dec etc.
-                        ra, dec, pa, focus, tracking = tcs.getWhtTcs()
-
-                        # format ra, dec as HMS
-                        coo = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                        ratxt = coo.ra.to_string(sep=':', unit=u.hour)
-                        dectxt = coo.dec.to_string(sep=':', unit=u.deg, alwayssign=True)
-                        self.ra.configure(text=ratxt)
-                        self.dec.configure(text=dectxt)
-
-                        # wrap pa from 0 to 360
-                        pa = coord.Longitude(pa*u.deg)
-                        self.pa.configure(text='{0:6.2f}'.format(pa.value))
-
-                        # check for significant changes in position to flag
-                        # tracking failures. I have removed a test of tflag
-                        # to be True because the telescope often switches to
-                        # "slewing" status even when nominally tracking.
-                        if (coo.separation(self.coo_old) < 4*u.arcsec):
-                            self.tracking = True
-                            self.ra.configure(bg=g.COL['main'])
-                            self.dec.configure(bg=g.COL['main'])
-                        else:
-                            self.tracking = False
-                            self.ra.configure(bg=g.COL['warn'])
-                            self.dec.configure(bg=g.COL['warn'])
-
-                        # check for changing sky PA
-                        if abs(pa-self.pa_old) > 0.1*u.deg:
-                            self.pa.configure(bg=g.COL['warn'])
-                        else:
-                            self.pa.configure(bg=g.COL['main'])
-
-                        # store current values for comparison with next
-                        self.coo_old = coo
-                        self.pa_old = pa
-
-                        # set focus
-                        self.focus.configure(text='{0:+5.2f}'.format(focus))
-
-                        # Calculate most of the
-                        # stuff that we don't get from the telescope
-                        now = Time.now()
-                        lst = now.sidereal_time(kind='mean',
-                                                longitude=g.astro.obs.longitude)
-                        ha = coo.ra.hourangle*u.hourangle - lst
-                        hatxt = ha.wrap_at(12*u.hourangle).to_string(sep=':', precision=0)
-                        self.ha.configure(text=hatxt)
-
-                        altaz_frame = coord.AltAz(obstime=now, location=g.astro.obs)
-                        altaz = coo.transform_to(altaz_frame)
-                        self.alt.configure(text='{0:<4.1f}'.format(altaz.alt.value))
-                        self.az.configure(text='{0:<5.1f}'.format(altaz.az.value))
-                        # set airmass
-                        self.airmass.configure(text='{0:<4.2f}'.format(altaz.secz))
-
-                        # distance to the moon. Warn if too close
-                        # (configurable) to it.
-                        md = coord.get_moon(now, g.astro.obs).separation(coo)
-                        self.mdist.configure(text='{0:<7.2f}'.format(md.value))
-                        if md < g.cpars['mdist_warn']*u.deg:
-                            self.mdist.configure(bg=g.COL['warn'])
-                        else:
-                            self.mdist.configure(bg=g.COL['main'])
-
-                    except Exception as err:
-                        self.ra.configure(text='UNDEF')
-                        self.dec.configure(text='UNDEF')
-                        self.pa.configure(text='UNDEF')
-                        self.ha.configure(text='UNDEF')
-                        self.alt.configure(text='UNDEF')
-                        self.az.configure(text='UNDEF')
-                        self.airmass.configure(text='UNDEF')
-                        self.mdist.configure(text='UNDEF')
-                        g.clog.warn('TCS error: ' + str(err))
+                if g.cpars['telins_name'] == 'WHT':
+                    tcsfunc = tcs.getWhtTcs
+                elif g.cpars['telins_name'] == 'GTC':
+                    tcsfunc = tcs.getGtcTcs
                 else:
                     g.clog.debug('TCS error: could not recognise ' +
                                  g.cpars['telins_name'])
+                try:
+                    # Poll TCS for ra,dec etc.
+                    ra, dec, pa, focus, tracking = tcsfunc()
+
+                    # format ra, dec as HMS
+                    coo = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg))
+                    ratxt = coo.ra.to_string(sep=':', unit=u.hour)
+                    dectxt = coo.dec.to_string(sep=':', unit=u.deg, alwayssign=True)
+                    self.ra.configure(text=ratxt)
+                    self.dec.configure(text=dectxt)
+
+                    # wrap pa from 0 to 360
+                    pa = coord.Longitude(pa*u.deg)
+                    self.pa.configure(text='{0:6.2f}'.format(pa.value))
+
+                    # check for significant changes in position to flag
+                    # tracking failures. I have removed a test of tflag
+                    # to be True because the telescope often switches to
+                    # "slewing" status even when nominally tracking.
+                    if (coo.separation(self.coo_old) < 4*u.arcsec):
+                        self.tracking = True
+                        self.ra.configure(bg=g.COL['main'])
+                        self.dec.configure(bg=g.COL['main'])
+                    else:
+                        self.tracking = False
+                        self.ra.configure(bg=g.COL['warn'])
+                        self.dec.configure(bg=g.COL['warn'])
+
+                    # check for changing sky PA
+                    if abs(pa-self.pa_old) > 0.1*u.deg:
+                        self.pa.configure(bg=g.COL['warn'])
+                    else:
+                        self.pa.configure(bg=g.COL['main'])
+
+                    # store current values for comparison with next
+                    self.coo_old = coo
+                    self.pa_old = pa
+
+                    # set focus
+                    self.focus.configure(text='{0:+5.2f}'.format(focus))
+
+                    # Calculate most of the
+                    # stuff that we don't get from the telescope
+                    now = Time.now()
+                    lst = now.sidereal_time(kind='mean',
+                                            longitude=g.astro.obs.longitude)
+                    ha = coo.ra.hourangle*u.hourangle - lst
+                    hatxt = ha.wrap_at(12*u.hourangle).to_string(sep=':', precision=0)
+                    self.ha.configure(text=hatxt)
+
+                    altaz_frame = coord.AltAz(obstime=now, location=g.astro.obs)
+                    altaz = coo.transform_to(altaz_frame)
+                    self.alt.configure(text='{0:<4.1f}'.format(altaz.alt.value))
+                    self.az.configure(text='{0:<5.1f}'.format(altaz.az.value))
+                    # set airmass
+                    self.airmass.configure(text='{0:<4.2f}'.format(altaz.secz))
+
+                    # distance to the moon. Warn if too close
+                    # (configurable) to it.
+                    md = coord.get_moon(now, g.astro.obs).separation(coo)
+                    self.mdist.configure(text='{0:<7.2f}'.format(md.value))
+                    if md < g.cpars['mdist_warn']*u.deg:
+                        self.mdist.configure(bg=g.COL['warn'])
+                    else:
+                        self.mdist.configure(bg=g.COL['main'])
+
+                except Exception as err:
+                    self.ra.configure(text='UNDEF')
+                    self.dec.configure(text='UNDEF')
+                    self.pa.configure(text='UNDEF')
+                    self.ha.configure(text='UNDEF')
+                    self.alt.configure(text='UNDEF')
+                    self.az.configure(text='UNDEF')
+                    self.airmass.configure(text='UNDEF')
+                    self.mdist.configure(text='UNDEF')
+                    g.clog.warn('TCS error: ' + str(err))
 
             if g.cpars['hcam_server_on'] and \
                g.cpars['eso_server_online']:

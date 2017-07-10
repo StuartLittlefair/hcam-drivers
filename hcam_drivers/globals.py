@@ -73,7 +73,7 @@ class Container:
 
         # Telescope / instrument info. Most of this is do with estimating count rates
         self.TINS = {
-            'WHT-HICAM': {
+            'WHT': {
                 'latitude':   28.7598742,   # latitude degrees, North positive
                 'longitude': -17.8793802,   # longitude degrees, East positive
                 'elevation':  2327.,     # Elevation above sea level, metres
@@ -84,6 +84,19 @@ class Container:
                     'r': 24.96,
                     'i': 24.64,
                     'z': 23.76
+                    }
+                },
+            'GTC': {
+                'latitude':   28.762,   # latitude degrees, North positive
+                'longitude': -17.87764,   # longitude degrees, East positive
+                'elevation':  2300.,     # Elevation above sea level, metres
+                'plateScale': 0.11,     # Arcsecs/unbinned pixel
+                'zerop': {
+                    'u': 23.29,
+                    'g': 26.20,
+                    'r': 25.96,
+                    'i': 25.64,
+                    'z': 24.76
                     }
                 },
             }

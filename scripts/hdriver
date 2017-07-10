@@ -135,6 +135,10 @@ class GUI(tk.Tk):
                                   self.globals.fpslide)
         settingsMenu.add_cascade(label='Expert', menu=expertMenu)
 
+        # telescope chooser
+        telChooser = w.TelChooser(settingsMenu, self.globals)
+        settingsMenu.add_cascade(label='Telescope', menu=telChooser)
+
         # boolean switches
         settingsMenu.add_checkbutton(label='Require run params',
                                      var=w.Boolean(self, 'require_run_params'))
