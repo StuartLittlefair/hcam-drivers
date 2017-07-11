@@ -15,6 +15,7 @@ import hcam_drivers.utils.widgets as w
 from hcam_drivers.utils import slide
 from hcam_drivers.utils import hcam
 from hcam_drivers.utils.rtplot import RtplotServer
+from hcam_drivers.utils.misc import execCommand
 from hcam_drivers.config import (load_config, write_config,
                                  check_user_dir, dump_app)
 from hcam_drivers import honeywell as honey
@@ -231,11 +232,17 @@ class GUI(tk.Tk):
         Shutdown routine
         """
         if not messagebox.askokcancel('Quit', 'Really quit hdriver?'):
-            print('Booya')
+            print('OK - I will not quit')
         else:
             # save config
             write_config(self.globals)
             dump_app(self.globals)
+
+            # attempt to power off server
+            if execCommand(self.globals, 'off'):
+                self.globals.clog.info('ESO server idle and child processes quit')
+            else:
+                self.globals.clog.warn('Power off failed')
             self.destroy()
 
     def update(self):
