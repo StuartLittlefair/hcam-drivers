@@ -225,10 +225,6 @@ class PostRunHandler(BaseHandler):
 
     The remaining parameters are read from the dictionary created
     from the JSON data.
-
-    TODO: Write a helper class to convert the JSON data into Naidu's
-          parameter names for a given app, and routines to find the
-          path to Naidu's sequencer file for a given HiperCAM mode.
     """
     def post(self):
         req_json = json_decode(self.request.body.decode())

@@ -1300,6 +1300,9 @@ class Start(w.ActButton):
         # create JSON to post
         data = createJSON(g)
 
+        # append current TCS and HW data
+        # TODO: ADD THESE ROUTINES WHEN HW/TCS is working
+
         # POST
         try:
             success = postJSON(g, data)
