@@ -25,51 +25,51 @@ import os
 import shutil
 import pkg_resources
 import getpass
-
+from collections import OrderedDict
 
 # dictionary - keyword name, and default value.
-header_items = {
-    'OBSERVER': 'None',
-    'FILTERS': 'ugriz',
-    'PROGRM': 'GTO',
-    'PI': "None",
-    'RUNCOM': 'None',
-    'OBJECT': 'None',
-    'IMAGETYP': "BIAS"
-}
+header_items = [
+    ('OBSERVER', 'None'),
+    ('FILTERS', 'ugriz'),
+    ('PROGRM', 'GTO'),
+    ('PI', "None"),
+    ('RUNCOM', 'None'),
+    ('OBJECT', 'None'),
+    ('IMAGETYP', "BIAS")
+]
 
 # add TCS info
-header_items.update({
-    'RA': '00:00:00.00',
-    'DEC': '+00:00:00.0',
-    'ALTITUDE': '-99',
-    'AZIMUTH': '-99',
-    'AIRMASS': '-99',
-    'PA': '-99',
-    'FOCUS': '-99',
-    'MOONDIST': '-99'
-})
+header_items.extend([
+    ('RA', '00:00:00.00'),
+    ('DEC', '+00:00:00.0'),
+    ('ALTITUDE', '-99'),
+    ('AZIMUTH', '-99'),
+    ('AIRMASS', '-99'),
+    ('PA', '-99'),
+    ('FOCUS', '-99'),
+    ('MOONDIST', '-99')
+])
 
 # hardware monitoring
-header_items.update({
-    'CCD1TEMP': '99',
-    'CCD2TEMP': '99',
-    'CCD3TEMP': '99',
-    'CCD4TEMP': '99',
-    'CCD5TEMP': '99',
-    'CCD1VAC': '99',
-    'CCD2VAC': '99',
-    'CCD3VAC': '99',
-    'CCD4VAC': '99',
-    'CCD5VAC': '99',
-    'CCD1FLOW': '99',
-    'CCD2FLOW': '99',
-    'CCD3FLOW': '99',
-    'CCD4FLOW': '99',
-    'CCD5FLOW': '99',
-    'FPSLIDE': '99'
-})
-
+header_items.extend([
+    ('CCD1TEMP', '99'),
+    ('CCD2TEMP', '99'),
+    ('CCD3TEMP', '99'),
+    ('CCD4TEMP', '99'),
+    ('CCD5TEMP', '99'),
+    ('CCD1VAC', '99'),
+    ('CCD2VAC', '99'),
+    ('CCD3VAC', '99'),
+    ('CCD4VAC', '99'),
+    ('CCD5VAC', '99'),
+    ('CCD1FLOW', '99'),
+    ('CCD2FLOW', '99'),
+    ('CCD3FLOW', '99'),
+    ('CCD4FLOW', '99'),
+    ('CCD5FLOW', '99'),
+    ('FPSLIDE', '99')
+])
+header_items = OrderedDict(header_items)
 
 def install_dictionary():
     dictionary_file = pkg_resources.resource_filename('hcam_drivers',
