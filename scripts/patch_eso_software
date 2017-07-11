@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+"""
+Script to edit DSUP files to allow user FITS headers.
+
+Enabling user FITS headers is a two step process.
+
+1) Edit DSUP files and install custom dictionary
+
+Run this script to update the DSUP files to contain header items and default values
+defined below. The script will also install a custom dictionary defining the FITS header
+keywords.
+
+2) Recompile the IR software.
+
+Either run the irRebuild.sh script or,
+
+cd ~/hipircfg/src
+make install
+"""
+
+import glob
+import os
+import shutil
+import pkg_resources
+import getpass
+
+
+# dictionary - keyword name, and default value.
+header_items = {
+    'OBSERVER': 'None',
+    'FILTERS': 'ugriz',
+    'PROGRM': 'GTO',
+    'PI': "None",
+    'RUNCOM': 'None',
+    'OBJECT': 'None',
+    'IMAGETYP': "BIAS"
+}
+
+# add TCS info
+header_items.update({
+    'RA': '00:00:00.00',
+    'DEC': '+00:00:00.0',
+    'ALTITUDE': '-99',
+    'AZIMUTH': '-99',
+    'AIRMASS': '-99',
+    'PA': '-99',
+    'FOCUS': '-99',
+    'MOONDIST': '-99'
+})
+
+# hardware monitoring
+header_items.update({
+    'CCD1TEMP': '99',
+    'CCD2TEMP': '99',
+    'CCD3TEMP': '99',
+    'CCD4TEMP': '99',
+    'CCD5TEMP': '99',
+    'CCD1VAC': '99',
+    'CCD2VAC': '99',
+    'CCD3VAC': '99',
+    'CCD4VAC': '99',
+    'CCD5VAC': '99',
+    'CCD1FLOW': '99',
+    'CCD2FLOW': '99',
+    'CCD3FLOW': '99',
+    'CCD4FLOW': '99',
+    'CCD5FLOW': '99',
+    'FPSLIDE': '99'
+})
+
+
+def install_dictionary():
+    dictionary_file = pkg_resources.resource_filename('hcam_drivers',
+                                                      'data/ESO-VLT-DIC.HIPUSR')
+    install_dir = '/introot/{}/config/'.format(getpass.getuser())
+    install_path = os.path.join(install_dir, 'ESO-VLT-DIC.HIPUSR')
+    shutil.copy(dictionary_file, install_path)
+
+
+def backup_dsup_file(path):
+    shutil.copy(path, path+'.bak')
+
+
+def insert_header_items(path):
+    hdr = """
+#
+# USER HEADER INFO
+#
+"""
+    lines = open(path).readlines()
+    already_done = any([line.startswith('OBSERVER') for line in lines])
+    if already_done:
+        return
+
+    with open(path, 'w') as f:
+        for line in lines:
+            if not already_done and not line.startswith('#'):
+                # first non comment line
+                f.write(hdr)
+                for item in header_items:
+                    f.write('{}\t{}\n'.format(item, header_items[item]))
+                already_done = True
+                f.write('\n\n')
+            f.write(line)
+
+
+if __name__ == "__main__":
+    dsup_path = os.path.expanduser('~/hipircfg/config/NGCIRSW')
+    dsup_files = glob.glob(os.path.join(dsup_path, 'hipercam*.dsup'))
+    for path in dsup_files:
+        backup_dsup_file(path)
+        insert_header_items(path)
+    install_dictionary()
