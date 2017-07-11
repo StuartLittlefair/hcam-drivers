@@ -1,6 +1,7 @@
 # The task of the classes and functions here is to convert
 # JSON encoded instrument setups into an
 from __future__ import print_function, unicode_literals, absolute_import, division
+from collections import OrderedDict
 
 
 def get_obsmode(setup_data):
@@ -50,16 +51,51 @@ class ObsMode(object):
 
         # parameters for user-defined headers
         user_data = setup_data.get('user', {})
-        self.userpars = {
-            'OBSERVER': user_data.get('Observers', ''),
-            'OBJECT': user_data.get('target', ''),
-            'RUNCOM': user_data.get('comment', ''),
-            'IMAGETYP': user_data.get('flags', ''),
-            'FILTERS': user_data.get('filters', ''),
-            'PROGRM': user_data.get('ID', ''),
-            'PI': user_data.get('PI', '')
-        }
+        userpars = []
+        userpars.extend([
+            ('OBSERVER', user_data.get('Observers', '')),
+            ('OBJECT', user_data.get('target', '')),
+            ('RUNCOM', user_data.get('comment', '')),
+            ('IMAGETYP', user_data.get('flags', '')),
+            ('FILTERS', user_data.get('filters', '')),
+            ('PROGRM', user_data.get('ID', '')),
+            ('PI', user_data.get('PI', ''))
+        ])
 
+        # data from TCS
+        tcs_data = setup_data.get('tcs', {})
+        userpars.extend([
+            ('RA', tcs_data.get('RA', '00:00:00.00')),
+            ('DEC', tcs_data.get('DEC', '+00:00:00.0')),
+            ('ALTITUDE', tcs_data.get('alt', '-99')),
+            ('AZIMUTH', tcs_data.get('az', '-99')),
+            ('AIRMASS', tcs_data.get('secz', '-99')),
+            ('PA', tcs_data.get('pa', '-99')),
+            ('FOCUS', tcs_data.get('foc', '-99')),
+            ('MOONDIST', tcs_data.get('mdist', '-99'))
+        ])
+
+        # data from h/w monitoring processes
+        hw_data = setup_data.get('hardware', {})
+        userpars.extend([
+            ('CCD1TEMP', hw_data.get('ccd1temp', '-99')),
+            ('CCD2TEMP', hw_data.get('ccd2temp', '-99')),
+            ('CCD3TEMP', hw_data.get('ccd3temp', '-99')),
+            ('CCD4TEMP', hw_data.get('ccd4temp', '-99')),
+            ('CCD5TEMP', hw_data.get('ccd5temp', '-99')),
+            ('CCD1VAC', hw_data.get('ccd1vac', '-99')),
+            ('CCD2VAC', hw_data.get('ccd2vac', '-99')),
+            ('CCD3VAC', hw_data.get('ccd3vac', '-99')),
+            ('CCD4VAC', hw_data.get('ccd4vac', '-99')),
+            ('CCD5VAC', hw_data.get('ccd5vac', '-99')),
+            ('CCD1FLOW', hw_data.get('ccd1flow', '-99')),
+            ('CCD2FLOW', hw_data.get('ccd2flow', '-99')),
+            ('CCD3FLOW', hw_data.get('ccd3flow', '-99')),
+            ('CCD4FLOW', hw_data.get('ccd4flow', '-99')),
+            ('CCD5FLOW', hw_data.get('ccd5flow', '-99')),
+            ('FPSLIDE', hw_data.get('fpslide', '-99'))
+        ])
+        self.userpars = OrderedDict(userpars)
 
     @property
     def readmode_command(self):
@@ -68,8 +104,11 @@ class ObsMode(object):
     @property
     def setup_command(self):
         setup_string = 'setup'
+
         for key in self.detpars:
             setup_string += ' {} {} '.format(key, self.detpars[key])
+
+        # userpars first, because order dictates appearance in FITS header
         for key in self.userpars:
             if self.userpars[key] != '':
                 value = self.userpars[key]
@@ -77,6 +116,7 @@ class ObsMode(object):
                 if ' ' in value:
                     value = '"' + value + '"'
                 setup_string += ' {} {} '.format(key, value)
+
         return setup_string
 
 

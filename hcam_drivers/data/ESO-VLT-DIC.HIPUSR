@@ -1,0 +1,332 @@
+#******************************************************************************
+# E.S.O. - VLT project
+#
+# "@(#) $Id: ESO-VLT-DIC.HIPUSR 297835 2017-07-11 13:51:15Z jstegmei $"
+#
+# who       when      what
+# --------  --------  ----------------------------------------------
+# slittlef  17/07/11   created
+#************************************************************************
+#   NAME
+#   ESO-VLT-DIC.HIPUSR - Data Interface Dictionary for Hipercam user hdrs
+#
+#   DESCRIPTION
+#
+#------------------------------------------------------------------------
+
+Dictionary Name:   ESO-VLT-DIC.HIPUSR
+Scope:             GENERIC
+Source:            ESO DET
+Version Control:   "@(#) $Id: ESO-VLT-DIC.HIPUSR 297835 2017-07-11 13:51:15Z jstegmei $"
+Revision:          1.0
+Date:              2017-07-11
+Status:            draft
+Description:       Data Interface Dictionary for NGC Hipercam user hdrs
+
+#
+# PRIMARY KEYWORDS FROM USER ENTRY IN GUI
+#
+Parameter Name:    OBSERVER
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Observer(s) at Telescope
+Description:       Short description of observers
+
+Parameter Name:    OBJECT
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Target
+Description:       Name of observed target
+
+Parameter Name:    FILTERS
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Filters used
+Description:       Short description of filters in beam
+
+Parameter Name:    RUNCOM
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Pre-run comments
+Description:       Short description of run
+
+Parameter Name:    PI
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    PI of observing proposal
+Description:       PI Name
+
+Parameter Name:    IMAGETYP
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Type of data
+Description:       can be e.g. BIAS for BIAS frames
+
+Parameter Name:    PROGRM
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    ID of observing programme
+Description:       Short description of of programme id
+
+
+#
+# INFO FROM THE TCS
+#
+
+Parameter Name:    RA
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Right Ascension (J2000)
+Description:       Telescope RA
+
+Parameter Name:    DEC
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %s
+Unit:
+Comment Format:    Declination (J2000)
+Description:       Telescope DEC
+
+Parameter Name:    ALTITUDE
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    Altitude (degrees)
+Description:       Telescope Altitude at start of run
+
+Parameter Name:    AZIMUTH
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    Azimuth (degrees)
+Description:       Telescope Azimuth at start of run
+
+Parameter Name:    AIRMASS
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2f
+Unit:
+Comment Format:    Airmass
+Description:       Airmass at start of run
+
+Parameter Name:    PA
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    Position angle (E of N, degrees)
+Description:       Position angle in degrees, E of N
+
+Parameter Name:    FOCUS
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2f
+Unit:
+Comment Format:    Telescope Focus
+Description:       Telescope Focus
+
+Parameter Name:    MOONDIST
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    Moon Separation (degrees)
+Description:       Target separation from Moon at run start
+
+#
+# Hipercam H/W Monitoring
+#
+Parameter Name:    CCD1TEMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD Temp (degrees)
+Description:       CCD Temperature
+
+Parameter Name:    CCD1VAC
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2E
+Unit:
+Comment Format:    CCD Pressure (Torr)
+Description:       CCD Pressure
+
+Parameter Name:    CCD1FLOW
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD flow rate
+Description:       CCD flow rate
+
+Parameter Name:    CCD2TEMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD Temp (degrees)
+Description:       CCD Temperature
+
+Parameter Name:    CCD2VAC
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2E
+Unit:
+Comment Format:    CCD Pressure (Torr)
+Description:       CCD Pressure
+
+Parameter Name:    CCD2FLOW
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD flow rate
+Description:       CCD flow rate
+
+Parameter Name:    CCD3TEMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD Temp (degrees)
+Description:       CCD Temperature
+
+Parameter Name:    CCD3VAC
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2E
+Unit:
+Comment Format:    CCD Pressure (Torr)
+Description:       CCD Pressure
+
+Parameter Name:    CCD3FLOW
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD flow rate
+Description:       CCD flow rate
+
+Parameter Name:    CCD4TEMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD Temp (degrees)
+Description:       CCD Temperature
+
+Parameter Name:    CCD4VAC
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2E
+Unit:
+Comment Format:    CCD Pressure (Torr)
+Description:       CCD Pressure
+
+Parameter Name:    CCD4FLOW
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD flow rate
+Description:       CCD flow rate
+
+Parameter Name:    CCD5TEMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD Temp (degrees)
+Description:       CCD Temperature
+
+Parameter Name:    CCD5VAC
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2E
+Unit:
+Comment Format:    CCD Pressure (Torr)
+Description:       CCD Pressure
+
+Parameter Name:    CCD5FLOW
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD flow rate
+Description:       CCD flow rate
+
+Parameter Name:    CCD1TEMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.1f
+Unit:
+Comment Format:    CCD Temp (degrees)
+Description:       CCD Temperature
+
+Parameter Name:    CCD1VAC
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.2E
+Unit:
+Comment Format:    CCD Pressure (Torr)
+Description:       CCD Pressure
+
+Parameter Name:    FPSLIDE
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    FP Slide Pos (pix)
+Description:       Focal Plane Slide position
