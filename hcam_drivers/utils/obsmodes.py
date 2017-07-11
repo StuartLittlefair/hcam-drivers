@@ -105,6 +105,9 @@ class ObsMode(object):
     def setup_command(self):
         setup_string = 'setup'
 
+        for key in self.detpars:
+            setup_string += ' {} {} '.format(key, self.detpars[key])
+
         # userpars first, because order dictates appearance in FITS header
         for key in self.userpars:
             if self.userpars[key] != '':
@@ -113,9 +116,6 @@ class ObsMode(object):
                 if ' ' in value:
                     value = '"' + value + '"'
                 setup_string += ' {} {} '.format(key, value)
-
-        for key in self.detpars:
-            setup_string += ' {} {} '.format(key, self.detpars[key])
 
         return setup_string
 
