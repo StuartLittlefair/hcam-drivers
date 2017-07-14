@@ -77,26 +77,26 @@ class Container:
                 'latitude':   28.7598742,   # latitude degrees, North positive
                 'longitude': -17.8793802,   # longitude degrees, East positive
                 'elevation':  2327.,     # Elevation above sea level, metres
-                'plateScale': 0.33,     # Arcsecs/unbinned pixel
+                'plateScale': 0.3,     # Arcsecs/unbinned pixel
                 'zerop': {
-                    'u': 22.29,
-                    'g': 25.20,
-                    'r': 24.96,
-                    'i': 24.64,
-                    'z': 23.76
+                    'u': 25.67,
+                    'g': 27.25,
+                    'r': 26.65,
+                    'i': 26.79,
+                    'z': 26.39
                     }
                 },
             'GTC': {
                 'latitude':   28.762,   # latitude degrees, North positive
                 'longitude': -17.87764,   # longitude degrees, East positive
                 'elevation':  2300.,     # Elevation above sea level, metres
-                'plateScale': 0.11,     # Arcsecs/unbinned pixel
+                'plateScale': 0.081,     # Arcsecs/unbinned pixel (WHT Collimator)
                 'zerop': {
-                    'u': 23.29,
-                    'g': 26.20,
-                    'r': 25.96,
-                    'i': 25.64,
-                    'z': 24.76
+                    'u': 27.47,
+                    'g': 29.06,
+                    'r': 28.45,
+                    'i': 28.60,
+                    'z': 28.20
                     }
                 },
             }

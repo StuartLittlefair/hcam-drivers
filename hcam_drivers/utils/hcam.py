@@ -23,13 +23,13 @@ SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
 VIDEO_SLOW = 11.2e-6
 VIDEO_MED = 6.24e-6
 VIDEO_FAST = 3.2e-6
-GAIN_FAST = 0.8  # electrons/ADU
-GAIN_MED = 0.7
-GAIN_SLOW = 0.8
-RNO_FAST = 3.8  # e- / pixel
-RNO_MED = 2.0
-RNO_SLOW = 1.0
-DARK_E = 0.001  # e/pix/s
+GAIN_FAST = 1.2  # electrons/ADU
+GAIN_MED = 1.2
+GAIN_SLOW = 1.2
+RNO_FAST = 4.0  # e- / pixel
+RNO_MED = 2.5
+RNO_SLOW = 2.5
+DARK_E = 0.02  # e/pix/s
 
 
 FFX = 1024  # X pixels per output
