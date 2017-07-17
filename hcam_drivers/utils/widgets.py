@@ -5,6 +5,7 @@ from six.moves import urllib
 import threading
 import time
 import socket
+import warnings
 from functools import reduce
 import numpy as np
 
@@ -2270,8 +2271,12 @@ class InfoFrame(tk.LabelFrame):
                     # Calculate most of the
                     # stuff that we don't get from the telescope
                     now = Time.now()
+                    with warnings.catch_warnings():
+                        warnings.simplefilter('ignore')
+                        # ignore astropy deprecation warnings
+                        lon = g.astro.obs.longitude
                     lst = now.sidereal_time(kind='mean',
-                                            longitude=g.astro.obs.longitude)
+                                            longitude=lon)
                     ha = coo.ra.hourangle*u.hourangle - lst
                     hatxt = ha.wrap_at(12*u.hourangle).to_string(sep=':', precision=0)
                     self.ha.configure(text=hatxt)
@@ -2466,7 +2471,11 @@ class AstroFrame(tk.LabelFrame):
             # configure times
             self.utc.configure(text=now.datetime.strftime('%H:%M:%S'))
             self.mjd.configure(text='{0:11.5f}'.format(now.mjd))
-            lst = now.sidereal_time(kind='mean', longitude=self.obs.longitude)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                # ignore astropy deprecation warnings
+                lon = self.obs.longitude
+            lst = now.sidereal_time(kind='mean', longitude=lon)
             self.lst.configure(text=lst.to_string(sep=':', precision=0))
 
             if self.counter % 600 == 1:

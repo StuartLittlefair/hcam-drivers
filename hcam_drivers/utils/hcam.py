@@ -359,7 +359,7 @@ class InstPars(tk.LabelFrame):
         if 'oscan' in data:
             self.oscan.set(data['oscan'])
         if 'oscany' in data:
-            self.oscan.set(data['oscany]')
+            self.oscan.set(data['oscany'])
         # LED setting
         self.led.set(data.get('led_flsh', 0))
         # Dummy output enabled
