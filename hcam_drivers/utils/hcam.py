@@ -200,7 +200,7 @@ class InstPars(tk.LabelFrame):
         # ystart values
         yss = (1,)
         ysmins = (1,)
-        ysmaxs = (520,)
+        ysmaxs = (512,)
         # sizes of windows (start at FF)
         nxs = (100,)
         nys = (100,)
@@ -225,10 +225,10 @@ class InstPars(tk.LabelFrame):
         # ystart
         ys = (1, 1)
         ysmin = (1, 1)
-        ysmax = (520, 520)
+        ysmax = (512, 512)
         # sizes (start at FF)
         nx = (1024, 1024)
-        ny = (520, 520)
+        ny = (512, 512)
         self.quad_frame = w.WinQuads(lhs, xsll, xsllmin, xsllmax,
                                      xsul, xsulmin, xsulmax,
                                      xslr, xslrmin, xslrmax,
@@ -616,7 +616,7 @@ class InstPars(tk.LabelFrame):
             nwin = 1
             ys = [0]
             nx = [1024]
-            ny = [520]
+            ny = [512]
         else:
             ys, nx, ny = [], [], []
             nwin = self.wframe.nquad.value()
@@ -630,16 +630,16 @@ class InstPars(tk.LabelFrame):
 
         # clear chip by VCLOCK-ing the image and storage areas
         if lclear:
-            clear_time = (FFY*VCLOCK) + (FFX + PRSCX)*HCLOCK
+            clear_time = 2*FFY*VCLOCK + (FFX + PRSCX)*HCLOCK
         else:
             clear_time = 0.0
 
         if isDriftMode:
             # for drift mode, we need the number of windows in the pipeline
             # and the pipeshift
-            # TODO - correct for HiperCam
-            pnwin = int(((520 / dny) + 1)/2)
-            pshift = 520 - (2*pnwin-1)*dny
+            nrows = FFY  # number of rows in storage area
+            pnwin = int(((nrows / dny) + 1)/2)
+            pshift = nrows - (2*pnwin-1)*dny
             frame_transfer = (dny+dys)*VCLOCK
 
             yshift = [dys*VCLOCK]
@@ -651,16 +651,11 @@ class InstPars(tk.LabelFrame):
             if yshift[0] != 0:
                 line_clear[0] = (FFX + PRSCX)*HCLOCK
 
-            numhclocks = [0]
-            numhclocks[0] = FFX
+            numhclocks = [FFX + PRSCX]
+            line_read = [(VCLOCK*ybin + numhclocks[0]*HCLOCK +
+                         video*dnx/xbin) + 3*SETUP_READ]
 
-            line_read = [0.]
-            line_read[0] = (VCLOCK*ybin + numhclocks[0]*HCLOCK +
-                            video*2.0*dnx/xbin) + 3*SETUP_READ
-
-            readout = [0.]
-            readout[0] = (dny/ybin) * line_read[0]
-
+            readout = [(dny/ybin) * line_read[0]]
         else:
             # If not drift mode, move entire image into storage area
             frame_transfer = FFY*VCLOCK + (FFX + PRSCX)*HCLOCK

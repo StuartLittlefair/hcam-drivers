@@ -197,7 +197,7 @@ class Drift(ObsMode):
             'DET.DRWIN.XSG': 2049 - app_data['x1start_upperright'] - app_data['x1size']
         }
         self.detpars.update(win1)
-        self.nrows = 520
+        self.nrows = 520  # number of rows in storage area
         self.detpars['DET.DRWIN.NW'] = self.num_stacked
         self.detpars['DET.DRWIN.PSH'] = self.pipe_shift
 
