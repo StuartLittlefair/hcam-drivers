@@ -132,48 +132,50 @@ class InstPars(tk.LabelFrame):
         tk.Label(lhs, text='Mode').grid(row=0, column=0, sticky=tk.W)
         self.app = w.Radio(lhs, ('Full', 'Wins', 'Drift'), 3, self.check,
                            ('FullFrame', 'Windows', 'Drift'))
-        self.app.grid(row=0, column=1, sticky=tk.W)
+        self.app.grid(row=0, column=1, columnspan=2, sticky=tk.W)
 
         # Clear enabled
         self.clearLab = tk.Label(lhs, text='Clear')
         self.clearLab.grid(row=1, column=0, sticky=tk.W)
         self.clear = w.OnOff(lhs, False, self.check)
-        self.clear.grid(row=1, column=1, sticky=tk.W)
+        self.clear.grid(row=1, column=1, columnspan=2, sticky=tk.W)
 
-        # Overscan enabled
+        # Overscan in x enabled
         self.oscanLab = tk.Label(lhs, text='Overscan')
         self.oscanLab.grid(row=2, column=0, sticky=tk.W)
         self.oscan = w.OnOff(lhs, False, self.check)
+        self.oscany = w.OnOff(lhs, False, self.check)
         self.oscan.grid(row=2, column=1, sticky=tk.W)
+        self.oscany.grid(row=2, column=2, sticky=tk.W)
 
         # led on (expert mode only)
         self.ledLab = tk.Label(lhs, text='LED setting')
         self.ledLab.grid(row=3, column=0, sticky=tk.W)
         self.led = w.OnOff(lhs, False, None)
-        self.led.grid(row=3, column=1, pady=2, sticky=tk.W)
+        self.led.grid(row=3, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # dummy mode enabled (expert mode only)
         self.dummyLab = tk.Label(lhs, text='Dummy Output')
         self.dummyLab.grid(row=4, column=0, sticky=tk.W)
         self.dummy = w.OnOff(lhs, False, None)
-        self.dummy.grid(row=4, column=1, pady=2, sticky=tk.W)
+        self.dummy.grid(row=4, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # Readout speed
         tk.Label(lhs, text='Readout speed').grid(row=5, column=0, sticky=tk.W)
         self.readSpeed = w.Select(lhs, 2, ('Fast', 'Medium', 'Slow'), self.check)
-        self.readSpeed.grid(row=5, column=1, pady=2, sticky=tk.W)
+        self.readSpeed.grid(row=5, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # Exp delay
         tk.Label(lhs, text='Exposure delay (s)').grid(row=6, column=0,
                                                       sticky=tk.W)
         self.expose = w.Expose(lhs, 0.1, 0., 1677.7207,
                                self.check, width=7)
-        self.expose.grid(row=6, column=1, pady=2, sticky=tk.W)
+        self.expose.grid(row=6, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # num exp
         tk.Label(lhs, text='Num. exposures  ').grid(row=7, column=0,  sticky=tk.W)
         self.number = w.PosInt(lhs, 1, None, False, width=7)
-        self.number.grid(row=7, column=1, pady=2, sticky=tk.W)
+        self.number.grid(row=7, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # nb, ng, nr etc
         labels = ('nu', 'ng', 'nr', 'ni', 'nz')
@@ -200,7 +202,7 @@ class InstPars(tk.LabelFrame):
         # ystart values
         yss = (1,)
         ysmins = (1,)
-        ysmaxs = (520,)
+        ysmaxs = (512,)
         # sizes of windows (start at FF)
         nxs = (100,)
         nys = (100,)
@@ -225,10 +227,10 @@ class InstPars(tk.LabelFrame):
         # ystart
         ys = (1, 1)
         ysmin = (1, 1)
-        ysmax = (520, 520)
+        ysmax = (512, 512)
         # sizes (start at FF)
         nx = (1024, 1024)
-        ny = (520, 520)
+        ny = (512, 512)
         self.quad_frame = w.WinQuads(lhs, xsll, xsllmin, xsllmax,
                                      xsul, xsulmin, xsulmax,
                                      xslr, xslrmin, xslrmax,
@@ -236,7 +238,7 @@ class InstPars(tk.LabelFrame):
                                      ys, ysmin, ysmax, nx, ny,
                                      xbfac, ybfac, self.check)
 
-        self.quad_frame.grid(row=7, column=0, columnspan=3,
+        self.quad_frame.grid(row=8, column=0, columnspan=3,
                              sticky=tk.W+tk.N)
 
         # Pack two halfs
@@ -261,13 +263,25 @@ class InstPars(tk.LabelFrame):
             self.ledLab.grid_forget()
             self.led.grid_forget()
             self.led.set(0)
+
+            self.oscanLab.config(text='Overscan')
+            self.oscany.grid_forget()
+            self.remember_oscany = self.oscany()
+            self.oscany.set(0)
+
             self.dummyLab.grid_forget()
             self.dummy.grid_forget()
         else:
             self.ledLab.grid(row=3, column=0, sticky=tk.W)
-            self.led.grid(row=3, column=1, pady=2, sticky=tk.W)
+            self.led.grid(row=3, column=1, columnspan=2, pady=2, sticky=tk.W)
+
+            self.oscanLab.config(text='Overscan (x, y)')
+            self.oscany.grid(row=2, column=2, sticky=tk.W)
+            if hasattr(self, 'remember_oscany'):
+                self.oscany.set(self.remember_oscany)
+
             self.dummyLab.grid(row=4, column=0, sticky=tk.W)
-            self.dummy.grid(row=4, column=1, pady=2, sticky=tk.W)
+            self.dummy.grid(row=4, column=1, columnspan=2, pady=2, sticky=tk.W)
 
     def isDrift(self):
         if self.app.value() == 'Drift':
@@ -304,6 +318,7 @@ class InstPars(tk.LabelFrame):
             dwell=self.expose.value(),
             exptime=expTime,
             oscan=self.oscan(),
+            oscany=self.oscany(),
             xbin=self.wframe.xbin.value(),
             ybin=self.wframe.ybin.value(),
             multipliers=self.nmult.getall(),
@@ -340,6 +355,11 @@ class InstPars(tk.LabelFrame):
         if numexp == -1:
             numexp = 0
         self.number.set(numexp)
+        # Overscan (x, y)
+        if 'oscan' in data:
+            self.oscan.set(data['oscan'])
+        if 'oscany' in data:
+            self.oscan.set(data['oscany]')
         # LED setting
         self.led.set(data.get('led_flsh', 0))
         # Dummy output enabled
@@ -600,6 +620,7 @@ class InstPars(tk.LabelFrame):
 
         # overscan read or not
         oscan = not isDriftMode and self.oscan()
+        oscany = not isDriftMode and self.oscany()
 
         # get exposure delay
         expose = self.expose.value()
@@ -616,7 +637,7 @@ class InstPars(tk.LabelFrame):
             nwin = 1
             ys = [0]
             nx = [1024]
-            ny = [520]
+            ny = [512]
         else:
             ys, nx, ny = [], [], []
             nwin = self.wframe.nquad.value()
@@ -630,16 +651,16 @@ class InstPars(tk.LabelFrame):
 
         # clear chip by VCLOCK-ing the image and storage areas
         if lclear:
-            clear_time = (FFY*VCLOCK) + (FFX + PRSCX)*HCLOCK
+            clear_time = 2*FFY*VCLOCK + (FFX + PRSCX)*HCLOCK
         else:
             clear_time = 0.0
 
         if isDriftMode:
             # for drift mode, we need the number of windows in the pipeline
             # and the pipeshift
-            # TODO - correct for HiperCam
-            pnwin = int(((520 / dny) + 1)/2)
-            pshift = 520 - (2*pnwin-1)*dny
+            nrows = FFY  # number of rows in storage area
+            pnwin = int(((nrows / dny) + 1)/2)
+            pshift = nrows - (2*pnwin-1)*dny
             frame_transfer = (dny+dys)*VCLOCK
 
             yshift = [dys*VCLOCK]
@@ -651,16 +672,11 @@ class InstPars(tk.LabelFrame):
             if yshift[0] != 0:
                 line_clear[0] = (FFX + PRSCX)*HCLOCK
 
-            numhclocks = [0]
-            numhclocks[0] = FFX
+            numhclocks = [FFX + PRSCX]
+            line_read = [(VCLOCK*ybin + numhclocks[0]*HCLOCK +
+                         video*dnx/xbin) + 3*SETUP_READ]
 
-            line_read = [0.]
-            line_read[0] = (VCLOCK*ybin + numhclocks[0]*HCLOCK +
-                            video*2.0*dnx/xbin) + 3*SETUP_READ
-
-            readout = [0.]
-            readout[0] = (dny/ybin) * line_read[0]
-
+            readout = [(dny/ybin) * line_read[0]]
         else:
             # If not drift mode, move entire image into storage area
             frame_transfer = FFY*VCLOCK + (FFX + PRSCX)*HCLOCK
@@ -688,11 +704,13 @@ class InstPars(tk.LabelFrame):
                 if oscan:
                     line_read[nw] += PRSCX*HCLOCK + video*PRSCX/xbin
 
+
             # multiply time to shift one row into serial register by
             # number of rows for total readout time
             readout = nwin*[0.]
             for nw in range(nwin):
-                readout[nw] = (ny[nw]/ybin) * line_read[nw]
+                nlines = ny[nw]/ybin if not oscany else (ny[nw] + 8/ybin)
+                readout[nw] = nlines * line_read[nw]
 
         # now get the total time to read out one exposure.
         cycleTime = expose_delay + clear_time + frame_transfer

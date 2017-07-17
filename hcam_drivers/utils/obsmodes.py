@@ -41,6 +41,7 @@ class ObsMode(object):
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
             'DET.GPS': 'T',
             'DET.INCPRSCX': 'T' if app_data['oscan'] else 'F',
+            # TODO: add y overscan here once we know name of parameter
             'DET.NSKIPS1': nu-1,
             'DET.NSKIPS2': ng-1,
             'DET.NSKIPS3': nr-1,
@@ -197,7 +198,7 @@ class Drift(ObsMode):
             'DET.DRWIN.XSG': 2049 - app_data['x1start_upperright'] - app_data['x1size']
         }
         self.detpars.update(win1)
-        self.nrows = 520
+        self.nrows = 520  # number of rows in storage area
         self.detpars['DET.DRWIN.NW'] = self.num_stacked
         self.detpars['DET.DRWIN.PSH'] = self.pipe_shift
 
