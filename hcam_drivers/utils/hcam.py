@@ -704,7 +704,6 @@ class InstPars(tk.LabelFrame):
                 if oscan:
                     line_read[nw] += PRSCX*HCLOCK + video*PRSCX/xbin
 
-
             # multiply time to shift one row into serial register by
             # number of rows for total readout time
             readout = nwin*[0.]
