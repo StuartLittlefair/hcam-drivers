@@ -113,7 +113,7 @@ class Slide(object):
     def _sendRecv(self, byteArr, timeout):
         with netdevice(self.host, self.port) as dev:
             try:
-                dev.settimeout(timeout)
+                dev.settimeout(self.default_timeout)
                 dev.send(byteArr)
             except Exception as e:
                 raise SlideError('failed to send bytes to slide' + str(e))
