@@ -111,14 +111,14 @@ class Slide(object):
             self.log = log
 
     def _sendRecv(self, byteArr, timeout):
-        with netdevice(self.host, self.port, timeout) as dev:
+        with netdevice(self.host, self.port) as dev:
             try:
+                dev.settimeout(timeout)
                 dev.send(byteArr)
             except Exception as e:
                 raise SlideError('failed to send bytes to slide' + str(e))
+            dev.settimeout(timeout)
             msg = dev.recv(6)
-            if len(msg) != 6:
-                raise SlideError('slide failed to return 6 bytes')
         return msg
 
     def _decodeCommandData(self, byteArr):
