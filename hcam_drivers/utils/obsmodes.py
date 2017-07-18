@@ -32,7 +32,9 @@ class ObsMode(object):
         app_data = setup_data['appdata']
         nu, ng, nr, ni, nz = app_data['multipliers']
         dummy = app_data.get('dummy_out', 0)  # works even if dummy not set in app, default 0
+        oscany = app_data.get('oscany', 0)
         self.detpars = {
+            'DET.SPEED': 0 if app_data['readout'] == 'Slow' else 1,
             'DET.BINX1': app_data['xbin'],
             'DET.BINY1': app_data['ybin'],
             'DET.CLRCCD': 'T' if app_data['clear'] else 'F',
@@ -41,7 +43,7 @@ class ObsMode(object):
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
             'DET.GPS': 'T',
             'DET.INCPRSCX': 'T' if app_data['oscan'] else 'F',
-            # TODO: add y overscan here once we know name of parameter
+            'DET.INCOVSY': 'T' if oscany else 'F',
             'DET.NSKIPS1': nu-1,
             'DET.NSKIPS2': ng-1,
             'DET.NSKIPS3': nr-1,
@@ -124,8 +126,7 @@ class ObsMode(object):
 class FullFrame(ObsMode):
     def __init__(self, setup_data):
         super(FullFrame, self).__init__(setup_data)
-        modes = dict(Slow=1, Medium=1, Fast=1)
-        self.readoutMode = modes[setup_data['appdata']['readout']]
+        self.readoutMode = 1
 
 
 class Idle(ObsMode):
@@ -137,8 +138,10 @@ class Idle(ObsMode):
             'xbin': 1,
             'ybin': 1,
             'clear': True,
+            'readout': 'Slow',
             'led_flsh': False,
             'oscan': False,
+            'oscany': False,
             'multipliers': (1, 1, 1, 1, 1),
             'exptime': 10
         }
@@ -173,15 +176,14 @@ class Windows(ObsMode):
                 'DET.WIN2.YS': app_data['y2start'] - 1
             }
             self.detpars.update(win2)
-        self.speed = app_data['readout']
 
     @property
     def readoutMode(self):
         if 'DET.WIN2.NX' in self.detpars:
-            modes = dict(Slow=3, Medium=3, Fast=3)
+            mode = 3
         else:
-            modes = dict(Slow=2, Medium=2, Fast=2)
-        return modes[self.speed]
+            mode = 2
+        return mode
 
 
 class Drift(ObsMode):
@@ -199,8 +201,7 @@ class Drift(ObsMode):
         }
         self.detpars.update(win1)
         self.nrows = 520  # number of rows in storage area
-        self.detpars['DET.DRWIN.NW'] = self.num_stacked
-        self.detpars['DET.DRWIN.PSH'] = self.pipe_shift
+        self.readoutMode = 4
 
     @property
     def num_stacked(self):
