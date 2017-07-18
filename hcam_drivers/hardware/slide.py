@@ -119,7 +119,7 @@ class Slide(object):
                 raise SlideError('failed to send bytes to slide' + str(e))
             dev.settimeout(timeout)
             msg = dev.recv(6)
-        return bytearray(msg)
+        return bytes(msg)
 
     def _decodeCommandData(self, byteArr):
         return struct.unpack('<L', byteArr[2:])[0]
