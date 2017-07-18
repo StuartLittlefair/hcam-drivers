@@ -3,10 +3,10 @@ from __future__ import print_function, division, unicode_literals
 
 import argparse
 import os
-import queue
 import logging
 # import threading
 import six
+from six.moves import queue
 
 if six.PY2:
     import Tkinter as tk
