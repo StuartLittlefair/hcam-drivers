@@ -34,7 +34,7 @@ class RtplotServer(socketserver.TCPServer):
         # '' opens port on localhost and makes it visible
         # outside localhost
         try:
-            super(RtplotServer, self).__init__(('', port), RtplotHandler)
+            socketserver.TCPServer.__init__(self, ('', port), RtplotHandler)
             self.instpars = instpars
         except socket.error as err:
             errorcode = err[0]

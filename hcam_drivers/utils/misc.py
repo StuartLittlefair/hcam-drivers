@@ -343,7 +343,7 @@ class FifoThread(threading.Thread):
     lost.
     """
     def __init__(self, target, fifo, args=()):
-        super(FifoThread, self).__init__(target=target, args=args)
+        threading.Thread.__init__(self, target=target, args=args)
         self.fifo = fifo
 
     def run(self):
