@@ -1,5 +1,5 @@
 from __future__ import print_function, division, unicode_literals, absolute_import
-from queue import Queue
+from six.moves.queue import Queue
 """
 This module supplies a single class, the Container. The idea is
 that the root widget (the GUI mainwindow) has a single Container
