@@ -87,7 +87,7 @@ MS_PER_STEP = 64
 
 # MAX_TIMEOUT is set by the time taken to move the slide from one end to the
 # other MIN_TIMEOUT is used as a lower limt on all timeouts (seconds)
-MIN_TIMEOUT = 2
+MIN_TIMEOUT = 5
 MAX_TIMEOUT = 70
 
 
