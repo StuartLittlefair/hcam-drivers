@@ -23,17 +23,14 @@ from .misc import (createJSON, saveJSON, postJSON,
 
 # Timing, Gain, Noise parameters
 # Times in seconds
-VCLOCK = 14.4e-6  # vertical clocking time
-HCLOCK = 0.48e-6  # horizontal clocking time
+VCLOCK = 20e-6  # vertical clocking time
+HCLOCK = 0.24e-6  # horizontal clocking time
 SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
-VIDEO_SLOW = 11.2e-6
-VIDEO_MED = 6.24e-6
-VIDEO_FAST = 3.2e-6
+VIDEO_SLOW = 1 / 260e3  # 260 kHz
+VIDEO_FAST = 1 / 520e3  # 520 kHz
 GAIN_FAST = 1.2  # electrons/ADU
-GAIN_MED = 1.2
 GAIN_SLOW = 1.2
 RNO_FAST = 4.0  # e- / pixel
-RNO_MED = 2.5
 RNO_SLOW = 2.5
 DARK_E = 0.02  # e/pix/s
 
@@ -168,7 +165,7 @@ class InstPars(tk.LabelFrame):
 
         # Readout speed
         tk.Label(lhs, text='Readout speed').grid(row=5, column=0, sticky=tk.W)
-        self.readSpeed = w.Select(lhs, 2, ('Fast', 'Medium', 'Slow'), self.check)
+        self.readSpeed = w.Select(lhs, 2, ('Fast', 'Slow'), self.check)
         self.readSpeed.grid(row=5, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # Exp delay
@@ -613,8 +610,6 @@ class InstPars(tk.LabelFrame):
 
         if readSpeed == 'Fast':
             video = VIDEO_FAST
-        elif readSpeed == 'Medium':
-            video = VIDEO_MED
         elif readSpeed == 'Slow':
             video = VIDEO_SLOW
         else:
@@ -1141,9 +1136,6 @@ class CountsFrame(tk.LabelFrame):
         if readSpeed == 'Fast':
             gain = GAIN_FAST
             read = RNO_FAST
-        elif readSpeed == 'Medium':
-            gain = GAIN_MED
-            read = RNO_MED
         elif readSpeed == 'Slow':
             gain = GAIN_SLOW
             read = RNO_SLOW
