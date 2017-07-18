@@ -5,7 +5,7 @@ Class to talk to the focal plane slide
 
 Written by Stu.
 """
-from __future__ import (print_function, unicode_literals, division, absolute_import)
+from __future__ import (print_function, division, absolute_import)
 import serial
 import struct
 import six
@@ -122,7 +122,7 @@ class Slide(object):
         return bytearray(msg)
 
     def _decodeCommandData(self, byteArr):
-        return struct.unpack('<L', bytes(byteArr[2:]))[0]
+        return struct.unpack('<L', byteArr[2:])[0]
 
     def _encodeCommandData(self, int):
         return bytearray(struct.pack('<L', int))
