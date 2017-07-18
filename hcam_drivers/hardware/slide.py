@@ -5,7 +5,7 @@ Class to talk to the focal plane slide
 
 Written by Stu.
 """
-from __future__ import (print_function, unicode_literals, division, absolute_import)
+from __future__ import (print_function, division, absolute_import)
 import serial
 import struct
 import six
@@ -19,6 +19,7 @@ from ..utils.logs import Logger
 from ..utils.widgets import GuiLogger, IntegerEntry
 from ..utils.misc import FifoThread
 from ..utils.tkutils import get_root
+from .termserver import netdevice
 
 
 class SlideError(Exception):
@@ -86,13 +87,13 @@ MS_PER_STEP = 64
 
 # MAX_TIMEOUT is set by the time taken to move the slide from one end to the
 # other MIN_TIMEOUT is used as a lower limt on all timeouts (seconds)
-MIN_TIMEOUT = 2
+MIN_TIMEOUT = 5
 MAX_TIMEOUT = 70
 
 
 class Slide(object):
 
-    def __init__(self, log=None, port='/dev/slide'):
+    def __init__(self, log=None, host='195.194.120.72', port=10002):
         """
         Creates a Slide. Arguments::
 
@@ -102,46 +103,23 @@ class Slide(object):
 
         """
         self.port = port
+        self.host = host
         self.default_timeout = MIN_TIMEOUT
-        self.connected = False
         if log is None:
             self.log = Logger('SLD')
         else:
             self.log = log
 
-    def _open_port(self):
-        try:
-            self.ser = serial.Serial(self.port, baudrate=9600)
-            self.connected = True
-        except:
-            self.connected = False
-
-    def _close_port(self):
-        try:
-            self.ser.close()
-            self.connected = False
-        except Exception as e:
-            raise SlideError(e)
-
-    def _sendByteArr(self, byteArr, timeout):
-        if self.connected:
-            self.ser.timeout = timeout
-            bytes_sent = self.ser.write(byteArr)
-            if bytes_sent != 6:
-                raise SlideError('failed to send bytes to slide')
-        else:
-            raise SlideError('cannot send bytes to an unconnected slide')
-
-    def _readBytes(self, timeout):
-        if self.connected:
-            self.ser.timeout = timeout
-            bytes = self.ser.read(6)
-            byteArr = bytearray(bytes)
-            if len(byteArr) != 6:
-                raise SlideError('did not get 6 bytes back from slide')
-            return byteArr
-        else:
-            raise SlideError('cannot send bytes to an unconnected slide')
+    def _sendRecv(self, byteArr, timeout):
+        with netdevice(self.host, self.port) as dev:
+            try:
+                dev.settimeout(self.default_timeout)
+                dev.send(byteArr)
+            except Exception as e:
+                raise SlideError('failed to send bytes to slide' + str(e))
+            dev.settimeout(timeout)
+            msg = dev.recv(6)
+        return bytearray(msg)
 
     def _decodeCommandData(self, byteArr):
         return struct.unpack('<L', byteArr[2:])[0]
@@ -175,12 +153,8 @@ class Slide(object):
         """
         if not self._hasBeenHomed():
             raise SlideError('position of slide is undefined until slide homed')
-        if not self.connected:
-            self._open_port()
         byteArr = self._encodeByteArr([UNIT, POSITION, NULL, NULL, NULL, NULL])
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         pos = self._decodeCommandData(byteArr)
         return pos
 
@@ -189,13 +163,9 @@ class Slide(object):
         returns true if the slide has been homed and has a calibrated
         position
         """
-        if not self.connected:
-            self._open_port()
         byteArr = self._encodeByteArr([UNIT, RETURN_SETTING,
                                        SET_MODE, NULL, NULL, NULL])
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         if byteArr[1] == ERROR:
             raise SlideError('Error trying to get the setting byte')
 
@@ -223,11 +193,7 @@ class Slide(object):
         # add bytes to define instruction at start of array
         byteArr.insert(0, chr(MOVE_ABSOLUTE))
         byteArr.insert(0, chr(UNIT))
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, timeout)
 
     def _move_relative(self, nstep, timeout=None):
         """
@@ -250,11 +216,7 @@ class Slide(object):
         # add bytes to define instruction at start of array
         byteArr.insert(0, chr(MOVE_RELATIVE))
         byteArr.insert(0, chr(UNIT))
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
 
     def _convert_to_microstep(self, amount, units):
         """"
@@ -304,11 +266,7 @@ class Slide(object):
             timeout = self.time_home()
 
         byteArr = self._encodeByteArr([UNIT, HOME, NULL, NULL, NULL, NULL])
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         if byteArr[1] == ERROR:
             raise SlideError('Error occurred setting to the home position')
         self.log.info('Slide returned to home position ' +
@@ -321,11 +279,7 @@ class Slide(object):
         needed
         """
         byteArr = self._encodeByteArr([UNIT, RESET, NULL, NULL, NULL, NULL])
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         return byteArr
 
     def restore(self):
@@ -335,11 +289,7 @@ class Slide(object):
         """
         byteArr = self._encodeByteArr([UNIT, RESTORE, PERIPHERAL_ID,
                                        NULL, NULL, NULL])
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         self.log.info('finished restore')
         return byteArr
 
@@ -350,11 +300,7 @@ class Slide(object):
         """
         byteArr = self._encodeByteArr([UNIT, SET_MODE, POTENTIOM_OFF,
                                        NULL, NULL, NULL])
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         self.log.info('manual adjustment disabled')
         return byteArr
 
@@ -365,22 +311,14 @@ class Slide(object):
         """
         byteArr = self._encodeByteArr([UNIT, SET_MODE, POTENTIOM_ON,
                                        NULL, NULL, NULL])
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         self.log.info('manual adjustment enabled')
         return byteArr
 
     def stop(self):
         """stop the slide"""
         byteArr = self._encodeByteArr([UNIT, STOP, NULL, NULL, NULL, NULL])
-        if not self.connected:
-            self._open_port()
-        self._sendByteArr(byteArr, self.default_timeout)
-        byteArr = self._readBytes(timeout=self.default_timeout)
-        self._close_port()
+        byteArr = self._sendRecv(byteArr, self.default_timeout)
         if byteArr[1] == ERROR:
             raise SlideError('Error stopping the slide')
         else:

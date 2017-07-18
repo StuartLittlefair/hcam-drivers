@@ -9,6 +9,8 @@ from astropy.time import Time, TimeDelta
 from astropy.io import ascii
 from astropy import units as u
 
+from .termserver import netdevice
+
 DEFAULT_TIMEOUT = 0.5  # seconds
 
 # MESSAGES (as strings, don't forget to format and encode)
@@ -18,6 +20,7 @@ FIRMWARE = '@{addr}FVC{comm};FF'
 ADDRESS = '@{addr}ADC{comm};FF'
 DLOG_CTRL = '@{addr}DLC{comm};FF'
 DLOG_TIME = '@{addr}DLT{comm};FF'
+PRESSURE = '@{addr}PR1{comm};FF'
 
 
 class VacuumGaugeError(Exception):
@@ -26,7 +29,7 @@ class VacuumGaugeError(Exception):
 
 class PDR900(object):
 
-    def __init__(self, port='/dev/pdr900'):
+    def __init__(self, host='195.194.120.72', port=10002):
         """
         Creates a PDR900 object for communication over serial.
 
@@ -36,52 +39,13 @@ class PDR900(object):
             port device representing the vacuum gauge
         """
         self.port = port
-        self.connected = False
+        self.host = host
         self.logging_start_time = None
 
         # connect once to find address and hard-code
         data = dict(addr=254, comm='?')
         _, addr = self._send_recv(ADDRESS, data)
         self.address = addr
-
-    def _open_port(self):
-        try:
-            self.ser = serial.Serial(self.port, baudrate=9600)
-            self.connected = True
-        except:
-            self.connected = False
-
-    def _close_port(self):
-        try:
-            self.ser.close()
-            self.connected = False
-        except Exception as e:
-            raise VacuumGaugeError(e)
-
-    def _send_bytes(self, msg, timeout=DEFAULT_TIMEOUT):
-        if self.connected:
-            self.ser.timeout = timeout
-            bytes_sent = self.ser.write(msg)
-            if bytes_sent != len(msg):
-                raise VacuumGaugeError('failed to send bytes to gauge')
-        else:
-            raise VacuumGaugeError('cannot send bytes to an unconnected gauge')
-
-    def _read_response(self, timeout=DEFAULT_TIMEOUT):
-        start = time.time()
-        response = bytearray()
-        timed_out = True
-        while (time.time() - start < timeout):
-            response.extend(self.ser.read())
-            if len(response) >= 3 and response[-3:] == b';FF':
-                # we have got an end msg
-                timed_out = False
-                break
-
-        # did we timeout
-        if timed_out:
-            raise VacuumGaugeError('timed out reading response on port {}'.format(self.port))
-        return response.decode()
 
     def _parse_response(self, response):
         pattern = '@(.*)ACK(.*);FF'
@@ -97,12 +61,10 @@ class PDR900(object):
         return result.groups()
 
     def _send_recv(self, message, data):
-        if not self.connected:
-            self._open_port()
         msg = message.format(**data).encode()
-        self._send_bytes(msg)
-        response = self._read_response()
-        self._close_port()
+        with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
+            dev.send(msg)
+            response = dev.recv(1024).rstrip('\r\n')
         addr, retval = self._parse_response(response)
         return addr, retval
 
