@@ -165,7 +165,7 @@ class InstPars(tk.LabelFrame):
 
         # Readout speed
         tk.Label(lhs, text='Readout speed').grid(row=5, column=0, sticky=tk.W)
-        self.readSpeed = w.Select(lhs, 2, ('Fast', 'Slow'), self.check)
+        self.readSpeed = w.Select(lhs, 1, ('Fast', 'Slow'), self.check)
         self.readSpeed.grid(row=5, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # Exp delay
