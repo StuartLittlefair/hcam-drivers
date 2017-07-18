@@ -122,7 +122,7 @@ class Slide(object):
         return bytearray(msg)
 
     def _decodeCommandData(self, byteArr):
-        return struct.unpack('<L', bytes(byteArr[2:])[0]
+        return struct.unpack('<L', bytes(byteArr[2:]))[0]
 
     def _encodeCommandData(self, int):
         return bytearray(struct.pack('<L', int))
