@@ -8,7 +8,7 @@ import warnings
 from functools import reduce
 import numpy as np
 import six
-if six.PY2:
+if not six.PY3:
     import Tkinter as tk
 else:
     import tkinter as tk

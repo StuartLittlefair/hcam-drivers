@@ -9,7 +9,7 @@
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 import six
-if six.PY2:
+if not six.PY3:
     from Tkinter import font
 else:
     from tkinter import font

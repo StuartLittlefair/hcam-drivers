@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import json
 from six.moves import urllib
 import six
-if six.PY2:
+if not six.PY3:
     from Tkinter import filedialog
 else:
     from tkinter import filedialog

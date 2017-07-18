@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import logging
 import time
 import six
-if six.PY2:
+if not six.PY3:
     import Tkinter as tk
 else:
     import tkinter as tk

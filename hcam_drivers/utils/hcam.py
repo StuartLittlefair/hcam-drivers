@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import math
 import json
 import six
-if six.PY2:
+if not six.PY3:
     import Tkinter as tk
     from Tkinter import filedialog, messagebox
 else:

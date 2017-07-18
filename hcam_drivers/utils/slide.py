@@ -9,7 +9,7 @@ from __future__ import (print_function, unicode_literals, division, absolute_imp
 import serial
 import struct
 import six
-if six.PY2:
+if not six.PY3:
     import Tkinter as tk
 else:
     import tkinter as tk
