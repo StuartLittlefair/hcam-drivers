@@ -128,7 +128,7 @@ class InstPars(tk.LabelFrame):
         """
         master : enclosing widget
         """
-        tk.LabelFrame.__init__(master)
+        tk.LabelFrame.__init__(self, master)
 
         # left hand side
         lhs = tk.Frame(self)
