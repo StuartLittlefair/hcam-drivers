@@ -47,21 +47,6 @@ class PDR900(object):
         _, addr = self._send_recv(ADDRESS, data)
         self.address = addr
 
-    def _send_bytes(self, msg, timeout=DEFAULT_TIMEOUT):
-        with netdevice(self.host, self.port, timeout) as dev:
-            try:
-                dev.send(msg)
-            except Exception as e:
-                raise VacuumGaugeError(str(e))
-
-    def _read_response(self, timeout=DEFAULT_TIMEOUT):
-        with netdevice(self.host, self.port, timeout) as dev:
-            try:
-                msg = dev.recv(1024)
-            except Exception as e:
-                raise VacuumGaugeError(str(e))
-            return msg.rstrip('\r\n')
-
     def _parse_response(self, response):
         pattern = '@(.*)ACK(.*);FF'
         result = re.match(pattern, response)
@@ -77,8 +62,9 @@ class PDR900(object):
 
     def _send_recv(self, message, data):
         msg = message.format(**data).encode()
-        self._send_bytes(msg)
-        response = self._read_response()
+        with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
+            dev.send(msg)
+            response = dev.recv(1024).rstrip('\r\n')
         addr, retval = self._parse_response(response)
         return addr, retval
 
