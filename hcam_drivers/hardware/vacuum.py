@@ -64,6 +64,7 @@ class PDR900(object):
         msg = message.format(**data).encode()
         with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
             dev.send(msg)
+            dev.settimeout(DEFAULT_TIMEOUT)
             response = dev.recv(1024).rstrip('\r\n')
         addr, retval = self._parse_response(response)
         return addr, retval
