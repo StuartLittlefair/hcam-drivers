@@ -10,7 +10,7 @@
 from __future__ import print_function, unicode_literals, absolute_import, division
 import six
 if not six.PY3:
-    from Tkinter import font
+    import tkFont as font
 else:
     from tkinter import font
 

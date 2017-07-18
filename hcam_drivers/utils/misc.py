@@ -4,7 +4,7 @@ import json
 from six.moves import urllib
 import six
 if not six.PY3:
-    from Tkinter import filedialog
+    import tkFileDialog as filedialog
 else:
     from tkinter import filedialog
 import threading

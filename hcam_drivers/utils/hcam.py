@@ -5,7 +5,8 @@ import json
 import six
 if not six.PY3:
     import Tkinter as tk
-    from Tkinter import filedialog, messagebox
+    import tkFileDialog as filedialog
+    import tkMessageBox as messagebox
 else:
     import tkinter as tk
     from tkinter import filedialog, messagebox
