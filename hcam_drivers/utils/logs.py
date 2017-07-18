@@ -19,7 +19,7 @@ class GuiHandler(logging.Handler):
         """
         twidget : text widget to display logging messages
         """
-        super(GuiHandler, self).__init__()
+        logging.Handler.__init__(self)
         logging.Formatter.converter = time.gmtime
         formatter = logging.Formatter('%(asctime)s - %(message)s\n', '%H:%M:%S')
         self.setFormatter(formatter)
@@ -57,7 +57,7 @@ class FileHandler(logging.FileHandler):
         """
         fout: file pointer to send messages to
         """
-        super(FileHandler, self).__init__(fname)
+        logging.FileHandler.__init__(self, fname)
         logging.Formatter.converter = time.gmtime
         formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-7s %(message)s',
                                       '%Y-%m-%d %H:%M:%S')
@@ -72,7 +72,7 @@ class StreamHandler(logging.StreamHandler):
         """
         fout: file pointer to send messages to
         """
-        super(StreamHandler, self).__init__()
+        logging.StreamHandler.__init__(self)
         logging.Formatter.converter = time.gmtime
         formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-7s %(message)s\n',
                                       '%H:%M:%S')

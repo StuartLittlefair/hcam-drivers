@@ -40,7 +40,7 @@ class GUI(tk.Tk):
     """
     def __init__(self):
         # Create the main GUI
-        super(GUI, self).__init__()
+        tk.Tk.__init__(self)
 
         # add a container object
         self.globals = Container()
@@ -256,7 +256,7 @@ class GUI(tk.Tk):
         """
         Run regular checks of FIFO queue which stores exceptions raised in threads
         """
-        super(GUI, self).update()
+        tk.Tk.update(self)
         try:
             exc = self.globals.FIFO.get(block=False)
         except queue.Empty:

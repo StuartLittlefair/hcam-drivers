@@ -75,7 +75,7 @@ class ExposureMultiplier(tk.LabelFrame):
             keyword arguments
 
         """
-        super(ExposureMultiplier, self).__init__(master, bd=0)
+        tk.LabelFrame.__init__(self, master, bd=0)
         nitems = len(labels)
         if (len(ivals) != nitems or len(imins) != nitems or
                 len(imaxs) != nitems):
@@ -128,7 +128,7 @@ class InstPars(tk.LabelFrame):
         """
         master : enclosing widget
         """
-        super(InstPars, self).__init__(master)
+        tk.LabelFrame.__init__(self, master)
 
         # left hand side
         lhs = tk.Frame(self)
@@ -741,8 +741,8 @@ class RunPars(tk.LabelFrame):
     DVALS = ('data', 'data caution', 'bias', 'flat', 'dark', 'technical')
 
     def __init__(self, master):
-        super(RunPars, self).__init__(master, text='Next run parameters',
-                                      padx=10, pady=10)
+        tk.LabelFrame.__init__(self, master, text='Next run parameters',
+                               padx=10, pady=10)
 
         row = 0
         column = 0
@@ -934,8 +934,8 @@ class CountsFrame(tk.LabelFrame):
         """
         master : enclosing widget
         """
-        super(CountsFrame, self).__init__(master, pady=2,
-                                          text='Count & S-to-N estimator')
+        tk.LabelFrame.__init__(self, master, pady=2,
+                               text='Count & S-to-N estimator')
 
         # divide into left and right frames
         lframe = tk.Frame(self, padx=2)
@@ -1249,7 +1249,7 @@ class Start(w.ActButton):
         width : int
             width of button
         """
-        super(Start, self).__init__(master, width, text='Start')
+        w.ActButton.__init__(self, master, width, text='Start')
         g = get_root(self).globals
         self.config(bg=g.COL['start'])
 
@@ -1259,7 +1259,7 @@ class Start(w.ActButton):
         """
         Enable the button
         """
-        super(Start, self).enable()
+        w.ActButton.enable(self)
         g = get_root(self).globals
         self.config(bg=g.COL['start'])
 
@@ -1267,7 +1267,7 @@ class Start(w.ActButton):
         """
         Disable the button, if in non-expert mode.
         """
-        super(Start, self).disable()
+        w.ActButton.disable(self)
         g = get_root(self).globals
         if self._expert:
             self.config(bg=g.COL['start'])
@@ -1279,7 +1279,7 @@ class Start(w.ActButton):
         Turns on 'expert' status whereby the button is always enabled,
         regardless of its activity status.
         """
-        super(Start, self).setExpert()
+        w.ActButton.setExpert(self)
         g = get_root(self).globals
         self.config(bg=g.COL['start'])
 
@@ -1367,7 +1367,7 @@ class Load(w.ActButton):
         master  : containing widget
         width   : width of button
         """
-        super(Load, self).__init__(master, width, text='Load')
+        w.ActButton.__init__(self, master, width, text='Load')
 
     def act(self):
         """
@@ -1404,7 +1404,7 @@ class Save(w.ActButton):
         master  : containing widget
         width   : width of button
         """
-        super(Save, self).__init__(master, width, text='Save')
+        w.ActButton.__init__(self, master, width, text='Save')
 
     def act(self):
         """
@@ -1451,7 +1451,7 @@ class Unfreeze(w.ActButton):
         master  : containing widget
         width   : width of button
         """
-        super(Unfreeze, self).__init__(master, width, text='Unfreeze')
+        w.ActButton.__init__(self, master, width, text='Unfreeze')
 
     def act(self):
         """
@@ -1469,7 +1469,7 @@ class Observe(tk.LabelFrame):
     Observe widget. Collects together all the buttons needed for observing.
     """
     def __init__(self, master):
-        super(Observe, self).__init__(master, padx=10, pady=10)
+        tk.LabelFrame.__init__(self, master, padx=10, pady=10)
 
         width = 10
         self.load = Load(self, width)

@@ -37,7 +37,7 @@ class Boolean(tk.IntVar):
     argument
     """
     def __init__(self, master, flag, callback=None):
-        super(Boolean, self).__init__()
+        tk.IntVar.__init__(self)
         self.master = master
         # get globals from root
         g = get_root(master).globals
@@ -84,7 +84,7 @@ class IntegerEntry(tk.Entry):
         kw : dict
             optional keyword arguments that are passed to Entry.
         """
-        super(IntegerEntry, self).__init__(master, **kw)
+        tk.Entry.__init__(self, master, **kw)
         # important to set the value of _variable before tracing it
         # to avoid immediate run of _callback.
         self._variable = tk.StringVar()
@@ -571,8 +571,8 @@ class RangedMint(RangedInt):
         to allow it to be updated
         """
         self.mfac = mfac
-        super(RangedMint, self).__init__(master, ival, imin,
-                                         imax, checker, blank, **kw)
+        RangedInt.__init__(self, master, ival, imin,
+                           imax, checker, blank, **kw)
         self.unbind('<Next>')
         self.unbind('<Prior>')
         self.bind('<Next>', lambda e: self.set(self._min()))
@@ -683,7 +683,7 @@ class ListInt(IntegerEntry):
         # we need to maintain an index of which integer has been selected
         self.allowed = allowed
         self.index = allowed.index(ival)
-        super(ListInt, self).__init__(master, ival, checker, False, **kw)
+        IntegerEntry.__init__(self, master, ival, checker, False, **kw)
         self.set_bind()
 
     def set_bind(self):
@@ -776,7 +776,7 @@ class FloatEntry(tk.Entry):
         """
         # important to set the value of _variable before tracing it
         # to avoid immediate run of _callback.
-        super(FloatEntry, self).__init__(master, **kw)
+        tk.Entry.__init__(self, master, **kw)
         self._variable = tk.StringVar()
         self._value = str(float(fval))
         self._variable.set(self._value)
@@ -960,7 +960,7 @@ class RangedFloat(FloatEntry):
         """
         self.fmin = fmin
         self.fmax = fmax
-        super(RangedFloat, self).__init__(master, fval, checker, blank, **kw)
+        FloatEntry.__init__(self, master, fval, checker, blank, **kw)
         self.bind('<Next>', lambda e: self.set(self.fmin))
         self.bind('<Prior>', lambda e: self.set(self.fmax))
         self.allowzero = allowzero
@@ -1046,7 +1046,8 @@ class TextEntry(tk.Entry):
         self.val = tk.StringVar()
         if callback is not None:
             self.val.trace('w', callback)
-        super(TextEntry, self).__init__(
+        tk.Entry.__init__(
+            self,
             master,
             textvariable=self.val,
             width=width
@@ -1095,7 +1096,7 @@ class Choice(tk.OptionMenu):
             self.val.set(options[0])
         else:
             self.val.set(initial)
-        super(Choice, self).__init__(master, self.val, *options)
+        tk.OptionMenu.__init__(self, master, self.val, *options)
         width = max(width, reduce(max, [len(s) for s in options]))
         g = get_root(self).globals
         self.config(width=width, font=g.ENTRY_FONT)
@@ -1149,7 +1150,7 @@ class Expose(RangedFloat):
         if abs(round(10000*fmax)-10000*fmax) > 1.e-12:
             raise DriverError(
                 'utils.widgets.Expose.__init__: fmax must be a multiple of 0.0001')
-        super(Expose, self).__init__(master, fval, fmin, fmax, checker, True, **kw)
+        RangedFloat.__init__(self, master, fval, fmin, fmax, checker, True, **kw)
 
     def validate(self, value):
         """
@@ -1205,7 +1206,7 @@ class Radio(tk.Frame):
         If 'None', the value from 'options' will be used.
         initial : index of initial value to set.
         """
-        super(Radio, self).__init__(master)
+        tk.Frame.__init__(self, master)
         # get globals from root widget
         g = get_root(self).globals
         if values is not None and len(values) != len(options):
@@ -1272,8 +1273,8 @@ class OnOff(tk.Checkbutton):
     def __init__(self, master, value, checker=None):
         self.val = tk.IntVar()
         self.val.set(value)
-        super(OnOff, self).__init__(master, variable=self.val,
-                                    command=checker)
+        tk.Checkbutton.__init__(self, master, variable=self.val,
+                                command=checker)
 
     def __call__(self):
         return self.val.get()
@@ -1296,8 +1297,8 @@ class Select(tk.OptionMenu):
         self.val = tk.StringVar()
         self.options = options
         self.val.set(options[initial_index])
-        super(Select, self).__init__(master, self.val, *options,
-                                     command=checker)
+        tk.OptionMenu.__init__(self, master, self.val, *options,
+                               command=checker)
 
     def __call__(self):
         return self.val.get()
@@ -1401,8 +1402,8 @@ class ActButton(tk.Button):
         bg       : background colour
         kwargs   : keyword arguments
         """
-        super(ActButton, self).__init__(master, fg='black', width=width,
-                                        command=self.act, **kwargs)
+        tk.Button.__init__(self, master, fg='black', width=width,
+                           command=self.act, **kwargs)
 
         # store some attributes. other anc calbback are obvious.
         # _active indicates whether the button should be enabled or disabled
@@ -1460,7 +1461,7 @@ class Ilabel(tk.Label):
     as the entry fields rather than the default font
     """
     def __init__(self, master, **kw):
-        super(Ilabel, self).__init__(master, **kw)
+        tk.Label.__init__(self, master, **kw)
         g = get_root(self).globals
         self.config(font=g.ENTRY_FONT)
 
@@ -1478,7 +1479,7 @@ class Stop(ActButton):
         master   : containing widget
         width    : width of button
         """
-        super(Stop, self).__init__(master, width, text='Stop')
+        ActButton.__init__(self, master, width, text='Stop')
         g = get_root(self).globals
         self.config(bg=g.COL['stop'])
 
@@ -1608,7 +1609,7 @@ class Target(tk.Frame):
     a default colour.
     """
     def __init__(self, master, callback=None):
-        super(Target, self).__init__(master)
+        tk.Frame.__init__(self, master)
 
         g = get_root(self).globals
 
@@ -1752,7 +1753,7 @@ class NGCReset(ActButton):
         master   : containing widget
         width    : width of button
         """
-        super(NGCReset, self).__init__(master, width, text='NGC Reset')
+        ActButton.__init__(self, master, width, text='NGC Reset')
 
     def act(self):
         """
@@ -1787,7 +1788,7 @@ class NGCStandby(ActButton):
         master   : containing widget
         width    : width of button
         """
-        super(NGCStandby, self).__init__(master, width, text='NGC Standby')
+        ActButton.__init__(self, master, width, text='NGC Standby')
 
     def act(self):
         g = get_root(self).globals
@@ -1817,7 +1818,7 @@ class PowerOn(ActButton):
         master  : containing widget
         width   : width of button
         """
-        super(PowerOn, self).__init__(master, width, text='Power on')
+        ActButton.__init__(self, master, width, text='Power on')
 
     def act(self):
         """
@@ -1857,7 +1858,7 @@ class PowerOff(ActButton):
         master  : containing widget
         width   : width of button
         """
-        super(PowerOff, self).__init__(master, width, text='Power off')
+        ActButton.__init__(self, master, width, text='Power off')
         self.disable()
 
     def act(self):
@@ -1890,8 +1891,8 @@ class InstSetup(tk.LabelFrame):
         """
         master -- containing widget
         """
-        super(InstSetup, self).__init__(master, text='Instrument setup',
-                                        padx=10, pady=10)
+        tk.LabelFrame.__init__(self, master, text='Instrument setup',
+                               padx=10, pady=10)
 
         # Define all buttons
         width = 17
@@ -1959,7 +1960,7 @@ class Switch(tk.Frame):
         """
         master : containing widget
         """
-        super(Switch, self).__init__(master)
+        tk.Frame.__init__(self, master)
 
         self.val = tk.StringVar()
         self.val.set('Setup')
@@ -2012,7 +2013,7 @@ class TelChooser(tk.Menu):
         master : tk.Widget
             the containing widget, .e.g toolbar menu
         """
-        super(TelChooser, self).__init__(master, tearoff=0)
+        tk.Menu.__init__(self, master, tearoff=0)
         g = get_root(self).globals
 
         self.val = tk.StringVar()
@@ -2045,7 +2046,7 @@ class ExpertMenu(tk.Menu):
         master   -- the containing widget, e.g. toolbar menu
         args     -- other objects that have a 'setExpertLevel()' method.
         """
-        super(ExpertMenu, self).__init__(master, tearoff=0)
+        tk.Menu.__init__(self, master, tearoff=0)
         g = get_root(self).globals
 
         self.val = tk.IntVar()
@@ -2077,7 +2078,7 @@ class Timer(tk.Label):
     when the run stops.
     """
     def __init__(self, master):
-        super(Timer, self).__init__(master, text='{0:<d} s'.format(0))
+        tk.Label.__init__(self, master, text='{0:<d} s'.format(0))
         g = get_root(self).globals
         self.config(font=g.ENTRY_FONT)
         self.id = None
@@ -2376,7 +2377,7 @@ class AstroFrame(tk.LabelFrame):
     Astronomical information frame
     """
     def __init__(self, master):
-        super(AstroFrame, self).__init__(master, padx=2, pady=2, text='Time & Sky')
+        tk.LabelFrame.__init__(self, master, padx=2, pady=2, text='Time & Sky')
 
         # times
         self.mjd = Ilabel(self)
@@ -2631,7 +2632,7 @@ class WinPairs(tk.Frame):
                     'drivers.WindowPairs.__init__:' +
                     ' conflict array lengths amonst inputs')
 
-        super(WinPairs, self).__init__(master)
+        tk.Frame.__init__(self, master)
 
         # top part contains the binning factors and
         # the number of active windows
@@ -2997,7 +2998,7 @@ class WinQuads(tk.Frame):
                 raise DriverError('drivers.WinQuads.__init__:' +
                                   ' conflicting array lengths amongst inputs')
 
-        super(WinQuads, self).__init__(master)
+        tk.Frame.__init__(self, master)
 
         # top part contains binning factors and number of quads
         top = tk.Frame(self)
