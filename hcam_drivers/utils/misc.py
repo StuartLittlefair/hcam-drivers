@@ -2,7 +2,11 @@
 from __future__ import print_function, unicode_literals, absolute_import, division
 import json
 from six.moves import urllib
-from tkinter import filedialog
+import six
+if six.PY2:
+    from Tkinter import filedialog
+else:
+    from tkinter import filedialog
 import threading
 import sys
 import traceback

@@ -1,9 +1,14 @@
 # Specific widgets, widget groups and parameters for hipercam instrument
 from __future__ import print_function, unicode_literals, absolute_import, division
-import tkinter as tk
-from tkinter import filedialog, messagebox
 import math
 import json
+import six
+if six.PY2:
+    import Tkinter as tk
+    from Tkinter import filedialog, messagebox
+else:
+    import tkinter as tk
+    from tkinter import filedialog, messagebox
 
 # internal imports
 from . import widgets as w

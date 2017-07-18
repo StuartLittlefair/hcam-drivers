@@ -1,7 +1,11 @@
 from __future__ import print_function, unicode_literals, absolute_import, division
 import logging
 import time
-import tkinter as tk
+import six
+if six.PY2:
+    import Tkinter as tk
+else:
+    import tkinter as tk
 import sys
 
 from .tkutils import get_root

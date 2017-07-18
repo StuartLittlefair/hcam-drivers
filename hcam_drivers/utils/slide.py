@@ -8,7 +8,11 @@ Written by Stu.
 from __future__ import (print_function, unicode_literals, division, absolute_import)
 import serial
 import struct
-import tkinter as tk
+import six
+if six.PY2:
+    import Tkinter as tk
+else:
+    import tkinter as tk
 
 # internal imports
 from .logs import Logger

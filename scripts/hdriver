@@ -2,12 +2,18 @@
 from __future__ import print_function, division, unicode_literals
 
 import argparse
-import tkinter as tk
-from tkinter import messagebox, filedialog
 import os
 import queue
 import logging
 # import threading
+import six
+
+if six.PY2:
+    import Tkinter as tk
+    from Tkinter import filedialog, messagebox
+else:
+    import tkinter as tk
+    from tkinter import filedialog, messagebox
 
 import hcam_drivers.utils as utils
 from hcam_drivers.globals import Container

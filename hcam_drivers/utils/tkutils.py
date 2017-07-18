@@ -8,7 +8,11 @@
 # dependent components.
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from tkinter import font
+import six
+if six.PY2:
+    from Tkinter import font
+else:
+    from tkinter import font
 
 
 def get_root(w):
