@@ -154,7 +154,16 @@ class PowerOnHandler(BaseHandler):
         self.command = 'cldc 1 enable'
 
 
-class OffHandler(BaseHandler):
+class PowerOffHandler(BaseHandler):
+    """
+    Power on clock voltages
+    """
+    def initialize(self, db):
+        self.db = db
+        self.command = 'cldc 0 disable'
+
+
+class OfflineHandler(BaseHandler):
     """
     Bring server to OFF state. All sub-processes terminate. Server cannot reply
     """
@@ -274,8 +283,9 @@ if __name__ == '__main__':
         url(r'/stop', StopHandler, dict(db=db), name="stop"),
         url(r'/abort', AbortHandler, dict(db=db), name="abort"),
         url(r'/online', OnlineHandler, dict(db=db), name="online"),
+        url(r'/offline', OfflineHandler, dict(db=db), name="offline"),
         url(r'/pon', PowerOnHandler, dict(db=db), name='on'),
-        url(r'/off', OffHandler, dict(db=db), name="off"),
+        url(r'/poff', PowerOffHandler, dict(db=db), name='off'),
         url(r'/reset', ResetHandler, dict(db=db), name="reset"),
         url(r'/standby', StandbyHandler, dict(db=db), name="standby"),
         url(r'/summary', SummaryHandler, dict(db=db), name="summary"),
