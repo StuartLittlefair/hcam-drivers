@@ -63,4 +63,5 @@ test ngcbCmd setup DET.FRAM.FILENAME run
 # launch server for GUI communication
 xterm -ls -sb -title "HServer" -e "hserver" &
 # launch server for File Transfer
-xterm -ls -sb -title "FileServer" -e "fileserver --dir /insroot/observer/SYSTEM/DETDATA/" &
+username=`whoami`
+xterm -ls -sb -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
