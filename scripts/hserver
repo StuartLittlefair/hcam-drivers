@@ -247,20 +247,26 @@ class PostRunHandler(BaseHandler):
         except ValueError:
             raise HServerException(reason='Error parsing readout mode', status_code=500)
 
+        response = yaml.load(sendCommand('abort'))
+        if not response['RETCODE'] == "OK":
+            raise HServerException(reason='could not abort existing run', status_code=500)
+        time.sleep(1)
+
         self.set_header('Content-Type', 'application/json')
         response = yaml.load(sendCommand('seq stop'))
         if not response['RETCODE'] == "OK":
             raise HServerException(reason='could not stop sequencer', status_code=500)
+        time.sleep(1)
 
         response = yaml.load(sendCommand(obsmode.readmode_command))
         if not response['RETCODE'] == "OK":
             self.write(json_encode(response))
             return
-
         time.sleep(1)
 
         response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
+        time.sleep(1)
 
         response = yaml.load(sendCommand('seq start'))
         if not response['RETCODE'] == "OK":

@@ -167,7 +167,7 @@ def postJSON(g, data):
     opener = urllib.request.build_opener()
     g.clog.debug('content length = ' + str(len(json_data)))
     req = urllib.request.Request(url, data=json_data, headers={'Content-type': 'application/json'})
-    response = opener.open(req, timeout=5)
+    response = opener.open(req, timeout=25)
     csr = ReadServer(response.read(), status_msg=False)
     g.rlog.warn(csr.resp())
     if not csr.ok:
