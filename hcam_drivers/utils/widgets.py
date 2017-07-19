@@ -1828,8 +1828,14 @@ class PowerOn(ActButton):
         g.clog.debug('Power on pressed')
 
         if execCommand(g, 'online'):
-            g.clog.info('Power on successful')
+            g.clog.info('ESO server online')
             g.cpars['eso_server_online'] = True
+
+            success = execCommand(g, 'on')
+            if not success:
+                g.clog.warn('Unable to power on CLDC')
+                return
+
             # change other buttons
             self.disable()
             g.observe.start.enable()
@@ -1844,7 +1850,7 @@ class PowerOn(ActButton):
                 g.info.run.configure(text='UNDEF')
             return True
         else:
-            g.clog.warn('Power on failed\n')
+            g.clog.warn('Failed to bring server online')
             return False
 
 
