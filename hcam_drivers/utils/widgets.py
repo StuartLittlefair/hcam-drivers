@@ -1834,7 +1834,7 @@ class PowerOn(ActButton):
             success = execCommand(g, 'pon')
             if not success:
                 g.clog.warn('Unable to power on CLDC')
-                return
+                return False
 
             # change other buttons
             self.disable()
@@ -1875,8 +1875,14 @@ class PowerOff(ActButton):
         g.clog.debug('Power off pressed')
 
         if execCommand(g, 'off'):
-            g.clog.info('ESO server idle and child processes quit')
+            g.clog.info('ESO server idle')
             g.cpars['eso_server_online'] = False
+
+            success = execCommand(g, 'poff')
+            if not success:
+                g.clog.warn('Unable to power off CLDC')
+                return False
+
             # alter buttons
             self.disable()
             g.observe.start.disable()
