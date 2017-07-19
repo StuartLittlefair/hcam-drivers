@@ -6,7 +6,7 @@ from tornado.web import RequestHandler, Application, url, HTTPError
 import yaml
 import subprocess
 import traceback
-
+import time
 
 from hcam_drivers.utils.obsmodes import get_obsmode
 
@@ -256,6 +256,8 @@ class PostRunHandler(BaseHandler):
         if not response['RETCODE'] == "OK":
             self.write(json_encode(response))
             return
+
+        time.sleep(1)
 
         response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
