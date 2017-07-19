@@ -260,7 +260,7 @@ class PostRunHandler(BaseHandler):
             return
         time.sleep(2)
 
-        response = sendCommand(obsmode.setup_command)
+        response = yaml.load(sendCommand(obsmode.setup_command))
         time.sleep(2)
         retMsg = parse_response(response)
         if not response['RETCODE'] == "OK":
