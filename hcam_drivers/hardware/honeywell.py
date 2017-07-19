@@ -14,18 +14,24 @@ else:
 
 class Honeywell:
     def __init__(self, address, port):
+        self.address = address
         self.client = ModbusClient(address, port=port)
         # list mapping pen ID number to address
         # TODO: complete
-        self.pen_addresses = [0x18C1, 0x18C2, 0x18C3, 0x18C4]
+        self.pen_addresses = [0x18C1, 0x18C2, 0x18C3, 0x18C4, 0x18C5]
         self.unit_id = 0x01  # allows us to address different units on the same network
         # check we can connect!
         try:
-            self.client.connect()
+            self.connect()
         except Exception as err:
             raise DriverError(str(err))
         finally:
             self.client.close()
+
+    def connect(self):
+        success = self.client.connect()
+        if not success:
+            raise Exception('cannot connect to honeywell at {}'.format(self.address))
 
     def read_pen(self, pen_id):
         """
@@ -37,7 +43,7 @@ class Honeywell:
             When reading fails
         """
         try:
-            self.client.connect()
+            self.connect()
             address = self.pen_addresses[pen_id]
             value = self.get_pen(address)
         except Exception as err:
@@ -57,7 +63,7 @@ class Honeywell:
         Iterator so that CCD temps can be looped over
         """
         try:
-            self.client.connect()
+            self.connect()
             for address in self.pen_addresses:
                 yield self.get_pen(address)
         except StopIteration:
