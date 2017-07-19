@@ -245,7 +245,6 @@ def isRunActive(g):
     """
     Polls the data server to see if a run is active
     """
-    return True
     if g.cpars['hcam_server_on']:
         url = g.cpars['hipercam_server'] + 'summary'
         response = urllib.request.urlopen(url, timeout=2)
@@ -268,7 +267,6 @@ def getFrameNumber(g):
 
     Throws an exceotion if it cannot determine it.
     """
-    return 4
     if not g.cpars['hcam_server_on']:
         raise DriverError('getRunNumber error: servers are not active')
     url = g.cpars['hipercam_server'] + 'status/DET.FRAM2.NO'
@@ -290,7 +288,6 @@ def getRunNumber(g):
     Polls the data server to find the current run number. Throws
     exceptions if it can't determine it.
     """
-    return 1
     if not g.cpars['hcam_server_on']:
         raise DriverError('getRunNumber error: servers are not active')
     url = g.cpars['hipercam_server'] + 'summary'
