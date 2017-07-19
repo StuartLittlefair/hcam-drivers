@@ -33,6 +33,8 @@ class ObsMode(object):
         nu, ng, nr, ni, nz = app_data['multipliers']
         dummy = app_data.get('dummy_out', 0)  # works even if dummy not set in app, default 0
         oscany = app_data.get('oscany', 0)
+
+        self.finite = app_data['numexp']
         self.detpars = {
             'DET.SPEED': 0 if app_data['readout'] == 'Slow' else 1,
             'DET.BINX1': app_data['xbin'],
@@ -119,6 +121,9 @@ class ObsMode(object):
                 if ' ' in value:
                     value = '"' + value + '"'
                 setup_string += ' {} {} '.format(key, value)
+
+        if self.finite:
+            setup_string += ' DET.FRAM2.BREAK {} '.format(self.finite)
 
         return setup_string
 
