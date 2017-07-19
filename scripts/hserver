@@ -257,12 +257,8 @@ class PostRunHandler(BaseHandler):
             self.write(json_encode(response))
             return
 
-        response = yaml.load(sendCommand(obsmode.setup_command))
+        response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
-        if not response['RETCODE'] == "OK":
-            raise HServerException(reason='could not post setup', status_code=500)
-        time.sleep(2)
-
 
         response = yaml.load(sendCommand('seq start'))
         if not response['RETCODE'] == "OK":
