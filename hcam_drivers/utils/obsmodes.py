@@ -146,6 +146,7 @@ class Idle(ObsMode):
             'readout': 'Slow',
             'led_flsh': False,
             'oscan': False,
+            'numexp': 0,
             'oscany': False,
             'multipliers': (1, 1, 1, 1, 1),
             'exptime': 10
