@@ -1831,7 +1831,7 @@ class PowerOn(ActButton):
             g.clog.info('ESO server online')
             g.cpars['eso_server_online'] = True
 
-            success = execCommand(g, 'on')
+            success = execCommand(g, 'pon')
             if not success:
                 g.clog.warn('Unable to power on CLDC')
                 return
