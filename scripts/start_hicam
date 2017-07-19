@@ -65,3 +65,6 @@ xterm -ls -sb -title "HServer" -e "hserver" &
 # launch server for File Transfer
 username=`whoami`
 xterm -ls -sb -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
+
+# start GUI
+hdriver &
