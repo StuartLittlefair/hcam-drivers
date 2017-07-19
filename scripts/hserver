@@ -261,6 +261,7 @@ class PostRunHandler(BaseHandler):
         retMsg = parse_response(response)
         if not response['RETCODE'] == "OK":
             raise HServerException(reason='could not post setup', status_code=500)
+        time.sleep(2)
 
 
         response = yaml.load(sendCommand('seq start'))
