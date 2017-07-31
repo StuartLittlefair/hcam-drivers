@@ -1,0 +1,153 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+from subprocess import call
+import os
+import getpass
+import warnings
+
+from astropy.time import Time
+
+path_to_examples = '/home/{}/hipercam-gps/tsync/examples'.format(getpass.getuser())
+
+
+def convert(val, to_type):
+    return to_type(val.split(':')[1].strip())
+
+
+class GPSCall:
+    def __init__(self, function):
+        """
+        Class to call a GPS function.
+
+        Parameters
+        ----------
+        function: string
+            Name of function to call (must be one of the example programs
+            in the TSYNC library). Should include arguments
+        """
+        self.function = os.path.join(path_to_examples, function)
+
+    def _parse(self, response):
+        """
+        Implement this function to parse results of running function.
+
+        response: string
+            response from function call
+        """
+        if 'Could not open' in response:
+            raise IOError('could not open GPS device')
+        if 'Error' in response:
+            raise IOError('error in function call:\n' + str(response))
+        if 'error closing' in response:
+            warnings.warn('could not properly close device')
+
+    def __repr__(self):
+        response = call(self.function)
+        return self._parse(response)
+
+
+class HWTime(GPSCall):
+    def __init__(self):
+        super(HWTime, self).__init__('HWTime 0 0')
+
+    def _parse(self, response):
+        super(HWTime, self)._parse(response)
+        year, doy, hr, mins, sec, nsec = (
+            convert(val, int) for val in response[2:8]
+        )
+        time_string = '{}:{}:{}:{}:{:.6f}'.format(
+            year, doy, hr, mins, sec+nsec/1e9
+        )
+        timestamp = Time(time_string, format='yday')
+        synced = response[-1].split(':')[1].strip()
+        return "Time: {}\nSynced:{}".formed(timestamp.iso, synced)
+
+
+class GR_GetValidity(GPSCall):
+    """
+    Checks to see if time or PPS signal is valid.
+    """
+    def __init__(self):
+        super(GR_GetValidity, self).__init('GR_GetValidity 0 0')
+
+    def _parse(self, response):
+        super(GR_GetValidity, self)._parse(response)
+        time_valid, pps_valid = (
+            convert(val, bool) for val in response[2:4]
+        )
+        return "Valid output on:\n Time: {}\n PPS {}".format(time_valid, pps_valid)
+
+
+class GR_GetPosition(GPSCall):
+    """
+    Gets receiver position.
+    """
+    def __init__(self):
+        super(GR_GetPosition, self).__init__('GR_GetPosition 0 0')
+
+    def _parse(self, response):
+        super(GR_GetPosition, self)._parse(response)
+        lat, lon, height = (
+            convert(val, float) for val in response[2:5]
+        )
+        return "GPS Location:\n Lat (deg): {:.4f}\n Lon (deg) {:.4f}\n Height (m): {:d}".format(
+            lat, lon, int(height)
+        )
+
+
+class GR_GetMode(GPSCall):
+    """
+    Gets mode of operation.
+    """
+    def __init__(self):
+        super(GR_GetMode, self).__init__('GR_GetMode 0 0')
+
+    def _parse(self, response):
+        super(GR_GetMode, self)._parse(response)
+        return response
+
+
+class GetSatInfo(GPSCall):
+    """
+    Basic info (device name and number of sats tracked)
+    """
+    def __init__(self):
+        super(GetSatInfo, self).__init__('GetSatInfo 0')
+
+    def _parse(self, response):
+        super(GetSatInfo, self)._parse(response)
+        return response
+
+
+class GR_GetSatData(GPSCall):
+    """
+    Table of satellite data
+    """
+    def __init__(self):
+        super(GR_GetSatData, self).__init__('GR_GetSatData 0 0')
+
+    def _parse(self, response):
+        super(GR_GetSatData, self)._parse(response)
+        retval = """---------------------
+        # SatID Signal Used TRAIM? StatusBits\n"""
+
+        for line in response[3:]:
+            chn, sat_id, sigstr, traim, fit, status = (
+                int(val) for val in line.split(':')[1].split()
+            )
+            if fit == 1:
+                retval += '{:7d} {:6d} {:4d} {:6d} {:10d}\n'.format(
+                    sat_id, sigstr, fit, traim, status
+                )
+        return retval
+
+
+if __name__ == "__main__":
+    print(GetSatInfo())
+    print(GR_GetMode())
+    print(GR_GetPosition())
+    print(GR_GetValidity())
+    print(HWTime())
+    print('')
+    print(GR_GetSatData())
