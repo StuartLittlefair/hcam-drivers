@@ -15,7 +15,7 @@ def convert(val, to_type):
     return to_type(val.split(':')[1].strip())
 
 
-class GPSCall:
+class GPSCall(object):
     def __init__(self, function):
         """
         Class to call a GPS function.
