@@ -440,8 +440,11 @@ class FocalPlaneSlide(tk.LabelFrame):
         self.log.pack(pady=2)
 
         # Finish off
+        g = get_root(self).globals
+        ip = g.cpars['termserver_ip']
+        port = g.cpars['slide_port']
         self.where = 'UNDEF'
-        self.slide = Slide(self.log)
+        self.slide = Slide(self.log, ip, port)
 
     def setExpertLevel(self):
         """
