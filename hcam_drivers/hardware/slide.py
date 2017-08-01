@@ -191,8 +191,8 @@ class Slide(object):
         byteArr = self._encodeCommandData(nstep)
 
         # add bytes to define instruction at start of array
-        byteArr.insert(0, chr(MOVE_ABSOLUTE))
-        byteArr.insert(0, chr(UNIT))
+        byteArr.insert(0, MOVE_ABSOLUTE)
+        byteArr.insert(0, UNIT)
         byteArr = self._sendRecv(byteArr, timeout)
 
     def _move_relative(self, nstep, timeout=None):
@@ -214,8 +214,8 @@ class Slide(object):
         byteArr = self._encodeCommandData(nstep)
 
         # add bytes to define instruction at start of array
-        byteArr.insert(0, chr(MOVE_RELATIVE))
-        byteArr.insert(0, chr(UNIT))
+        byteArr.insert(0, MOVE_RELATIVE)
+        byteArr.insert(0, UNIT)
         byteArr = self._sendRecv(byteArr, self.default_timeout)
 
     def _convert_to_microstep(self, amount, units):
