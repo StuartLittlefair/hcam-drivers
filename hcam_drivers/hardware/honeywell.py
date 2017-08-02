@@ -72,7 +72,7 @@ class Honeywell:
         try:
             self.connect()
             for address in self.pen_addresses:
-                yield address, self.get_pen(address)
+                yield address, self.read_pen(address)
         except StopIteration:
             raise
         except Exception as err:
