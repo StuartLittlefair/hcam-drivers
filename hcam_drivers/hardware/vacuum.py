@@ -81,6 +81,12 @@ class PDR900(object):
         _, serno = self._send_recv(SERIAL_NO, data)
         return serno
 
+    @property
+    def pressure(self):
+        data = dict(addr=self.address, comm='?')
+        addr, response = self._send_recv(PRESSURE, data)
+        return float(response) * u.Pa * 101325/760  # Torr
+
     def start_logging(self):
         data = dict(addr=self.address, comm='!START')
         addr, response = self._send_recv(DLOG_CTRL, data)
@@ -109,15 +115,5 @@ class PDR900(object):
     def get_log_data(self):
         data = dict(addr=self.address, comm='?')
         addr, pdata = self._send_recv(DOWNLOAD, data)
+        pdata = pdata.rstrip('\x03').replace('\r', '\n')
         return ascii.read(pdata, delimiter=';')
-
-    def get_latest(self):
-        data = self.get_log_data()
-        last_row = data[-1]
-        h, m, s = [float(val) for val in last_row['TIME'].split(':')]
-        dt = TimeDelta(3600*h + 60*m + s, format='sec')
-        now = Time.now()
-        age = self.logging_start_time + dt - now
-        if age > 10*u.min:
-            raise VacuumGaugeError('latest data is older than 10 minutes')
-        return float(last_row['MB TORR'])
