@@ -45,7 +45,7 @@ class PDR900(object):
         # connect once to find address and hard-code
         data = dict(addr=254, comm='?')
         _, addr = self._send_recv(ADDRESS, data)
-        self.address = addr
+        self.address = int(addr)
 
     def _parse_response(self, response):
         pattern = '@(.*)ACK(.*);FF'
