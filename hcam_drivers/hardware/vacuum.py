@@ -14,13 +14,13 @@ from .termserver import netdevice
 DEFAULT_TIMEOUT = 5  # seconds
 
 # MESSAGES (as strings, don't forget to format and encode)
-DOWNLOAD = '@{addr}DL{comm};FF'
-SERIAL_NO = '@{addr}SNC{comm};FF'
-FIRMWARE = '@{addr}FVC{comm};FF'
-ADDRESS = '@{addr}ADC{comm};FF'
-DLOG_CTRL = '@{addr}DLC{comm};FF'
-DLOG_TIME = '@{addr}DLT{comm};FF'
-PRESSURE = '@{addr}PR1{comm};FF'
+DOWNLOAD = '@{addr:03d}DL{comm};FF'
+SERIAL_NO = '@{addr:03d}SNC{comm};FF'
+FIRMWARE = '@{addr:03d}FVC{comm};FF'
+ADDRESS = '@{addr:03d}ADC{comm};FF'
+DLOG_CTRL = '@{addr:03d}DLC{comm};FF'
+DLOG_TIME = '@{addr:03d}DLT{comm};FF'
+PRESSURE = '@{addr:03d}PR1{comm};FF'
 
 
 class VacuumGaugeError(Exception):
