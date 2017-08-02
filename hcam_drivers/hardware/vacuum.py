@@ -94,6 +94,13 @@ class PDR900(object):
             raise VacuumGaugeError('failed to start logging')
         self.logging_start_time = Time.now()
 
+    def stop_logging(self):
+        data = dict(addr=self.address, comm='!STOP')
+        addr, response = self._send_recv(DLOG_CTRL, data)
+        if response != 'STOP':
+            raise VacuumGaugeError('failed to stop logging')
+        self.logging_start_time = Time.now()
+
     def set_log_interval(self, hours, mins, secs):
         assert secs < 60, 'seconds must be less than 60'
         assert mins < 60, 'minutes must be less than 60'
