@@ -107,7 +107,7 @@ class PDR900(object):
         return TimeDelta(3600*h + 60*m + s, format='sec')
 
     def get_log_data(self):
-        data = dict(add=self.address, comm='?')
+        data = dict(addr=self.address, comm='?')
         addr, pdata = self._send_recv(DOWNLOAD, data)
         return ascii.read(pdata, delimiter=';')
 
