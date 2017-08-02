@@ -18,7 +18,14 @@ class Honeywell:
         self.client = ModbusClient(address, port=port)
         # list mapping pen ID number to address
         # TODO: complete
-        self.pen_addresses = [0x18C1, 0x18C2, 0x18C3, 0x18C4, 0x18C5]
+        self.pen_addresses = dict(
+            ccd1=0x18C1,
+            ccd2=0x18C2,
+            ccd3=0x18C3,
+            ccd4=0x18C4,
+            ccd5=0x18C5,
+            ngc=0x18C6
+            )
         self.unit_id = 0x01  # allows us to address different units on the same network
         # check we can connect!
         try:
@@ -33,7 +40,7 @@ class Honeywell:
         if not success:
             raise Exception('cannot connect to honeywell at {}'.format(self.address))
 
-    def read_pen(self, pen_id):
+    def read_pen(self, pen_name):
         """
         Read a pen value from the client
 
@@ -44,7 +51,7 @@ class Honeywell:
         """
         try:
             self.connect()
-            address = self.pen_addresses[pen_id]
+            address = self.pen_addresses[pen_name]
             value = self.get_pen(address)
         except Exception as err:
             raise DriverError(str(err))
@@ -65,7 +72,7 @@ class Honeywell:
         try:
             self.connect()
             for address in self.pen_addresses:
-                yield self.get_pen(address)
+                yield address, self.get_pen(address)
         except StopIteration:
             raise
         except Exception as err:
