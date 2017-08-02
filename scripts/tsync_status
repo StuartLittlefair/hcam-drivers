@@ -52,19 +52,19 @@ class GPSCall(object):
 
 class HWTime(GPSCall):
     def __init__(self):
-        super(HWTime, self).__init__('HWTime 0 0')
+        super(HWTime, self).__init__('HW_GetTime 0')
 
     def _parse(self, response):
         super(HWTime, self)._parse(response)
         year, doy, hr, mins, sec, nsec = (
-            convert(val, int) for val in response[2:8]
+            convert(val, int) for val in response.splitlines()[2:8]
         )
         time_string = '{}:{}:{}:{}:{:.6f}'.format(
             year, doy, hr, mins, sec+nsec/1e9
         )
         timestamp = Time(time_string, format='yday')
-        synced = response[-1].split(':')[1].strip()
-        return "Time: {}\nSynced:{}".formed(timestamp.iso, synced)
+        synced = response.splitlines()[-1].split(':')[1].strip()
+        return "Time: {}\nSynced:{}".format(timestamp.iso, synced)
 
 
 class GR_GetValidity(GPSCall):
@@ -72,12 +72,12 @@ class GR_GetValidity(GPSCall):
     Checks to see if time or PPS signal is valid.
     """
     def __init__(self):
-        super(GR_GetValidity, self).__init('GR_GetValidity 0 0')
+        super(GR_GetValidity, self).__init__('GR_GetValidity 0 0')
 
     def _parse(self, response):
         super(GR_GetValidity, self)._parse(response)
         time_valid, pps_valid = (
-            convert(val, bool) for val in response[2:4]
+            convert(val, bool) for val in response.splitlines()[2:4]
         )
         return "Valid output on:\n Time: {}\n PPS {}".format(time_valid, pps_valid)
 
@@ -92,7 +92,7 @@ class GR_GetPosition(GPSCall):
     def _parse(self, response):
         super(GR_GetPosition, self)._parse(response)
         lat, lon, height = (
-            convert(val, float) for val in response[2:5]
+            convert(val, float) for val in response.splitlines()[2:5]
         )
         return "GPS Location:\n Lat (deg): {:.4f}\n Lon (deg) {:.4f}\n Height (m): {:d}".format(
             lat, lon, int(height)
@@ -108,7 +108,7 @@ class GR_GetMode(GPSCall):
 
     def _parse(self, response):
         super(GR_GetMode, self)._parse(response)
-        return response
+        return response.strip()
 
 
 class GetSatInfo(GPSCall):
@@ -120,7 +120,7 @@ class GetSatInfo(GPSCall):
 
     def _parse(self, response):
         super(GetSatInfo, self)._parse(response)
-        return response
+        return response.strip()
 
 
 class GR_GetSatData(GPSCall):
@@ -132,10 +132,10 @@ class GR_GetSatData(GPSCall):
 
     def _parse(self, response):
         super(GR_GetSatData, self)._parse(response)
-        retval = """---------------------
-        # SatID Signal Used TRAIM? StatusBits\n"""
+        retval = "-------------------------------\n"
+        retval += " SatID Signal Used TRAIM? StatusBits\n"
 
-        for line in response[3:]:
+        for line in response.splitlines()[4:]:
             chn, sat_id, sigstr, traim, fit, status = (
                 int(val) for val in line.split(':')[1].split()
             )
@@ -148,9 +148,9 @@ class GR_GetSatData(GPSCall):
 
 if __name__ == "__main__":
     print(GetSatInfo())
-    print(GR_GetMode())
-    print(GR_GetPosition())
-    print(GR_GetValidity())
+    print(GR_GetMode(), end='\n\n')
+    print(GR_GetPosition(), end='\n\n')
+    print(GR_GetValidity(), end='\n\n')
     print(HWTime())
     print('')
     print(GR_GetSatData())
