@@ -11,7 +11,7 @@ from astropy import units as u
 
 from .termserver import netdevice
 
-DEFAULT_TIMEOUT = 0.5  # seconds
+DEFAULT_TIMEOUT = 5  # seconds
 
 # MESSAGES (as strings, don't forget to format and encode)
 DOWNLOAD = '@{addr}DL{comm};FF'
@@ -65,7 +65,7 @@ class PDR900(object):
         with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
             dev.send(msg)
             dev.settimeout(DEFAULT_TIMEOUT)
-            response = dev.recv(1024).rstrip('\r\n')
+            response = dev.recv(1024).decode().rstrip('\r\n')
         addr, retval = self._parse_response(response)
         return addr, retval
 
