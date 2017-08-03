@@ -151,7 +151,7 @@ class PowerOnHandler(BaseHandler):
     """
     def initialize(self, db):
         self.db = db
-        self.command = 'cldc 1 enable'
+        self.command = 'cldc 0 enable'
 
 
 class PowerOffHandler(BaseHandler):
