@@ -151,11 +151,11 @@ class MeerstetterTEC1090(object):
 
     def get_ccd_temp(self, address):
         param_no = 1000
-        return self.get_param(address, param_no, 1)*u.Celcius
+        return self.get_param(address, param_no, 1)*u.Celsius
 
     def get_heatsink_temp(self, address):
         param_no = 1001
-        return self.get_param(address, param_no, 1)*u.Celcius
+        return self.get_param(address, param_no, 1)*u.Celsius
 
     def get_power(self, address):
         current = self.get_param(address, 1020, 1)
