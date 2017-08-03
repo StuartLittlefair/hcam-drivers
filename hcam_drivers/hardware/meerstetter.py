@@ -81,6 +81,7 @@ class MeerstetterTEC1090(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.seq_no = random.randint(1, 1000)
         self.crc_calc = CRCCalculator()
+        self.tec_power_limit = 190 * u.W
 
     def _assemble_frame(self, address, payload):
         """
