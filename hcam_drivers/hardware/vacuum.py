@@ -29,7 +29,7 @@ class VacuumGaugeError(Exception):
 
 class PDR900(object):
 
-    def __init__(self, host='195.194.120.72', port=10002):
+    def __init__(self, host, port):
         """
         Creates a PDR900 object for communication over serial.
 
