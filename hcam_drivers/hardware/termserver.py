@@ -11,8 +11,8 @@ from contextlib import contextmanager
 def netdevice(host, port, timeout=5):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.connect((host, port))
         s.settimeout(timeout)
+        s.connect((host, port))
         yield s
     finally:
         s.close()
