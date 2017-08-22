@@ -51,9 +51,9 @@ class Boolean(tk.IntVar):
         # get globals from root
         g = get_root(self.master).globals
         if self.get():
-            g.cpars[self.flag] = 1  # use integers here to make config file parsing easier
+            g.cpars[self.flag] = True
         else:
-            g.cpars[self.flag] = 0
+            g.cpars[self.flag] = False
         if self.callback:
             self.callback(g.cpars[self.flag])
 
@@ -1829,7 +1829,7 @@ class PowerOn(ActButton):
 
         if execCommand(g, 'online'):
             g.clog.info('ESO server online')
-            g.cpars['eso_server_online'] = 1
+            g.cpars['eso_server_online'] = True
 
             success = execCommand(g, 'pon')
             if not success:
@@ -1876,7 +1876,7 @@ class PowerOff(ActButton):
 
         if execCommand(g, 'off'):
             g.clog.info('ESO server idle and child processes quit')
-            g.cpars['eso_server_online'] = 0
+            g.cpars['eso_server_online'] = False
             # alter buttons
             self.disable()
             g.observe.start.disable()
