@@ -1887,7 +1887,7 @@ class CLDCOn(ActButton):
         """
         ActButton.__init__(self, master, width, text='CLDC On')
         self.disable()
-        s
+
     def act(self):
         g = get_root(self).globals
         g.clog.debug('CLDC On pressed')
