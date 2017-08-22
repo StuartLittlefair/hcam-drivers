@@ -1768,8 +1768,8 @@ class NGCReset(ActButton):
             # alter buttons here
             g.observe.start.disable()
             g.observe.stop.disable()
-            g.setup.powerOn.enable()
-            g.setup.powerOff.disable()
+            g.setup.cldcOn.disable()
+            g.setup.cldcOff.disable()
             return True
         else:
             g.clog.warn('NGC Reset failed')
@@ -1800,11 +1800,137 @@ class NGCStandby(ActButton):
             # alter buttons here
             g.observe.start.disable()
             g.observe.stop.disable()
-            g.setup.powerOn.enable()
-            g.setup.powerOff.enable()
+            g.setup.cldcOn.disable()
+            g.setup.cldcOff.disable()
             return True
         else:
             g.clog.warn("NGC Standby failed")
+            return False
+
+
+class NGCOnline(ActButton):
+    """
+    Class defining the online button.
+
+    In online, the NGC server will respond to commands, but processes (e.g sequencer)
+    are autostarted if autostart is enabled, as are any clocks. You can turn clocks on
+    and off in this state.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        ActButton.__init__(self, master, width, text='NGC Online')
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('NGC Online pressed')
+
+        if execCommand(g, 'online'):
+            g.clog.info('Online command successful')
+
+            # alter buttons here
+            g.observe.start.disable()
+            g.observe.stop.disable()
+            g.setup.cldcOn.enable()
+            g.setup.cldcOff.enable()
+            return True
+        else:
+            g.clog.warn("NGC Online failed")
+            return False
+
+
+class NGCOff(ActButton):
+    """
+    Class defining the off button.
+
+    In the off (loaded) state, the NGC server will respond to commands, but no-subprocesses
+    are launched, and the controller electronics configuration and detector configuration
+    is not applied.
+
+    The server initialises in this state.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        ActButton.__init__(self, master, width, text='NGC Off')
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('NGC Off pressed')
+
+        if execCommand(g, 'off'):
+            g.clog.info('Off command successful; server in loaded state')
+
+            # alter buttons here
+            g.observe.start.disable()
+            g.observe.stop.disable()
+            g.setup.cldcOn.disable()
+            g.setup.cldcOff.disable()
+            return True
+        else:
+            g.clog.warn("NGC Off failed")
+            return False
+
+
+class CLDCOn(ActButton):
+    """
+    Class defining the button to turn on clocks.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        ActButton.__init__(self, master, width, text='CLDC On')
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('CLDC On pressed')
+
+        if execCommand(g, 'pon'):
+            g.clog.info('CLDC on command successful; clocks powered on')
+
+            # alter buttons here
+            g.observe.start.enable()
+            g.observe.stop.enable()
+            g.setup.cldcOff.enable()
+            self.disable()
+            return True
+        else:
+            g.clog.warn("NGC Off failed")
+            return False
+
+
+class CLDCOff(ActButton):
+    """
+    Class defining the button to turn off clocks.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        ActButton.__init__(self, master, width, text='CLDC Off')
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('CLDC Off pressed')
+
+        if execCommand(g, 'poff'):
+            g.clog.info('CLDC off command successful; clocks powered off')
+
+            # alter buttons here
+            g.observe.start.disable()
+            g.observe.stop.disable()
+            g.setup.cldcOn.enable()
+            self.disable()
+            return True
+        else:
+            g.clog.warn("CLDC Off failed")
             return False
 
 
@@ -1908,11 +2034,19 @@ class InstSetup(tk.LabelFrame):
 
         # Define all buttons
         width = 17
+        # expert
         self.ngcReset = NGCReset(self, width)
         self.ngcStandby = NGCStandby(self, width)
+        self.ngcOnline = NGCOnline(self, width)
+        self.ngcOff = NGCOff(self, width)
+        self.cldcOff = CLDCOff(self, width)
+        self.cldcOn = CLDCOn(self, width)
+        # non-expert
         self.powerOn = PowerOn(self, width)
         self.powerOff = PowerOff(self, width)
-
+        self.all_buttons = [self.ngcReset, self.ngcStandby, self.ngcOnline,
+                            self.ngcOff, self.cldcOn, self.cldcOff,
+                            self.powerOn, self.powerOff]
         # set which buttons are presented and where they go
         self.setExpertLevel()
 
@@ -1926,10 +2060,8 @@ class InstSetup(tk.LabelFrame):
         # first define which buttons are visible
         if level == 0:
             # simple layout
-            self.ngcReset.grid_forget()
-            self.ngcStandby.grid_forget()
-            self.powerOn.grid_forget()
-            self.powerOff.grid_forget()
+            for button in self.all_buttons:
+                button.grid_forget()
 
             # then re-grid the two simple ones
             self.powerOn.grid(row=0, column=0)
@@ -1937,29 +2069,25 @@ class InstSetup(tk.LabelFrame):
 
         elif level == 1 or level == 2:
             # first remove all possible buttons
-            self.ngcReset.grid_forget()
-            self.ngcStandby.grid_forget()
-            self.powerOn.grid_forget()
-            self.powerOff.grid_forget()
+            for button in self.all_buttons:
+                button.grid_forget()
 
             # restore detailed layout
-            self.powerOn.grid(row=0, column=0)
-            self.powerOff.grid(row=1, column=0)
-            self.ngcReset.grid(row=0, column=1)
-            self.ngcStandby.grid(row=1, column=1)
+            self.cldcOn.grid(row=0, column=1)
+            self.cldcOff.grid(row=1, column=1)
+            self.ngcOnline.grid(row=0, column=0)
+            self.ngcOff.grid(row=1, column=0)
+            self.ngcStandby.grid(row=2, column=0)
+            self.ngcReset.grid(row=3, column=0)
 
         # now set whether buttons are permanently enabled or not
         if level == 0 or level == 1:
-            self.ngcReset.setNonExpert()
-            self.powerOn.setNonExpert()
-            self.powerOff.setNonExpert()
-            self.ngcStandby.setNonExpert()
+            for button in self.all_buttons:
+                button.setNonExpert()
 
         elif level == 2:
-            self.ngcReset.setExpert()
-            self.powerOn.setExpert()
-            self.powerOff.setExpert()
-            self.ngcStandby.setExpert()
+            for button in self.all_buttons:
+                button.setExpert()
 
 
 class Switch(tk.Frame):
