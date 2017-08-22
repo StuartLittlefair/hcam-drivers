@@ -77,7 +77,7 @@ class GR_GetValidity(GPSCall):
     def _parse(self, response):
         super(GR_GetValidity, self)._parse(response)
         time_valid, pps_valid = (
-            convert(val, bool) for val in response.splitlines()[2:4]
+            bool(convert(val, int)) for val in response.splitlines()[2:4]
         )
         return "Valid output on:\n Time: {}\n PPS {}".format(time_valid, pps_valid)
 
