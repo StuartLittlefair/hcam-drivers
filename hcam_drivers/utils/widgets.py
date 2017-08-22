@@ -1886,7 +1886,8 @@ class CLDCOn(ActButton):
         width    : width of button
         """
         ActButton.__init__(self, master, width, text='CLDC On')
-
+        self.disable()
+        s
     def act(self):
         g = get_root(self).globals
         g.clog.debug('CLDC On pressed')
@@ -1915,6 +1916,7 @@ class CLDCOff(ActButton):
         width    : width of button
         """
         ActButton.__init__(self, master, width, text='CLDC Off')
+        self.disable()
 
     def act(self):
         g = get_root(self).globals
