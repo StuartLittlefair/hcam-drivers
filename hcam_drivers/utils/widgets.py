@@ -1834,7 +1834,7 @@ class NGCOnline(ActButton):
             g.observe.start.disable()
             g.observe.stop.disable()
             g.setup.cldcOn.enable()
-            g.setup.cldcOff.enable()
+            g.setup.cldcOff.disable()
             return True
         else:
             g.clog.warn("NGC Online failed")
