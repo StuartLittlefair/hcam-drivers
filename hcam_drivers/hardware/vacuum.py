@@ -42,11 +42,6 @@ class PDR900(object):
         self.host = host
         self.logging_start_time = None
 
-        # connect once to find address and hard-code
-        data = dict(addr=254, comm='?')
-        _, addr = self._send_recv(ADDRESS, data)
-        self.address = int(addr)
-
     def _parse_response(self, response):
         pattern = '@(.*)ACK(.*);FF'
         result = re.match(pattern, response)
@@ -68,6 +63,13 @@ class PDR900(object):
             response = dev.recv(1024).decode().rstrip('\r\n')
         addr, retval = self._parse_response(response)
         return addr, retval
+
+    @lazyproperty
+    def address(self):
+        # connect once to find address and hard-code
+        data = dict(addr=254, comm='?')
+        _, addr = self._send_recv(ADDRESS, data)
+        return int(addr)
 
     @lazyproperty
     def firmware_version(self):
