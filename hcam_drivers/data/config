@@ -39,7 +39,7 @@ hipercam_server = http://localhost:5000/
 # The URL of the termserver for serial connections
 termserver_ip = 192.168.1.3
 slide_port = 10001
-vaccum_ports = 10002, 10003, 10004, 10005, 10006
+vacuum_ports = 10002, 10003, 10004, 10005, 10006
 chiller_port = 10007
 # The URL of the meerstetter for CCD temps
 meerstetter_ip = 192.168.1.5, 192.168.1.6
