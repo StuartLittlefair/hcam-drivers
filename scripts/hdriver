@@ -246,7 +246,7 @@ class GUI(tk.Tk):
             dump_app(self.globals)
 
             # attempt to power off server
-            if execCommand(self.globals, 'off'):
+            if execCommand(self.globals, 'offline'):
                 self.globals.clog.info('ESO server idle and child processes quit')
             else:
                 self.globals.clog.warn('Power off failed')
