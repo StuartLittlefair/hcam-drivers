@@ -2355,15 +2355,15 @@ class InfoFrame(tk.LabelFrame):
         self.update()
 
     def _getVal(self, widg):
-        return 'UNDEF' if widg['text'] == 'UNDEF' else float(widg['text'])
+        return -99.0 if widg['text'] == 'UNDEF' else float(widg['text'])
 
     def dumpJSON(self):
         """
         Return dictionary of data for FITS headers.
         """
         return dict(
-            RA=self._getVal(self.ra),
-            DEC=self._getVal(self.dec),
+            RA=self.ra['text'],
+            DEC=self.dec['text'],
             alt=self._getVal(self.alt),
             az=self._getVal(self.az),
             secz=self._getVal(self.airmass),
