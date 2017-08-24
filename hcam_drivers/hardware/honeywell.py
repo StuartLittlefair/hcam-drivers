@@ -17,7 +17,6 @@ class Honeywell:
         self.address = address
         self.client = ModbusClient(address, port=port)
         # list mapping pen ID number to address
-        # TODO: complete
         self.pen_addresses = dict(
             ccd1=0x18C1,
             ccd2=0x18C2,
