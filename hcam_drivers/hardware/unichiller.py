@@ -41,7 +41,7 @@ class UnichillerMPC(object):
     See LAI protocol spec document for details.
     """
     def __init__(self, host, port):
-        self.address = host
+        self.host = host
         self.port = port
 
     def _checksum(self, msg):
@@ -80,40 +80,40 @@ class UnichillerMPC(object):
                             msg, response
                           ))
 
-        def get_status(self):
-            response = self._send_recv(QUERY_STATUS)
-            body = response[7:-2]
-            status = dict()
-            op_status = body[0]
-            status['mode'] = {
-                'C': 'pump on',
-                'I': 'pump off, cooling on',
-                'O': 'control off'
-            }[op_status]
-            alarm_status = body[1]
-            status['alarms'] = True if alarm_status == '1' else False
-            status['setpoint'] = hex_to_float(body[2:6])
-            status['chiller_temp'] = hex_to_float(body[6:10])
-            return status
+    def get_status(self):
+        response = self._send_recv(QUERY_STATUS)
+        body = response[7:-2]
+        status = dict()
+        op_status = body[0]
+        status['mode'] = {
+            'C': 'pump on',
+            'I': 'pump off, cooling on',
+            'O': 'control off'
+        }[op_status]
+        alarm_status = body[1]
+        status['alarms'] = True if alarm_status == '1' else False
+        status['setpoint'] = hex_to_float(body[2:6])
+        status['chiller_temp'] = hex_to_float(body[6:10])
+        return status
 
-        @property
-        def temperature(self):
-            status = self.get_status()
-            return status['chiller_temp']
+    @property
+    def temperature(self):
+        status = self.get_status()
+        return status['chiller_temp']
 
-        @temperature.setter
-        def temperature(self, target):
-            target_hex = float_to_hex(target)
-            msg = TEMP_SET.format(target_hex)
-            self._send_recv(msg)
+    @temperature.setter
+    def temperature(self, target):
+        target_hex = float_to_hex(target)
+        msg = TEMP_SET.format(target_hex)
+        self._send_recv(msg)
 
-        def pump_on(self):
-            msg = STATE_CONTROL.format('I')
-            self._send_recv(msg)
-            time.sleep(0.1)
-            msg = STATE_CONTROL.format('C')
-            self._send_recv(msg)
+    def pump_on(self):
+        msg = STATE_CONTROL.format('I')
+        self._send_recv(msg)
+        time.sleep(0.1)
+        msg = STATE_CONTROL.format('C')
+        self._send_recv(msg)
 
-        def pump_off(self):
-            msg = STATE_CONTROL.format('O')
-            self._send_recv(msg)
+    def pump_off(self):
+        msg = STATE_CONTROL.format('O')
+        self._send_recv(msg)

@@ -1,7 +1,5 @@
 # Utility to communicate with MKS PDR900 Vacuum Guage via RS232
 from __future__ import absolute_import, unicode_literals, print_function, division
-import serial
-import time
 import re
 
 from astropy.utils.decorators import lazyproperty
