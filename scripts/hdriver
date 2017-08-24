@@ -24,7 +24,6 @@ from hcam_drivers.utils.rtplot import RtplotServer
 from hcam_drivers.utils.misc import execCommand
 from hcam_drivers.config import (load_config, write_config,
                                  check_user_dir, dump_app)
-from hcam_drivers.hardware import honeywell as honey
 from hcam_drivers.hardware import slide
 
 usage = """
@@ -96,13 +95,7 @@ class GUI(tk.Tk):
         self.globals.astro = w.AstroFrame(lhs)
 
         # CCD temp monitoring
-        if self.globals.cpars['ccd_temperature_on']:
-            try:
-                self.globals.honeywell = honey.Honeywell()
-            except Exception as err:
-                self.globals.clog.warn(str(err))
-                self.globals.clog('Disabling access to honeywell monitor')
-                self.globals.cpars['ccd_temperature_on'] = False
+        self.globals.ccd_hw = hcam.CCDInfoWidget(self)
 
         # add switcher
         switch = w.Switch(topLhsFrame)
@@ -156,8 +149,7 @@ class GUI(tk.Tk):
                                      var=w.Boolean(self, 'hcam_server_on'))
         settingsMenu.add_checkbutton(label='Focal plane slide on',
                                      var=w.Boolean(self, 'focal_plane_slide_on'))
-        settingsMenu.add_checkbutton(label='CCD temperature on',
-                                     var=w.Boolean(self, 'ccd_temperature_on'))
+
         # we add a callback to this one to enable start button if appropriate
         settingsMenu.add_checkbutton(label='Assume NGC server online',
                                      var=w.Boolean(self, 'eso_server_online',
@@ -176,10 +168,18 @@ class GUI(tk.Tk):
         # add to menubar
         menubar.add_cascade(label='Settings', menu=settingsMenu)
 
-        # add a menubar link to the alarms window
-        alarmMenu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label='Alarms', menu=alarmMenu)
-        # TODO: make this do something!
+        # add a menubar link to show the hardware window
+        hwMenu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label='CCD Status', menu=hwMenu)
+        hwMenu.add_command(label='Show...', command=self.globals.ccd_hw.deiconify)
+        hwMenu.add_checkbutton(label='CCD temperature monitoring',
+                               var=w.Boolean(self, 'ccd_temp_monitoring_on'))
+        hwMenu.add_checkbutton(label='Flow rate monitoring',
+                               var=w.Boolean(self, 'flow_monitoring_on'))
+        hwMenu.add_checkbutton(label='Pressure monitoring',
+                               var=w.Boolean(self, 'ccd_vac_monitoring_on'))
+        hwMenu.add_checkbutton(label='Chiller temperature monitoring',
+                               var=w.Boolean(self, 'chiller_temp_monitoring_on'))
 
         # stick the menubar in place
         self.config(menu=menubar)
