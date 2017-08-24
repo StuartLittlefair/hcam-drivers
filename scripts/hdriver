@@ -149,7 +149,8 @@ class GUI(tk.Tk):
                                      var=w.Boolean(self, 'hcam_server_on'))
         settingsMenu.add_checkbutton(label='Focal plane slide on',
                                      var=w.Boolean(self, 'focal_plane_slide_on'))
-
+        settingsMenu.add_checkbutton(label='TCS checking on',
+                                     var=w.Boolean(self, 'tcs_on'))
         # we add a callback to this one to enable start button if appropriate
         settingsMenu.add_checkbutton(label='Assume NGC server online',
                                      var=w.Boolean(self, 'eso_server_online',
