@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import math
 import json
 import six
+import threading
 if not six.PY3:
     import Tkinter as tk
     import tkFileDialog as filedialog
@@ -1625,11 +1626,23 @@ class CCDInfoWidget(tk.Toplevel):
 
     def update(self):
         """
-        Run regular checks of CCD cooling HW
+        Checking hardware is slow and makes GUI unresponsive. Launch HW check in new thread.
         """
+        self.raise_if_nok()
         tk.Toplevel.update(self)
         g = get_root(self.parent).globals
+        t = threading.Thread(target=self.update_thread, args=(g,))
+        t.start()
+        self.after(10000, self.update)
 
+    def raise_if_nok(self):
+        if not self.ok:
+            self.deiconify()
+
+    def update_thread(self, g):
+        """
+        Run regular checks of CCD cooling HW
+        """
         all_ok = True
 
         # meerstetter info (CCD temps, HS temp, peltier powers)
@@ -1712,8 +1725,3 @@ class CCDInfoWidget(tk.Toplevel):
                     g.clog.warn(str(err))
 
         self.ok = all_ok
-        if not self.ok:
-            self.deiconify()
-
-        # schedule next check for 60 seconds time
-        self.after(10000, self.update)
