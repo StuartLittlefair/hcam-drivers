@@ -15,7 +15,13 @@ hcam_server_on = 1
 # Whether the program tries to interact with the focal plane slide
 focal_plane_slide_on = 0
 # Whether the program tries to interact with the CCD temperature monitor
-ccd_temperature_on = 0
+ccd_temp_monitoring_on = 0
+# Whether the program tries to interact with the flow rate monitor
+flow_monitoring_on = 0
+# Whether the program tries to interact with the vacuum monitor
+ccd_vac_monitoring_on = 0
+# Whether the program tries to interact with the chiller temp monitor
+chiller_temp_monitoring_on = 0
 # Whether the program tries to interact with the TCS
 tcs_on = 0
 # Expert level governs the complexity of the GUI
