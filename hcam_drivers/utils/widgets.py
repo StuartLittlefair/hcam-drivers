@@ -2002,14 +2002,14 @@ class PowerOff(ActButton):
         g = get_root(self).globals
         g.clog.debug('Power off pressed')
 
-        if execCommand(g, 'off'):
+        success = execCommand(g, 'poff')
+        if not success:
+            g.clog.warn('Unable to power off CLDC')
+            return False
+
+        if execCommand(g, 'offline'):
             g.clog.info('ESO server idle')
             g.cpars['eso_server_online'] = False
-
-            success = execCommand(g, 'poff')
-            if not success:
-                g.clog.warn('Unable to power off CLDC')
-                return False
 
             # alter buttons
             self.disable()
@@ -2604,6 +2604,12 @@ class AstroFrame(tk.LabelFrame):
 
         # start
         self.update()
+
+    def dumpJSON(self):
+        """
+        Dump dictionary of data for TCS FITS headers
+        """
+        return dict()
 
     def update(self):
         """
