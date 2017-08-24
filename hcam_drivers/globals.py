@@ -43,7 +43,7 @@ class Container:
     rlog    : response log widget. Used to report server responses
     rpars   : run parameter widget
     setup   : setup widget
-    honeywell : honeywell temperature monitor
+    ccd_hw  : CCD hardware (temps, flow rates etc) monitoring widget
     start_filter : filter at last press of 'Start'
     logfile : file to log messages
     """
@@ -158,8 +158,8 @@ class Container:
         # Instrument setup widget
         self.setup = None
 
-        # honeywell temperature control
-        self.honeywell = None
+        # ccd hw monitor widget
+        self.ccd_hw = None
 
         # Logging file
         self.logfile = None

@@ -27,13 +27,6 @@ class Honeywell:
             ngc=0x18C6
             )
         self.unit_id = 0x01  # allows us to address different units on the same network
-        # check we can connect!
-        try:
-            self.connect()
-        except Exception as err:
-            raise DriverError(str(err))
-        finally:
-            self.client.close()
 
     def connect(self):
         success = self.client.connect()

@@ -9,6 +9,9 @@ from contextlib import contextmanager
 from astropy import units as u
 
 
+DEFAULT_TIMEOUT = 2
+
+
 def hex_to_int(hexstring):
     return int(hexstring, 16)
 
@@ -61,6 +64,7 @@ class CRCCalculator(object):
 def socketcontext(addr, port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
+        s.settimeout(DEFAULT_TIMEOUT)
         s.connect((addr, port))
         yield s
     finally:

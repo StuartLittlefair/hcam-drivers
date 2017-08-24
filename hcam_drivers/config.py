@@ -82,6 +82,6 @@ def dump_app(g):
     """
     Dump current application settings to backup
     """
-    json_string = createJSON(g)
+    json_string = createJSON(g, full=False)
     saveJSON(g, json_string, backup=True)
 

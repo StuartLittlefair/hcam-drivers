@@ -2002,14 +2002,14 @@ class PowerOff(ActButton):
         g = get_root(self).globals
         g.clog.debug('Power off pressed')
 
-        if execCommand(g, 'off'):
+        success = execCommand(g, 'poff')
+        if not success:
+            g.clog.warn('Unable to power off CLDC')
+            return False
+
+        if execCommand(g, 'offline'):
             g.clog.info('ESO server idle')
             g.cpars['eso_server_online'] = False
-
-            success = execCommand(g, 'poff')
-            if not success:
-                g.clog.warn('Unable to power off CLDC')
-                return False
 
             # alter buttons
             self.disable()
@@ -2291,7 +2291,7 @@ class InfoFrame(tk.LabelFrame):
         self.focus = Ilabel(self, text='UNDEF')
         self.mdist = Ilabel(self, text='UNDEF')
         self.fpslide = Ilabel(self, text='UNDEF')
-        self.honey = Ilabel(self, text='UNDEF')
+        self.ccd_temps = Ilabel(self, text='UNDEF')
 
         # left-hand side
         tk.Label(self, text='Run:').grid(row=0, column=0, padx=5, sticky=tk.W)
@@ -2342,8 +2342,8 @@ class InfoFrame(tk.LabelFrame):
         tk.Label(self, text='FP slide:').grid(row=3, column=6, padx=5, sticky=tk.W)
         self.fpslide.grid(row=3, column=7, padx=5, sticky=tk.W)
 
-        tk.Label(self, text='CCD temp:').grid(row=4, column=6, padx=5, sticky=tk.W)
-        self.honey.grid(row=4, column=7, padx=5, sticky=tk.W)
+        tk.Label(self, text='CCD temps:').grid(row=4, column=6, padx=5, sticky=tk.W)
+        self.ccd_temps.grid(row=4, column=7, padx=5, sticky=tk.W)
 
         # these are used to judge whether we are tracking or not
         self.coo_old = coord.SkyCoord(0, 0, unit=(u.deg, u.deg))
@@ -2353,6 +2353,24 @@ class InfoFrame(tk.LabelFrame):
         # start
         self.count = 0
         self.update()
+
+    def _getVal(self, widg):
+        return -99.0 if widg['text'] == 'UNDEF' else float(widg['text'])
+
+    def dumpJSON(self):
+        """
+        Return dictionary of data for FITS headers.
+        """
+        return dict(
+            RA=self.ra['text'],
+            DEC=self.dec['text'],
+            alt=self._getVal(self.alt),
+            az=self._getVal(self.az),
+            secz=self._getVal(self.airmass),
+            pa=self._getVal(self.pa),
+            foc=self._getVal(self.focus),
+            mdist=self._getVal(self.mdist)
+        )
 
     def update(self):
         """
@@ -2495,14 +2513,18 @@ class InfoFrame(tk.LabelFrame):
                     self.fpslide.configure(bg=g.COL['warn'])
 
             # get the CCD temperature poll at 5x slower rate than the frame
-            # TODO: implement when honeywell is set up
-            if self.count % 5 == 0 and g.cpars['ccd_temperature_on']:
+            if self.count % 5 == 0:
                 try:
-                    raise NotImplementedError('Honeywell not working yet')
+                    if g.ccd_hw is not None and g.ccd_hw.ok:
+                        self.ccd_temps.configure(text='OK')
+                        self.ccd_temps.configure(bg=g.COL['main'])
+                    else:
+                        self.ccd_temps.configure(text='ERR')
+                        self.ccd_temps.configure(bg=g.COL['warn'])
                 except Exception as err:
                     g.clog.warn(str(err))
-                    self.honey.configure(text='UNDEF')
-                    self.honey.configure(bg=g.COL['warn'])
+                    self.ccd_temps.configure(text='UNDEF')
+                    self.ccd_temps.configure(bg=g.COL['warn'])
 
         except Exception as err:
             # this is a safety catchall trap as it is important
