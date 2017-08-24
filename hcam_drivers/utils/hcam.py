@@ -1534,11 +1534,11 @@ class CCDInfoWidget(tk.Toplevel):
         self.protocol('WM_DELETE_WINDOW', self.withdraw)
 
         # create label frames
-        self.temp_frm = tk.LabelFrame(self, text='Temperatures', padx=4, pady=4)
-        self.heatsink_frm = tk.LabelFrame(self, text='Heatsink Temps', padx=4, pady=4)
-        self.peltier_frm = tk.LabelFrame(self, text='Peltier Powers', padx=4, pady=4)
-        self.flow_frm = tk.LabelFrame(self, text='Flow Rates', padx=4, pady=4)
-        self.vac_frm = tk.LabelFrame(self, text='Vacuums', padx=4, pady=4)
+        self.temp_frm = tk.LabelFrame(self, text='Temperatures (C)', padx=4, pady=4)
+        self.heatsink_frm = tk.LabelFrame(self, text='Heatsink Temps (C)', padx=4, pady=4)
+        self.peltier_frm = tk.LabelFrame(self, text='Peltier Powers (%)', padx=4, pady=4)
+        self.flow_frm = tk.LabelFrame(self, text='Flow Rates (l/min)', padx=4, pady=4)
+        self.vac_frm = tk.LabelFrame(self, text='Vacuums (mbar)', padx=4, pady=4)
 
         # variables to store Ilabel widgets
         self.ccd_temps = []
@@ -1624,6 +1624,32 @@ class CCDInfoWidget(tk.Toplevel):
         # check values
         self.update()
 
+    def _getVal(self, widg):
+        """
+        Return value from widget if set, else return -99.
+        """
+        return '-98' if widg['text'] == 'UNDEF' else float(widg['text'])
+
+    def dumpJSON(self):
+        """
+        Encodes current hw data to JSON compatible dictionary
+        """
+        data = dict()
+        g = get_root(self.parent).globals
+        for i in range(5):
+            ccd = i+1
+            data['ccd{}temp'.format(ccd)] = self._getVal(self.ccd_temps[i])
+            data['ccd{}vac'.format(ccd)] = self._getVal(self.vacuums[i])
+            data['ccd{}flow'.format(ccd)] = self._getVal(self.ccd_flow_rates[i])
+        if g.cpars['focal_plane_slide_on']:
+            try:
+                pos_ms, pos_mm, pos_px = g.fpslide.slide.return_position()
+                data['fpslide'] = pos_px
+            except Exception as err:
+                g.clog.warn('Slide error: ' + str(err))
+        print(data)
+        return data
+
     def update(self):
         """
         Checking hardware is slow and makes GUI unresponsive. Launch HW check in new thread.
@@ -1661,7 +1687,7 @@ class CCDInfoWidget(tk.Toplevel):
 
                     temp_str = '{:.1f}'.format(temp.value)
                     hs_temp_str = '{:.1f}'.format(hs_temp.value)
-                    power_str = '{:.0f} %'.format(power / ms.tec_power_limit)
+                    power_str = '{:.0f}'.format(power / ms.tec_power_limit)
 
                     self.ccd_temps[ccd-1].configure(text=temp_str, bg=g.COL['main'])
                     self.heatsink_temps[ccd-1].configure(text=hs_temp_str, bg=g.COL['main'])
