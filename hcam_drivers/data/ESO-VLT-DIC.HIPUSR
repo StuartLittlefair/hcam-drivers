@@ -184,7 +184,7 @@ Context:           FITS
 Type:              double
 Value Format:      %.2E
 Unit:
-Comment Format:    CCD Pressure (Torr)
+Comment Format:    CCD Pressure (mbar)
 Description:       CCD Pressure
 
 Parameter Name:    CCD1FLOW
@@ -211,7 +211,7 @@ Context:           FITS
 Type:              double
 Value Format:      %.2E
 Unit:
-Comment Format:    CCD Pressure (Torr)
+Comment Format:    CCD Pressure (mbar)
 Description:       CCD Pressure
 
 Parameter Name:    CCD2FLOW
@@ -238,7 +238,7 @@ Context:           FITS
 Type:              double
 Value Format:      %.2E
 Unit:
-Comment Format:    CCD Pressure (Torr)
+Comment Format:    CCD Pressure (mbar)
 Description:       CCD Pressure
 
 Parameter Name:    CCD3FLOW
@@ -265,7 +265,7 @@ Context:           FITS
 Type:              double
 Value Format:      %.2E
 Unit:
-Comment Format:    CCD Pressure (Torr)
+Comment Format:    CCD Pressure (mbar)
 Description:       CCD Pressure
 
 Parameter Name:    CCD4FLOW
@@ -292,7 +292,7 @@ Context:           FITS
 Type:              double
 Value Format:      %.2E
 Unit:
-Comment Format:    CCD Pressure (Torr)
+Comment Format:    CCD Pressure (mbar)
 Description:       CCD Pressure
 
 Parameter Name:    CCD5FLOW
@@ -319,7 +319,7 @@ Context:           FITS
 Type:              double
 Value Format:      %.2E
 Unit:
-Comment Format:    CCD Pressure (Torr)
+Comment Format:    CCD Pressure (mbar)
 Description:       CCD Pressure
 
 Parameter Name:    FPSLIDE
