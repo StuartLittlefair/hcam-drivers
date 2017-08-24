@@ -306,8 +306,6 @@ def checkSimbad(g, target, maxobj=5, timeout=5):
     """
     Sends off a request to Simbad to check whether a target is recognised.
     Returns with a list of results, or raises an exception if it times out
-
-    TODO: fix and make python2/3 compatible
     """
     url = 'http://simbad.u-strasbg.fr/simbad/sim-script'
     q = 'set limit ' + str(maxobj) + \

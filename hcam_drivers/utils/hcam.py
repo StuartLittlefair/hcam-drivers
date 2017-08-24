@@ -1226,13 +1226,10 @@ class Start(w.ActButton):
 
     -- check the instrument and run parameters are OK
     -- optionally, hassle the user if the target changes
-    -- optionally, pull in TCS info for the headers
     -- post the run settings to the ESO NGC control server
     -- start the run
     -- update the button status
     -- start the exposure timer
-
-    TODO: complete optional tasks
     """
     def __init__(self, master, width):
         """
@@ -1316,9 +1313,6 @@ class Start(w.ActButton):
 
         # create JSON to post
         data = createJSON(g)
-
-        # append current TCS and HW data
-        # TODO: ADD THESE ROUTINES WHEN HW/TCS is working
 
         # POST
         try:
