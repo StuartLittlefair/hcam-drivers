@@ -178,7 +178,7 @@ def postJSON(g, data):
     return True
 
 
-def createJSON(g):
+def createJSON(g, full=True):
     """
     Create JSON compatible dictionary from current settings
 
@@ -190,6 +190,9 @@ def createJSON(g):
     data = dict()
     data['appdata'] = g.ipars.dumpJSON()
     data['user'] = g.rpars.dumpJSON()
+    if full:
+        data['hardware'] = g.ccd_hw.dumpJSON()
+        data['tcs'] = g.astro.dumpJSON()
     return data
 
 
