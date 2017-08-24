@@ -192,7 +192,7 @@ def createJSON(g, full=True):
     data['user'] = g.rpars.dumpJSON()
     if full:
         data['hardware'] = g.ccd_hw.dumpJSON()
-        data['tcs'] = g.astro.dumpJSON()
+        data['tcs'] = g.info.dumpJSON()
     return data
 
 

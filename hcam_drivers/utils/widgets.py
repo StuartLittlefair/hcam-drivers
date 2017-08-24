@@ -2354,6 +2354,24 @@ class InfoFrame(tk.LabelFrame):
         self.count = 0
         self.update()
 
+    def _getVal(self, widg):
+        return 'UNDEF' if widg['text'] == 'UNDEF' else float(widg['text'])
+
+    def dumpJSON(self):
+        """
+        Return dictionary of data for FITS headers.
+        """
+        return dict(
+            RA=self._getVal(self.ra),
+            DEC=self._getVal(self.dec),
+            alt=self._getVal(self.alt),
+            az=self._getVal(self.az),
+            secz=self._getVal(self.airmass),
+            pa=self._getVal(self.pa),
+            foc=self._getVal(self.focus),
+            mdist=self._getVal(self.mdist)
+        )
+
     def update(self):
         """
         Updates run & tel status window. Runs
@@ -2604,12 +2622,6 @@ class AstroFrame(tk.LabelFrame):
 
         # start
         self.update()
-
-    def dumpJSON(self):
-        """
-        Dump dictionary of data for TCS FITS headers
-        """
-        return dict()
 
     def update(self):
         """
