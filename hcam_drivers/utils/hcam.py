@@ -1659,7 +1659,8 @@ class CCDInfoWidget(tk.Toplevel):
         g = get_root(self.parent).globals
         t = threading.Thread(target=self.update_thread, args=(g,))
         t.start()
-        self.after(10000, self.update)
+        # schedule next check for 60s time
+        self.after(60000, self.update)
 
     def raise_if_nok(self):
         if not self.ok:
