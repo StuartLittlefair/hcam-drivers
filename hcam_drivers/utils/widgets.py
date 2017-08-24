@@ -690,6 +690,7 @@ class ListInt(IntegerEntry):
         """
         Sets key bindings -- we need this more than once
         """
+        IntegerEntry.set_bind(self)
         self.unbind('<Shift-Up>')
         self.unbind('<Shift-Down>')
         self.unbind('<Control-Up>')
@@ -713,6 +714,7 @@ class ListInt(IntegerEntry):
         """
         Unsets key bindings -- we need this more than once
         """
+        IntegerEntry.set_unbind(self)
         self.unbind('<Button-1>')
         self.unbind('<Button-3>')
         self.unbind('<Up>')
