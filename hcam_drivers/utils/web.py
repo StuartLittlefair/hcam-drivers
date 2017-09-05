@@ -54,13 +54,20 @@ class FastFITSPipe:
             self._fileobj = open(fileobj, 'rb')
         except:
             self._fileobj = fileobj
-        self.header_bytesize = 80*64*36  # 64 blocks of 36 with 80 chars
+        self._header_bytesize = None
         self.dtype = np.dtype('int16')
 
     @lazyproperty
     def hdr(self):
         self._fileobj.seek(0)
         return fits.Header.fromfile(self._fileobj)
+
+    def header_bytesize(self):
+        if self._header_bytesize is None:
+            self._fileobj.seek(0)
+            _ = fits.Header.fromfile(self._fileobj)
+            self._header_bytesize = self._fileobj.tell()
+        return self._header_bytesize
 
     @lazyproperty
     def framesize(self):
@@ -114,8 +121,12 @@ def raw_bytes_to_numpy(raw_data, bscale=1, bzero=32768, dtype='int16'):
     data = np.fromstring(raw_data, np.dtype(dtype))
     data.dtype = data.dtype.newbyteorder('>')
     np.multiply(data, bscale, data)
-    data += bzero
-    return data
+    # now try and recast back to unsigned ints without a copy
+    # see stackoverflow.com/questions/4389517/in-place-type-conversion-of-a-numpy-array
+    view = data.view('uint16')
+    view.dtype = view.dtype.newbyteorder('>')
+    view += bzero
+    return view
 
 
 def decode_timestamp(ts_bytes):
