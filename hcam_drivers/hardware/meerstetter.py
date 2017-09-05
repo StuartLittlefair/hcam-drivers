@@ -21,7 +21,7 @@ def hex_to_float32(hexstring):
         byteval = hexstring.decode('hex')
     else:
         byteval = bytes.fromhex(hexstring)
-    return struct.unpack('!f', byteval)[0]
+    return struct.unpack(str('!f'), byteval)[0]
 
 
 def float32_to_hex(f):
