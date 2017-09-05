@@ -68,6 +68,7 @@ class FastFITSPipe:
         self._fileobj.seek(0)
         return fits.Header.fromfile(self._fileobj)
 
+    @property
     def header_bytesize(self):
         if self._header_bytesize is None:
             self._fileobj.seek(0)

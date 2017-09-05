@@ -56,6 +56,8 @@ class RunHandler(websocket.WebSocketHandler):
             self.get_main_header()
         elif action == 'get_next':
             self.get_next_frame()
+        elif action == 'get_nframes':
+            self.get_nframes()
 
     def on_close(self):
         print('Socket closed')
@@ -79,6 +81,12 @@ class RunHandler(websocket.WebSocketHandler):
         """
         self.ffp.seek_frame(frame_id)
         self._send_frame()
+
+    def get_nframes(self):
+        """
+        Return current number of frames
+        """
+        self.write_message({'nframes': self.ffp.num_frames})
 
     def _send_frame(self):
         try:
