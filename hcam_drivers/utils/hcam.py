@@ -1670,8 +1670,8 @@ class CCDInfoWidget(tk.Toplevel):
         if g.cpars['ccd_temp_monitoring_on']:
             ms1 = self.meerstetters[0]
             ms2 = self.meerstetters[1]
-            mapping = {1: (ms1, 0), 2: (ms1, 1), 3: (ms1, 2),
-                       4: (ms2, 0), 5: (ms2, 1)}
+            mapping = {1: (ms1, 1), 2: (ms1, 2), 3: (ms1, 3),
+                       4: (ms2, 1), 5: (ms2, 2)}
             for ccd in mapping:
                 try:
                     ms, address = mapping[ccd]
