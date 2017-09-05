@@ -1616,7 +1616,7 @@ class CCDInfoWidget(tk.Toplevel):
                                                 g.cpars['chiller_port'])
 
         # check values
-        self.update()
+        self.after(60000, self.update)
 
     def _getVal(self, widg):
         """
