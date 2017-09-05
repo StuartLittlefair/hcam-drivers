@@ -2,6 +2,7 @@
 from __future__ import print_function, unicode_literals, absolute_import, division
 import traceback
 import struct
+import os
 
 import numpy as np
 import yaml
@@ -56,6 +57,11 @@ class FastFITSPipe:
             self._fileobj = fileobj
         self._header_bytesize = None
         self.dtype = np.dtype('int16')
+
+    @property
+    def num_frames(self):
+        current_size = os.stat(self._fileobj.name).st_size
+        return (current_size - self.header_bytesize) // self.framesize
 
     @lazyproperty
     def hdr(self):
