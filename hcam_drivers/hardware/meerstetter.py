@@ -118,9 +118,6 @@ class MeerstetterTEC1090(object):
             ret_msg = s.recv(1024)
         ret_msg = ret_msg.decode().strip()
         self._check_response(frame_msg, ret_msg)
-        print('debug: ')
-        print('out: {}'.format(frame_msg))
-        print('back: {}'.format(ret_msg))
         return self._strip_response(ret_msg)
 
     def _check_response(self, frame_msg, ret_msg):
