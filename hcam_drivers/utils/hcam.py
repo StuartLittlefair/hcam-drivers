@@ -1689,7 +1689,7 @@ class CCDInfoWidget(tk.Toplevel):
                     self.peltier_powers[ccd-1].configure(text=power_str, bg=g.COL['main'])
 
                     # check against limits
-                    if (temp > -80*u.C):
+                    if (temp > -80*u.Celsius):
                         all_ok = False
                         self.ccd_temps[ccd-1].configure(bg=g.COL['warn'])
                     if (power/ms.tec_power_limit > 0.8):
