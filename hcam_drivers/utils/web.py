@@ -81,8 +81,8 @@ class FastFITSPipe:
         size = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']
         bitpix = self.hdr['BITPIX']
         size = abs(bitpix) * size // 8
-        # currently metadata consists of 32 bytes per frame (for timestamp)
-        return size + 32
+        # currently metadata consists of 36 bytes per frame (for timestamp)
+        return size + 36
 
     def seek_frame(self, frame_number):
         """
@@ -179,5 +179,5 @@ def decode_timestamp(ts_bytes):
                                 years, day_of_year, hours, mins,
                                 seconds, nanoseconds) values.
     """
-    buf = struct.pack('<' + 'H'*16, *(val + 32768 for val in struct.unpack('>'+'h'*16, ts_bytes)))
-    return struct.unpack('<' + 'I'*8, buf)
+    buf = struct.pack('<' + 'H'*18, *(val + 32768 for val in struct.unpack('>'+'h'*18, ts_bytes)))
+    return struct.unpack('<' + 'I'*8, buf[:-4]) + struct.unpack('<hh', buf[-4:])
