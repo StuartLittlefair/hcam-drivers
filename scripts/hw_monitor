@@ -9,6 +9,8 @@ from hcam_drivers.globals import Container
 from hcam_drivers.config import load_config
 from hcam_drivers.hardware import honeywell, meerstetter, unichiller, vacuum
 from astropy.time import Time
+from astropy import units as u
+
 
 if __name__ == "__main__":
     g = Container()
@@ -20,10 +22,13 @@ if __name__ == "__main__":
     ms = meerstetter.MeerstetterTEC1090(cpars['meerstetter_ip'][0], 50000)
 
     plt.ion()
-
+    plt.axis([0, 0.2, 1e-5, 1e-2])
+    plt.xlabel('Time (hours)')
+    plt.ylabel('Pressure (mbar)')
+    start = Time.now()
     with open('hw_log.txt', 'a') as log:
         while True:
-            pressures = [gauge.pressure.value for gauge in gauges]
+            pressures = [1000*gauge.pressure.value for gauge in gauges]
             #ccd_temps = [ms.get_ccd_temps(ccd) for ccd in (1,2)]
             #hs_temps = [ms.get_heatsink_temp(ccd) for ccd in (1,2)]
             #powers = [ms.get_power(ccd) for ccd in (1,2)]
@@ -31,9 +36,10 @@ if __name__ == "__main__":
             log.write('{} {} {}\n'.format(
                 x, pressures[0], pressures[1]
             ))
+            xp = (x - start).to(u.hour).value
             print(x, pressures[0], pressures[1])
-            plt.scatter(x, pressures[0], c='r')
-            plt.scatter(x, pressures[1], c='b')
+            plt.scatter(xp, pressures[0], c='r')
+            plt.scatter(xp, pressures[1], c='b')
             plt.pause(20)
 
     while True:
