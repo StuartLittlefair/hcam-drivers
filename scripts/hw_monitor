@@ -28,8 +28,8 @@ if __name__ == "__main__":
     xp = []
     y1 = []
     y2 = []
-    plt.plot(xp, y1, 'r-', label='Pressure 1')
-    plt.plot(xp, y2, 'b-', label='Pressure 2')
+    plt.plot(xp, y1, 'r.', label='Pressure 1')
+    plt.plot(xp, y2, 'b.', label='Pressure 2')
     plt.xlabel('Time (hours)')
     plt.ylabel('Pressure (mbar)')
     plt.legend()
