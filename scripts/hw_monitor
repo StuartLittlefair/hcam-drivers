@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+
+from hcam_drivers.globals import Container
+from hcam_drivers.config import load_config
+from hcam_drivers.hardware import honeywell, meerstetter, unichiller, vacuum
+from astropy.time import Time
+
+if __name__ == "__main__":
+    g = Container()
+    g.cpars = dict()
+    load_config(g)
+    cpars = g.cpars
+
+    gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
+    ms = meerstetter.MeerstetterTEC1090(cpars['meerstetter_ip'][0], 50000)
+
+    plt.ion()
+
+    with open('hw_log.txt', 'a') as log:
+        while True:
+            pressures = [gauge.pressure.value for gauge in gauges]
+            #ccd_temps = [ms.get_ccd_temps(ccd) for ccd in (1,2)]
+            #hs_temps = [ms.get_heatsink_temp(ccd) for ccd in (1,2)]
+            #powers = [ms.get_power(ccd) for ccd in (1,2)]
+            x = Time.now().mjd
+            log.write('{} {} {}\n'.format(
+                x, pressures[0], pressures[1]
+            ))
+            plt.scatter(x, pressures[0], 'r.')
+            plt.scatter(x, pressures[1], 'b.')
+            plt.pause(0.05)
+            time.sleep(20)
+
+    while True:
+        plt.pause(0.05)
