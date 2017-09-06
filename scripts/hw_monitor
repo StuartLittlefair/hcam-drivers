@@ -22,10 +22,18 @@ if __name__ == "__main__":
     ms = meerstetter.MeerstetterTEC1090(cpars['meerstetter_ip'][0], 50000)
 
     plt.ion()
-    plt.axis([0, 0.2, 1e-5, 1e-2])
+
+
+    start = Time.now()
+    xp = []
+    y1 = []
+    y2 = []
+    plt.plot(xp, y1, 'r-', label='Pressure 1')
+    plt.plot(xp, y2, 'b-', label='Pressure 2')
     plt.xlabel('Time (hours)')
     plt.ylabel('Pressure (mbar)')
-    start = Time.now()
+    plt.legend()
+
     with open('hw_log.txt', 'a') as log:
         while True:
             pressures = [1000*gauge.pressure.value for gauge in gauges]
@@ -36,10 +44,18 @@ if __name__ == "__main__":
             log.write('{} {} {}\n'.format(
                 x.mjd, pressures[0], pressures[1]
             ))
-            xp = (x - start).to(u.hour).value
-            print(x, pressures[0], pressures[1])
-            plt.scatter(xp, pressures[0], c='r')
-            plt.scatter(xp, pressures[1], c='b')
+            xp.append((x - start).to(u.hour).value)
+            y1.append(pressures[0])
+            y2.append(pressures[1])
+
+            plt.gca().lines[0].set_xdata(xp)
+            plt.gca().lines[1].set_xdata(xp)
+            plt.gca().lines[0].set_ydata(y1)
+            plt.gca().lines[1].set_ydata(y2)
+
+            plt.gca().relim()
+            plt.gca.autoscale_view()
+            plt.gca().set_ylim((1e-5, 1e-2))
             plt.pause(20)
 
     while True:
