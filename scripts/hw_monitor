@@ -47,7 +47,7 @@ if __name__ == "__main__":
             xp.append((x - start).to(u.hour).value)
             y1.append(pressures[0])
             y2.append(pressures[1])
-            print(xp, pressures[0], pressures[1])
+            print(x.iso, pressures[0], pressures[1])
 
             plt.gca().lines[0].set_xdata(xp)
             plt.gca().lines[1].set_xdata(xp)
