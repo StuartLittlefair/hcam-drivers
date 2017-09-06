@@ -61,7 +61,7 @@ class UnichillerMPC(object):
     def _send_recv(self, msg):
         msg += self._checksum(msg) + '\r'
         with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
-            dev.send(msg.encode)
+            dev.send(msg.encode())
             response = dev.recv(1024).decode().rstrip('\r')
         self._check_response(msg, response)
         return response
