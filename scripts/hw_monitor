@@ -34,8 +34,7 @@ if __name__ == "__main__":
             print(x, pressures[0], pressures[1])
             plt.scatter(x, pressures[0], c='r')
             plt.scatter(x, pressures[1], c='b')
-            plt.pause(0.05)
-            time.sleep(20)
+            plt.pause(20)
 
     while True:
         plt.pause(0.05)
