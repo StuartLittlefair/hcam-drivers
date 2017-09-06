@@ -85,7 +85,7 @@ class PDR900(object):
     def pressure(self):
         data = dict(addr=self.address, comm='?')
         addr, response = self._send_recv(PRESSURE, data)
-        return float(response) * u.bar / 1000
+        return float(response) * u.bar
 
     def start_logging(self):
         data = dict(addr=self.address, comm='!START')
