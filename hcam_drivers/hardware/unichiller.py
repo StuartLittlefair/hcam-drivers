@@ -87,7 +87,7 @@ class UnichillerMPC(object):
         op_status = body[0]
         status['mode'] = {
             'C': 'pump on',
-            'I': 'pump off, cooling on',
+            'I': 'pump on, cooling on',
             'O': 'control off'
         }[op_status]
         alarm_status = body[1]
@@ -108,11 +108,13 @@ class UnichillerMPC(object):
         self._send_recv(msg)
 
     def pump_on(self):
-        msg = STATE_CONTROL.format('I')
-        self._send_recv(msg)
-        time.sleep(0.1)
         msg = STATE_CONTROL.format('C')
         self._send_recv(msg)
+        time.sleep(2)
+        msg = STATE_CONTROL.format('I')
+        self._send_recv(msg)
+
+
 
     def pump_off(self):
         msg = STATE_CONTROL.format('O')
