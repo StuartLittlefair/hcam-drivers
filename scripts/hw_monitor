@@ -32,9 +32,9 @@ if __name__ == "__main__":
             #ccd_temps = [ms.get_ccd_temps(ccd) for ccd in (1,2)]
             #hs_temps = [ms.get_heatsink_temp(ccd) for ccd in (1,2)]
             #powers = [ms.get_power(ccd) for ccd in (1,2)]
-            x = Time.now().mjd
+            x = Time.now()
             log.write('{} {} {}\n'.format(
-                x, pressures[0], pressures[1]
+                x.mjd, pressures[0], pressures[1]
             ))
             xp = (x - start).to(u.hour).value
             print(x, pressures[0], pressures[1])
