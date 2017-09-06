@@ -31,8 +31,9 @@ if __name__ == "__main__":
             log.write('{} {} {}\n'.format(
                 x, pressures[0], pressures[1]
             ))
-            plt.scatter(x, pressures[0], 'r.')
-            plt.scatter(x, pressures[1], 'b.')
+            print(x, pressures[0], pressures[1])
+            plt.scatter(x, pressures[0], c='r')
+            plt.scatter(x, pressures[1], c='b')
             plt.pause(0.05)
             time.sleep(20)
 
