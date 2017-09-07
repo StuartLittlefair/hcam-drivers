@@ -1715,9 +1715,9 @@ class CCDInfoWidget(tk.Toplevel):
 
         # flow rates
         if g.cpars['flow_monitoring_on']:
-            mapping = {'ccd1': self.ccd_temps[0], 'ccd2': self.ccd_temps[1],
-                       'ccd3': self.ccd_temps[2], 'ccd4': self.ccd_temps[3],
-                       'ccd5': self.ccd_temps[4], 'ngc': self.ngc_flow_rate}
+            mapping = {'ccd1': self.ccd_flow_rates[0], 'ccd2': self.ccd_flow_rates[1],
+                       'ccd3': self.ccd_flow_rates[2], 'ccd4': self.ccd_flow_rates[3],
+                       'ccd5': self.ccd_flow_rates[4], 'ngc': self.ngc_flow_rate}
             for pen_address in mapping:
                 try:
                     rate = self.honey.read_pen(pen_address)
