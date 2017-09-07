@@ -1682,7 +1682,7 @@ class CCDInfoWidget(tk.Toplevel):
 
                     temp_str = '{:.1f}'.format(temp.value)
                     hs_temp_str = '{:.1f}'.format(hs_temp.value)
-                    power_str = '{:.0f}'.format(power / ms.tec_power_limit)
+                    power_str = '{:.0f}'.format(100 * power / ms.tec_power_limit)
 
                     self.ccd_temps[ccd-1].configure(text=temp_str, bg=g.COL['main'])
                     self.heatsink_temps[ccd-1].configure(text=hs_temp_str, bg=g.COL['main'])
