@@ -1735,9 +1735,9 @@ class CCDInfoWidget(tk.Toplevel):
             for i, gauge in enumerate(self.vacuum_gauges):
                 try:
                     pressure = gauge.pressure
-                    self.vacuums[i].configure(text='{:.2E}'.format(pressure.value),
+                    self.vacuums[i].configure(text='{:.2E}'.format(1000*pressure.value),
                                               bg=g.COL['main'])
-                    if pressure > 1.0-4*u.bar:
+                    if pressure > 1.0e-6*u.bar:
                         all_ok = False
                         self.vacuums[i].configure(bg=g.COL['warn'])
                 except Exception as err:
