@@ -1722,7 +1722,7 @@ class CCDInfoWidget(tk.Toplevel):
                 try:
                     rate = self.honey.read_pen(pen_address)
                     widg = mapping[pen_address]
-                    widg.configure(text='{:.2E}'.format(rate),
+                    widg.configure(text='{:.1f}'.format(rate),
                                    bg=g.COL['main'])
 
                     # TODO: ask vik about critical flow rate
