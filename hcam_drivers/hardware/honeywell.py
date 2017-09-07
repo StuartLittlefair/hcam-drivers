@@ -53,8 +53,12 @@ class Honeywell:
 
     def get_pen(self, address):
         result = self.client.read_input_registers(address, 2, unit=self.unit_id)
-        decoder = BinaryPayloadDecoder.from_registers(result.registers,
-                                                      endian=Endian.Big)
+        if not six.PY3:
+            decoder = BinaryPayloadDecoder.fromRegisters(result.registers,
+                                                         endian=Endian.Big)
+        else:
+            decoder = BinaryPayloadDecoder.from_registers(result.registers,
+                                                          endian=Endian.Big)
         return decoder.decode_32bit_float()
 
     def __iter__(self):
