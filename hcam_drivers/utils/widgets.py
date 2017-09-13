@@ -1878,6 +1878,66 @@ class NGCOff(ActButton):
             return False
 
 
+class SeqStart(ActButton):
+    """
+    Class defining the button to start sequencers.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        ActButton.__init__(self, master, width, text='Seq Start')
+        self.disable()
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('Seq Start pressed')
+
+        if execCommand(g, 'seqStart'):
+            g.clog.info('seq start command successful; clocks powered on')
+
+            # alter buttons here
+            g.observe.start.enable()
+            g.observe.stop.enable()
+            g.setup.seqStop.enable()
+            self.disable()
+            return True
+        else:
+            g.clog.warn("Seq Start failed")
+            return False
+
+
+class SeqStop(ActButton):
+    """
+    Class defining the button to start sequencers.
+    """
+    def __init__(self, master, width):
+        """
+        master   : containing widget
+        width    : width of button
+        """
+        ActButton.__init__(self, master, width, text='Seq Stop')
+        self.disable()
+
+    def act(self):
+        g = get_root(self).globals
+        g.clog.debug('Seq Stop pressed')
+
+        if execCommand(g, 'seqStop'):
+            g.clog.info('seq stop command successful; clocks powered on')
+
+            # alter buttons here
+            g.observe.start.enable()
+            g.observe.stop.enable()
+            g.setup.seqStart.enable()
+            self.disable()
+            return True
+        else:
+            g.clog.warn("Seq Stop failed")
+            return False
+
+
 class CLDCOn(ActButton):
     """
     Class defining the button to turn on clocks.
@@ -1904,7 +1964,7 @@ class CLDCOn(ActButton):
             self.disable()
             return True
         else:
-            g.clog.warn("NGC Off failed")
+            g.clog.warn("CLDC On failed")
             return False
 
 
@@ -2045,12 +2105,14 @@ class InstSetup(tk.LabelFrame):
         self.ngcOff = NGCOff(self, width)
         self.cldcOff = CLDCOff(self, width)
         self.cldcOn = CLDCOn(self, width)
+        self.seqStart = SeqStart(self, width)
+        self.seqStop = SeqStop(self, width)
         # non-expert
         self.powerOn = PowerOn(self, width)
         self.powerOff = PowerOff(self, width)
         self.all_buttons = [self.ngcReset, self.ngcStandby, self.ngcOnline,
                             self.ngcOff, self.cldcOn, self.cldcOff,
-                            self.powerOn, self.powerOff]
+                            self.powerOn, self.powerOff, self.seqStart, self.seqStop]
         # set which buttons are presented and where they go
         self.setExpertLevel()
 
@@ -2079,6 +2141,8 @@ class InstSetup(tk.LabelFrame):
             # restore detailed layout
             self.cldcOn.grid(row=0, column=1)
             self.cldcOff.grid(row=1, column=1)
+            self.seqStart.grid(row=2, column=1)
+            self.seqStop.grid(row=2, column=1)
             self.ngcOnline.grid(row=0, column=0)
             self.ngcOff.grid(row=1, column=0)
             self.ngcStandby.grid(row=2, column=0)

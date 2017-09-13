@@ -163,6 +163,24 @@ class PowerOffHandler(BaseHandler):
         self.command = 'cldc 0 disable'
 
 
+class SeqStartHandler(BaseHandler):
+    """
+    Start sequencer running
+    """
+    def initialize(self, db):
+        self.db = db
+        self.command = 'seq 0 start'
+
+
+class SeqStopHandler(BaseHandler):
+    """
+    Stop sequencer running
+    """
+    def initialize(self, db):
+        self.db = db
+        self.command = 'seq 0 stop'
+
+
 class OfflineHandler(BaseHandler):
     """
     Bring server to OFF state. All sub-processes terminate. Server cannot reply
@@ -290,6 +308,8 @@ if __name__ == '__main__':
         url(r'/offline', OfflineHandler, dict(db=db), name="offline"),
         url(r'/pon', PowerOnHandler, dict(db=db), name='on'),
         url(r'/poff', PowerOffHandler, dict(db=db), name='off'),
+        url(r'/seqStart', SeqStartHandler, dict(db=db), name='seqStart'),
+        url(r'/seqStop', SeqStopHandler, dict(db=db), name='seqStart'),
         url(r'/reset', ResetHandler, dict(db=db), name="reset"),
         url(r'/standby', StandbyHandler, dict(db=db), name="standby"),
         url(r'/summary', SummaryHandler, dict(db=db), name="summary"),
