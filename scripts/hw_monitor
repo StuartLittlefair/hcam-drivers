@@ -36,27 +36,31 @@ if __name__ == "__main__":
 
     with open('hw_log.txt', 'a') as log:
         while True:
-            pressures = [1000*gauge.pressure.value for gauge in gauges]
-            #ccd_temps = [ms.get_ccd_temps(ccd) for ccd in (1,2)]
-            #hs_temps = [ms.get_heatsink_temp(ccd) for ccd in (1,2)]
-            #powers = [ms.get_power(ccd) for ccd in (1,2)]
-            x = Time.now()
-            log.write('{} {} {}\n'.format(
-                x.mjd, pressures[0], pressures[1]
-            ))
-            xp.append((x - start).to(u.hour).value)
-            y1.append(pressures[0])
-            y2.append(pressures[1])
-            print(x.iso, pressures[0], pressures[1])
+            try:
+                pressures = [1000*gauge.pressure.value for gauge in gauges]
+                #ccd_temps = [ms.get_ccd_temps(ccd) for ccd in (1,2)]
+                #hs_temps = [ms.get_heatsink_temp(ccd) for ccd in (1,2)]
+                #powers = [ms.get_power(ccd) for ccd in (1,2)]
+                x = Time.now()
+                log.write('{} {} {}\n'.format(
+                    x.mjd, pressures[0], pressures[1]
+                ))
+                xp.append((x - start).to(u.hour).value)
+                y1.append(pressures[0])
+                y2.append(pressures[1])
+                print(x.iso, pressures[0], pressures[1])
 
-            plt.gca().lines[0].set_xdata(xp)
-            plt.gca().lines[1].set_xdata(xp)
-            plt.gca().lines[0].set_ydata(y1)
-            plt.gca().lines[1].set_ydata(y2)
+                plt.gca().lines[0].set_xdata(xp)
+                plt.gca().lines[1].set_xdata(xp)
+                plt.gca().lines[0].set_ydata(y1)
+                plt.gca().lines[1].set_ydata(y2)
 
-            plt.gca().relim()
-            plt.gca().autoscale_view()
-            plt.pause(20)
+                plt.gca().relim()
+                plt.gca().autoscale_view()
+            except:
+                pass
+            finally:
+                plt.pause(20)
 
     while True:
         plt.pause(0.05)
