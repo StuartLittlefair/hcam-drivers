@@ -60,7 +60,7 @@ test ngcbCmd standby
 test ngcbCmd setup DET.FRAM.NAMING auto
 test ngcbCmd setup DET.FRAM.FILENAME run
 
-XTERM="xterm -bg white -fg black +aw -vb -sb -sl 5000 -rightbar -geometry 100x16 -fn 9x18"
+XTERM="xterm -bg white -fg black +aw -vb -sb -sl 5000 -rightbar -geometry 80x16 -fa 'Monospace' -fs 8"
 
 # launch server for GUI communication
 HS=`ps ax | grep hserver | wc -l`
