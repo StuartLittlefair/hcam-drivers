@@ -2142,7 +2142,7 @@ class InstSetup(tk.LabelFrame):
             self.cldcOn.grid(row=0, column=1)
             self.cldcOff.grid(row=1, column=1)
             self.seqStart.grid(row=2, column=1)
-            self.seqStop.grid(row=2, column=1)
+            self.seqStop.grid(row=3, column=1)
             self.ngcOnline.grid(row=0, column=0)
             self.ngcOff.grid(row=1, column=0)
             self.ngcStandby.grid(row=2, column=0)
