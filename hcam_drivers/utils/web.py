@@ -180,4 +180,4 @@ def decode_timestamp(ts_bytes):
                                 seconds, nanoseconds) values.
     """
     buf = struct.pack('<' + 'H'*18, *(val + 32768 for val in struct.unpack('>'+'h'*18, ts_bytes)))
-    return struct.unpack('<' + 'I'*8, buf[:-4]) + struct.unpack('<hh', buf[-4:])
+    return struct.unpack('<' + 'I'*8, buf[:-4]) + struct.unpack('bbbb', buf[-4:])[:2]
