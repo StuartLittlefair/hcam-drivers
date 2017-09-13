@@ -1864,7 +1864,7 @@ class NGCOff(ActButton):
         g = get_root(self).globals
         g.clog.debug('NGC Off pressed')
 
-        if execCommand(g, 'off'):
+        if execCommand(g, 'offline'):
             g.clog.info('Off command successful; server in loaded state')
 
             # alter buttons here
