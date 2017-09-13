@@ -60,11 +60,35 @@ test ngcbCmd standby
 test ngcbCmd setup DET.FRAM.NAMING auto
 test ngcbCmd setup DET.FRAM.FILENAME run
 
+XTERM="xterm -bg white -fg black +aw -vb -sb -sl 5000 -rigthbar -geometry 120x16"
+
 # launch server for GUI communication
-xterm -ls -sb -title "HServer" -e "hserver" &
+HS=`ps ax | grep hserver | wc -l`
+if [ $HS -eq 1 ]
+then
+    echo "starting HServer"
+    $XTERM -title "HServer" -e "hserver" &
+else
+    echo "HServer already running"
+fi
+
 # launch server for File Transfer
 username=`whoami`
-xterm -ls -sb -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
+FS=`ps ax | grep fileserver | wc -l`
+if [ $FS -eq 1 ]
+then
+    echo "starting FileServer"
+    $XTERM -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
+else
+    echo "fileServer already running"
+fi
 
 # start GUI
-hdriver &
+HD=`ps ax | grep hdriver | wc -l`
+if [ $HD -eq 1 ]
+then
+    echo "starting GUI"
+    hdriver &
+else
+    echo "GUI already running"
+fi
