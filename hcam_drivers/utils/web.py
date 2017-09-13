@@ -143,6 +143,9 @@ def decode_timestamp(ts_bytes):
     The timestamp is originally encoded to bytes as a series of
     32bit (4 bytes) unsigned integers in little endian byte format.
 
+    Added to this is a pair of chars (1 byte) for the number of satellites
+    tracked and a sync status.
+
     However, this is then stored as fake pixels in a FITS file, which
     performs some mangling of the data, since FITS assumes 16bit (2 byte)
     integers, and has no way to store unsigned integers. The following
@@ -166,6 +169,9 @@ def decode_timestamp(ts_bytes):
     - encode these values as little endian 16bit unsigned integers
     - re-interpret the new byte string as 32bit, little-endian unsigned integers
 
+    The status bytes are handled slightly differently: after the re-encoding to little endian
+    16 bit uints, they are decoded as chars, and the last two chars discarded.
+
     Parameters
     ----------
     ts_bytes: bytes
@@ -180,4 +186,4 @@ def decode_timestamp(ts_bytes):
                                 seconds, nanoseconds) values.
     """
     buf = struct.pack('<' + 'H'*18, *(val + 32768 for val in struct.unpack('>'+'h'*18, ts_bytes)))
-    return struct.unpack('<' + 'I'*8, buf[:-4]) + struct.unpack('bbbb', buf[-4:])[:2]
+    return struct.unpack('<' + 'I'*8, buf[:-4]) + struct.unpack('bb', buf[-4:-2])
