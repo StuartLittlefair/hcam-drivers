@@ -8,7 +8,7 @@ import subprocess
 import traceback
 import time
 
-from hcam_drivers.utils.obsmodes import get_obsmode
+from hcam_drivers.utils.obsmodes import get_obsmode, Idle
 
 
 MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
@@ -270,9 +270,13 @@ class PostRunHandler(BaseHandler):
         response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
 
-        response = yaml.load(sendCommand('seq start'))
-        if not response['RETCODE'] == "OK":
-            raise HServerException(reason='could not start sequencer', status_code=500)
+        if isinstance(obsmode, Idle):
+            # a run start will start the sequencer automatically, and save data,
+            # but there is no run start when we switch into idle mode, so start the sequencer by hand
+            response = yaml.load(sendCommand('seq start'))
+            if not response['RETCODE'] == "OK":
+                raise HServerException(reason='could not start sequencer', status_code=500)
+
         self.finish(retMsg)
 
 
