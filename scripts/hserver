@@ -274,10 +274,12 @@ class PostRunHandler(BaseHandler):
         except ValueError:
             raise HServerException(reason='Error parsing readout mode', status_code=500)
 
+        time.sleep(0.1)
         self.set_header('Content-Type', 'application/json')
         response = yaml.load(sendCommand('seq stop'))
         if not response['RETCODE'] == "OK":
             raise HServerException(reason='could not stop sequencer', status_code=500)
+        time.sleep(0.1)
 
         response = yaml.load(sendCommand(obsmode.readmode_command))
         if not response['RETCODE'] == "OK":
@@ -287,6 +289,7 @@ class PostRunHandler(BaseHandler):
 
         response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
+        time.sleep(0.1)
 
         if isinstance(obsmode, Idle):
             # a run start will start the sequencer automatically, and save data,
