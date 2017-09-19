@@ -18,12 +18,12 @@ class Honeywell:
         self.client = ModbusClient(address, port=port)
         # list mapping pen ID number to address
         self.pen_addresses = dict(
-            ccd1=0x18C0,
-            ccd2=0x18C2,
-            ccd3=0x18C4,
-            ccd4=0x18C6,
-            ccd5=0x18C8,
-            ngc=0x18CA
+            ccd1=0x18C0,  # pen 1
+            ccd2=0x18C2,  # pen 2
+            ccd3=0x18C4,  # pen 3
+            ccd4=0x18C6,  # pen 4
+            ccd5=0x18D0,  # pen 9
+            ngc=0x18D2    # pen 10
             )
         self.unit_id = 0x01  # allows us to address different units on the same network
 
