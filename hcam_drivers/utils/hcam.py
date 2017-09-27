@@ -4,13 +4,19 @@ import math
 import json
 import six
 import threading
+from abc import ABCMeta
+import abc
+
+import numpy as np
 if not six.PY3:
     import Tkinter as tk
     import tkFileDialog as filedialog
     import tkMessageBox as messagebox
+    from Queue import Queue, Empty
 else:
     import tkinter as tk
     from tkinter import filedialog, messagebox
+    from queue import Queue, Empty
 
 # internal imports
 from . import widgets as w
@@ -20,8 +26,6 @@ from .misc import (createJSON, saveJSON, postJSON,
                    execCommand, isRunActive)
 from ..hardware import honeywell, meerstetter, unichiller, vacuum
 
-# astropy
-from astropy import units as u
 
 # Timing, Gain, Noise parameters
 # Times in seconds
@@ -1504,6 +1508,177 @@ class Observe(tk.LabelFrame):
             self.stop.setExpert()
 
 
+class HardwareDisplayWidget(tk.Frame):
+    """
+    A widget that displays and checks the status of a piece of hardware.
+
+    Consists of a label naming the piece of hardware, and an Ilabel to display the results of
+    the hardware check. Checks itself repeatedly in the background using a thread so as
+    not to hang the GUI main thread.
+
+    Arguments
+    ----------
+    parent : tk.Widget
+        parent widget
+    kind : string
+        type of hardware item, e.g. 'pressure'
+    name : string
+        name to display on label
+    fmt : string
+        format string for displaying results
+    update_interval : float
+        time in seconds between updates
+    lower_limit : float, `~astropy.units.Quantity`
+        lower limit for hardware check
+    upper_limit : float, `~astropy.units.Quantity`
+        upper limit for hardware check
+    """
+
+    __metaclass__ = ABCMeta
+
+    def __init__(self, parent, kind, name, update_interval, lower_limit, upper_limit):
+        tk.Frame.__init__(self, parent)
+        self.parent = parent
+        self.name = name
+        self.kind = kind
+        self.update_interval = int(update_interval*1000)
+        self.ok = True
+        self.queue = Queue()
+        self.fmt = '{:.1f}'
+        self.upper_limit = upper_limit
+        self.lower_limit = lower_limit
+
+        tk.Label(self, text=self.name + ':').pack(side=tk.LEFT, anchor=tk.N, padx=5)
+        self.label = w.Ilabel(self, text='nan')
+        self.label.pack(side=tk.LEFT, anchor=tk.N, padx=5)
+
+        self.after(self.update_interval, self.start_update)
+
+    def process_update(self):
+        try:
+            val, errmsg = self.queue.get(block=False)
+            g = get_root(self.parent).globals
+            if errmsg is not None:
+                g.clog.warn('Could not update {} for {}: {}'.format(self.kind, self.name, errmsg))
+
+            self.label.configure(text=self.fmt.format(val), bg=g.COL['main'])
+
+            if errmsg is None and val < self.upper_limit and val > self.lower_limit:
+                self.ok = True
+            elif np.isfinite(val):
+                # no error and nan returned means checking disabled
+                self.ok = True
+            else:
+                self.ok = False
+
+            if not self.ok:
+                self.label.configure(bg=g.COL['warn'])
+
+            self.after(self.update_interval, self.start_update)
+        except Empty:
+            self.after(200, self.process_update)
+
+    def start_update(self):
+        t = threading.Thread(target=self.update)
+        t.start()
+        self.after(200, self.process_update)
+
+    def update(self):
+        """
+        Perform system update
+        """
+        errmsg = None
+        try:
+            val = self.update_function()
+        except Exception as err:
+            errmsg = str(err)
+            val = np.nan
+        self.queue.put((val, errmsg))
+
+    @abc.abstractmethod
+    def update_function(self):
+        pass
+
+
+class MeerstetterWidget(HardwareDisplayWidget):
+    """
+    Get CCD info from Meerstetters
+    """
+    def __init__(self, parent, ms, address, name, kind, update_interval, lower_limit, upper_limit):
+        HardwareDisplayWidget.__init__(self, parent, kind, name, update_interval, lower_limit, upper_limit)
+        self.ms = ms
+        self.address = address
+        if kind == 'peltier power':
+            self.fmt = '{:.0f}'
+
+    def update_function(self):
+        g = get_root(self.parent).globals
+        if g.cpars['ccd_temp_monitoring_on']:
+            if self.kind == 'temperature':
+                return self.ms.get_ccd_temp(self.address).value
+            elif self.kind == 'heatsink temperature':
+                return self.ms.get_heatsink_temp(self.address).value
+            elif self.kind == 'peltier power':
+                return 100 * self.ms.get_power(self.address) / self.ms.tec_power_limit
+            else:
+                raise ValueError('unknown kind: {}'.format(self.kind))
+        else:
+            return np.nan
+
+
+class ChillerWidget(HardwareDisplayWidget):
+    """
+    Get Temperature from Chiller
+    """
+    def __init__(self, parent, chiller, update_interval, lower_limit, upper_limit):
+        HardwareDisplayWidget.__init__(self, parent, 'temperature', 'CHILLER',
+                                       update_interval, lower_limit, upper_limit)
+        self.chiller = chiller
+
+    def update_function(self):
+        g = get_root(self.parent).globals
+        if g.cpars['chiller_temp_monitoring_on']:
+            return self.chiller.temperature
+        else:
+            return np.nan
+
+
+class FlowRateWidget(HardwareDisplayWidget):
+    """
+    Flow rates from honeywell
+    """
+    def __init__(self, parent, honey, pen_address, name, update_interval, lower_limit, upper_limit):
+        HardwareDisplayWidget.__init__(self, parent, 'flow rate', name, update_interval,
+                                       lower_limit, upper_limit)
+        self.honey = honey
+        self.pen_address = pen_address
+
+    def update_function(self):
+        g = get_root(self.parent).globals
+        if g.cpars['flow_monitoring_on']:
+            return self.honey.read_pen(self.pen_address)
+        else:
+            return np.nan
+
+
+class VacuumWidget(HardwareDisplayWidget):
+    """
+    Vacuum pressure from gauge
+    """
+    def __init__(self, parent, gauge, name, update_interval, lower_limit, upper_limit):
+        HardwareDisplayWidget.__init__(self, parent, 'pressure', name, update_interval,
+                                       lower_limit, upper_limit)
+        self.gauge = gauge
+        self.fmt = '{:.2E}'
+
+    def update_function(self):
+        g = get_root(self.parent).globals
+        if g.cpars['ccd_vac_monitoring_on']:
+            return self.gauge.pressure
+        else:
+            return np.nan
+
+
 class CCDInfoWidget(tk.Toplevel):
     """
     A child window to monitor and show the status of the CCD heads.
@@ -1527,81 +1702,6 @@ class CCDInfoWidget(tk.Toplevel):
         # dont destroy when we click the close button
         self.protocol('WM_DELETE_WINDOW', self.withdraw)
 
-        # create label frames
-        self.temp_frm = tk.LabelFrame(self, text='Temperatures (C)', padx=4, pady=4)
-        self.heatsink_frm = tk.LabelFrame(self, text='Heatsink Temps (C)', padx=4, pady=4)
-        self.peltier_frm = tk.LabelFrame(self, text='Peltier Powers (%)', padx=4, pady=4)
-        self.flow_frm = tk.LabelFrame(self, text='Flow Rates (l/min)', padx=4, pady=4)
-        self.vac_frm = tk.LabelFrame(self, text='Vacuums (mbar)', padx=4, pady=4)
-
-        # variables to store Ilabel widgets
-        self.ccd_temps = []
-        self.heatsink_temps = []
-        self.peltier_powers = []
-        self.ccd_flow_rates = []
-        self.vacuums = []
-        self.chiller_temp = w.Ilabel(self.temp_frm, text='UNDEF')
-        self.ngc_flow_rate = w.Ilabel(self.flow_frm, text='UNDEF')
-
-        # overall status info
-        self.ok = True
-
-        # populate CCD frames
-        for iccd in range(5):
-            # ccd temps
-            tk.Label(self.temp_frm, text='CCD {}:'.format(iccd+1)).grid(
-                row=int(iccd/3), column=2*iccd % 6, padx=5, sticky=tk.W)
-            self.ccd_temps.append(w.Ilabel(self.temp_frm, text='UNDEF'))
-            self.ccd_temps[-1].grid(
-                    row=int(iccd/3), column=1 + 2*iccd % 6, padx=5, sticky=tk.W
-                )
-
-            # heatsink temps
-            tk.Label(self.heatsink_frm, text='CCD {}:'.format(iccd+1)).grid(
-                row=int(iccd/3), column=2*iccd % 6, padx=5, sticky=tk.W)
-            self.heatsink_temps.append(w.Ilabel(self.heatsink_frm, text='UNDEF'))
-            self.heatsink_temps[-1].grid(
-                row=int(iccd/3), column=1 + 2*iccd % 6, padx=5, sticky=tk.W
-            )
-
-            # peltier powers
-            tk.Label(self.peltier_frm, text='CCD {}:'.format(iccd+1)).grid(
-                row=int(iccd/3), column=2*iccd % 6, padx=5, sticky=tk.W)
-            self.peltier_powers.append(w.Ilabel(self.peltier_frm, text='UNDEF'))
-            self.peltier_powers[-1].grid(
-                row=int(iccd/3), column=1 + 2*iccd % 6, padx=5, sticky=tk.W
-            )
-
-            # flow rates
-            tk.Label(self.flow_frm, text='CCD {}:'.format(iccd+1)).grid(
-                row=int(iccd/3), column=2*iccd % 6, padx=5, sticky=tk.W)
-            self.ccd_flow_rates.append(w.Ilabel(self.flow_frm, text='UNDEF'))
-            self.ccd_flow_rates[-1].grid(
-                    row=int(iccd/3), column=1 + 2*iccd % 6, padx=5, sticky=tk.W
-                )
-
-            # vacuum gauges
-            tk.Label(self.vac_frm, text='CCD {}:'.format(iccd+1)).grid(
-                row=int(iccd/3), column=2*iccd % 6, padx=5, sticky=tk.W)
-            self.vacuums.append(w.Ilabel(self.vac_frm, text='UNDEF'))
-            self.vacuums[-1].grid(
-                    row=int(iccd/3), column=1 + 2*iccd % 6, padx=5, sticky=tk.W
-                )
-
-        # now for one-off items
-        tk.Label(self.temp_frm, text='CHILLER:').grid(row=1, column=4, padx=5, sticky=tk.W)
-        self.chiller_temp.grid(row=1, column=5, padx=5, sticky=tk.W)
-
-        tk.Label(self.flow_frm, text='NGC:').grid(row=1, column=4, padx=5, sticky=tk.W)
-        self.ngc_flow_rate.grid(row=1, column=5, padx=5, sticky=tk.W)
-
-        # grid frames
-        self.temp_frm.grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        self.heatsink_frm.grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
-        self.peltier_frm.grid(row=2, column=0, padx=4, pady=4, sticky=tk.W)
-        self.flow_frm.grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
-        self.vac_frm.grid(row=4, column=0, padx=4, pady=4, sticky=tk.W)
-
         # create hardware references
         g = get_root(self.parent).globals
         self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
@@ -1615,14 +1715,96 @@ class CCDInfoWidget(tk.Toplevel):
         self.chiller = unichiller.UnichillerMPC(g.cpars['termserver_ip'],
                                                 g.cpars['chiller_port'])
 
-        # check values
-        self.after(60000, self.update)
+        # create label frames
+        self.temp_frm = tk.LabelFrame(self, text='Temperatures (C)', padx=4, pady=4)
+        self.heatsink_frm = tk.LabelFrame(self, text='Heatsink Temps (C)', padx=4, pady=4)
+        self.peltier_frm = tk.LabelFrame(self, text='Peltier Powers (%)', padx=4, pady=4)
+        self.flow_frm = tk.LabelFrame(self, text='Flow Rates (l/min)', padx=4, pady=4)
+        self.vac_frm = tk.LabelFrame(self, text='Vacuums (mbar)', padx=4, pady=4)
+
+        # variables to store hardware widgets
+        update_interval = 20
+        self.ccd_temps = []
+        self.heatsink_temps = []
+        self.peltier_powers = []
+        self.ccd_flow_rates = []
+        self.vacuums = []
+        self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, -5, 15)
+        self.ngc_flow_rate = FlowRateWidget(self.flow_frm, self.honey, 'ngc', 'NGC', update_interval,
+                                            1.0, np.inf)
+
+        ms1 = self.meerstetters[0]
+        ms2 = self.meerstetters[1]
+        mapping = {1: (ms1, 1), 2: (ms1, 2), 3: (ms1, 3),
+                   4: (ms2, 1), 5: (ms2, 2)}
+        # populate CCD frames
+        for iccd in range(5):
+            ms, address = mapping[iccd+1]
+            name = 'CCD {}'.format(iccd+1)
+            # meerstetter widgets
+            self.ccd_temps.append(
+                MeerstetterWidget(self.temp_frm, ms, address, name,
+                                  'temperature', update_interval, -85, -75)
+            )
+            self.heatsink_temps.append(
+                MeerstetterWidget(self.heatsink_frm, ms, address, name,
+                                  'heatsink temperature', update_interval, 0, 50)
+            )
+            self.peltier_powers.append(
+                MeerstetterWidget(self.peltier_frm, ms, address, name,
+                                  'peltier power', update_interval, -5, 85)
+            )
+
+            # grid
+            self.ccd_temps[-1].grid(
+                    row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
+                )
+            self.heatsink_temps[-1].grid(
+                row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
+            )
+            self.peltier_powers[-1].grid(
+                row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
+            )
+
+            # flow rates
+            pen_address = 'ccd{}'.format(iccd+1)
+
+            self.ccd_flow_rates.append(
+                FlowRateWidget(self.flow_frm, self.honey, pen_address, name, update_interval,
+                               1.0, np.inf)
+            )
+            self.ccd_flow_rates[-1].grid(
+                    row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
+            )
+
+        # vacuum gauges
+        for iccd, gauge in enumerate(self.vacuum_gauges):
+            name = 'CCD {}'.format(iccd+1)
+            self.vacuums.append(
+                VacuumWidget(self.vac_frm, gauge, name, update_interval, -1e6, 5e-3)
+            )
+            self.vacuums[-1].grid(
+                    row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
+            )
+
+        # now for one-off items
+        self.chiller_temp.grid(row=1, column=2, padx=5, sticky=tk.W)
+        self.ngc_flow_rate.grid(row=1, column=2, padx=5, sticky=tk.W)
+
+        # grid frames
+        self.temp_frm.grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        self.heatsink_frm.grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
+        self.peltier_frm.grid(row=2, column=0, padx=4, pady=4, sticky=tk.W)
+        self.flow_frm.grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
+        self.vac_frm.grid(row=4, column=0, padx=4, pady=4, sticky=tk.W)
+
+        self.after(60000, self.raise_if_nok)
 
     def _getVal(self, widg):
         """
         Return value from widget if set, else return -99.
         """
-        return -99 if widg['text'] == 'UNDEF' else float(widg['text'])
+        return -99 if widg['text'] == 'nan' else float(widg['text'])
 
     def dumpJSON(self):
         """
@@ -1644,105 +1826,16 @@ class CCDInfoWidget(tk.Toplevel):
         print(data)
         return data
 
-    def update(self):
-        """
-        Checking hardware is slow and makes GUI unresponsive. Launch HW check in new thread.
-        """
-        self.raise_if_nok()
-        tk.Toplevel.update(self)
-        g = get_root(self.parent).globals
-        t = threading.Thread(target=self.update_thread, args=(g,))
-        t.start()
-        # schedule next check for 60s time
-        self.after(60000, self.update)
+    @property
+    def ok(self):
+        okl = [self.chiller_temp.ok, self.ngc_flow_rate.ok]
+        okl += [ccd_temp.ok for ccd_temp in self.ccd_temps]
+        okl += [vac.ok for vac in self.vacuums]
+        okl += [flow.ok for flow in self.ccd_flow_rates]
+        okl += [power.ok for power in self.peltier_powers]
+        return all(okl)
 
     def raise_if_nok(self):
-        if not self.ok:
+        if self.ok:
             self.deiconify()
-
-    def update_thread(self, g):
-        """
-        Run regular checks of CCD cooling HW
-        """
-        all_ok = True
-
-        # meerstetter info (CCD temps, HS temp, peltier powers)
-        if g.cpars['ccd_temp_monitoring_on']:
-            ms1 = self.meerstetters[0]
-            ms2 = self.meerstetters[1]
-            mapping = {1: (ms1, 1), 2: (ms1, 2), 3: (ms1, 3),
-                       4: (ms2, 1), 5: (ms2, 2)}
-            for ccd in mapping:
-                try:
-                    ms, address = mapping[ccd]
-
-                    temp = ms.get_ccd_temp(address)
-                    hs_temp = ms.get_heatsink_temp(address)
-                    power = ms.get_power(address)
-
-                    temp_str = '{:.1f}'.format(temp.value)
-                    hs_temp_str = '{:.1f}'.format(hs_temp.value)
-                    power_str = '{:.0f}'.format(100 * power / ms.tec_power_limit)
-
-                    self.ccd_temps[ccd-1].configure(text=temp_str, bg=g.COL['main'])
-                    self.heatsink_temps[ccd-1].configure(text=hs_temp_str, bg=g.COL['main'])
-                    self.peltier_powers[ccd-1].configure(text=power_str, bg=g.COL['main'])
-
-                    # check against limits
-                    if (temp > -80*u.Celsius):
-                        all_ok = False
-                        self.ccd_temps[ccd-1].configure(bg=g.COL['warn'])
-                    if (power/ms.tec_power_limit > 0.8):
-                        all_ok = False
-                        self.peltier_powers[ccd-1].configure(bg=g.COL['warn'])
-
-                except Exception as err:
-                    g.clog.warn('Could not read info for CCD {}'.format(ccd))
-                    g.clog.warn(str(err))
-
-        # Chiller temp
-        if g.cpars['chiller_temp_monitoring_on']:
-            try:
-                current_chiller_temp = self.chiller.temperature
-                self.chiller_temp.configure(text='{:.1f}'.format(current_chiller_temp),
-                                            bg=g.COL['main'])
-                if current_chiller_temp > 15 or current_chiller_temp < 5:
-                    all_ok = False
-                    self.chiller_temp.configure(bg=g.COL['warn'])
-            except Exception as err:
-                g.clog.warn('Could not read chiller temp')
-                g.clog.warn(str(err))
-
-        # flow rates
-        if g.cpars['flow_monitoring_on']:
-            mapping = {'ccd1': self.ccd_flow_rates[0], 'ccd2': self.ccd_flow_rates[1],
-                       'ccd3': self.ccd_flow_rates[2], 'ccd4': self.ccd_flow_rates[3],
-                       'ccd5': self.ccd_flow_rates[4], 'ngc': self.ngc_flow_rate}
-            for pen_address in mapping:
-                try:
-                    rate = self.honey.read_pen(pen_address)
-                    widg = mapping[pen_address]
-                    widg.configure(text='{:.1f}'.format(rate),
-                                   bg=g.COL['main'])
-
-                    # TODO: ask vik about critical flow rate
-                except Exception as err:
-                    g.clog.warn('Could not read flow rate on {}'.format(pen_address))
-                    g.clog.warn(str(err))
-
-        # Vacuum pressures
-        if g.cpars['ccd_vac_monitoring_on']:
-            for i, gauge in enumerate(self.vacuum_gauges):
-                try:
-                    pressure = gauge.pressure
-                    self.vacuums[i].configure(text='{:.2E}'.format(1000*pressure.value),
-                                              bg=g.COL['main'])
-                    if pressure > 1.0e-6*u.bar:
-                        all_ok = False
-                        self.vacuums[i].configure(bg=g.COL['warn'])
-                except Exception as err:
-                    self.vacuums[i].configure(text='UNDEF')
-                    g.clog.warn('Could not read vacuum on CCD{}'.format(i+1))
-                    g.clog.warn(str(err))
-
-        self.ok = all_ok
+        self.after(60000, self.raise_if_nok)
