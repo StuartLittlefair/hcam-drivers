@@ -738,9 +738,6 @@ class RunPars(tk.LabelFrame):
     """
     Run parameters
     """
-    DTYPES = ('data', 'acquire', 'bias', 'flat', 'dark', 'tech')
-    DVALS = ('data', 'data caution', 'bias', 'flat', 'dark', 'technical')
-
     def __init__(self, master):
         tk.LabelFrame.__init__(self, master, text='Next run parameters',
                                padx=10, pady=10)
@@ -764,9 +761,6 @@ class RunPars(tk.LabelFrame):
 
         row += 1
         tk.Label(self, text='Pre-run comment').grid(row=row, column=column, sticky=tk.W)
-
-        row += 1
-        tk.Label(self, text='Data type').grid(row=row, column=column, sticky=tk.W+tk.N)
 
         # spacer
         column += 1
@@ -803,17 +797,11 @@ class RunPars(tk.LabelFrame):
         self.comment = w.TextEntry(self, 38)
         self.comment.grid(row=row, column=column, sticky=tk.W)
 
-        # data type
-        row += 1
-        self.dtype = w.Radio(self, RunPars.DTYPES, 3, self.check,
-                             values=RunPars.DVALS)
-        self.dtype.set('UNDEF')
-        self.dtype.grid(row=row, column=column, sticky=tk.W)
-
     def loadJSON(self, json_string):
         """
         Sets the values of the run parameters given an JSON string
         """
+        g = get_root(self).globals
         user = json.loads(json_string)['user']
 
         def getUser(user, param):
@@ -824,20 +812,21 @@ class RunPars(tk.LabelFrame):
         self.pi.set(getUser(user, 'PI'))
         self.observers.set(getUser(user, 'Observers'))
         self.comment.set(getUser(user, 'comment'))
-        self.dtype.set(getUser(user, 'flags'))
+        g.observe.rtype.set(getUser(user, 'flags'))
         self.filter.set(getUser(user, 'filters'))
 
     def dumpJSON(self):
         """
         Encodes current parameters to JSON compatible dictionary
         """
+        g = get_root(self).globals
         return dict(
             target=self.target.value(),
             ID=self.progid.value(),
             PI=self.pi.value(),
             Observers=self.observers.value(),
             comment=self.comment.value(),
-            flags=self.dtype.value(),
+            flags=g.observe.rtype(),
             filters=self.filter.value()
         )
 
@@ -851,9 +840,8 @@ class RunPars(tk.LabelFrame):
         ok = True
         msg = ''
         g = get_root(self).globals
-
-        if self.dtype.value() == 'bias' or self.dtype.value() == 'flat' or \
-           self.dtype.value() == 'dark':
+        dtype = g.observe.rtype()
+        if dtype == 'bias' or dtype == 'flat' or dtype == 'dark':
             self.pi.configure(state='disable')
             self.progid.configure(state='disable')
             self.target.disable()
@@ -863,11 +851,6 @@ class RunPars(tk.LabelFrame):
             self.target.enable()
 
         if g.cpars['require_run_params']:
-            dtype = self.dtype.value()
-            if dtype not in RunPars.DVALS:
-                ok = False
-                msg += 'No data type has been defined\n'
-
             if self.target.ok():
                 self.target.entry.config(bg=g.COL['main'])
             else:
@@ -910,21 +893,20 @@ class RunPars(tk.LabelFrame):
         self.pi.configure(state='disable')
         self.observers.configure(state='disable')
         self.comment.configure(state='disable')
-        self.dtype.disable()
 
     def unfreeze(self):
         """
         Unfreeze all settings so that they can be altered
         """
+        g = get_root(self).globals
         self.filter.configure(state='normal')
-        dtype = self.dtype.value()
+        dtype = g.observe.rtype()
         if dtype == 'data caution' or dtype == 'data' or dtype == 'technical':
             self.progid.configure(state='normal')
             self.pi.configure(state='normal')
             self.target.enable()
         self.observers.configure(state='normal')
         self.comment.configure(state='normal')
-        self.dtype.enable()
 
 
 class CountsFrame(tk.LabelFrame):
@@ -1222,6 +1204,42 @@ class CountsFrame(tk.LabelFrame):
         return (total, peak, peakSat, peakWarn, signal/noise, signalToNoise3)
 
 
+class RunType(w.Select):
+    """
+    Dropdown box to select run type.
+
+    Start button should be disabled until an option is made from this dropdown.
+    """
+    DTYPES = ('', 'data', 'acquire', 'bias', 'flat', 'dark', 'tech')
+    DVALS = ('', 'data', 'data caution', 'bias', 'flat', 'dark', 'technical')
+
+    def __init__(self, master, start_button, checker=None):
+        w.Select.__init__(self, master, 0, RunType.DTYPES, self.check)
+        self.start_button = start_button
+        self._checker = checker
+
+    def __call__(self):
+        index = self.options.index(self.val.get())
+        return RunType.DVALS[index]
+
+    def set(self, value):
+        index = RunType.DVALS.index(value)
+        w.Select.set(self, RunType.DTYPES[index])
+
+    def check(self, *args):
+        if self._checker is not None:
+            self._checker()
+        if self.val.get() == '':
+            self.start_button.run_type_set = False
+            self.start_button.disable()
+        else:
+            self.start_button.run_type_set = True
+            g = get_root(self).globals
+            if (g.cpars['hcam_server_on'] and g.cpars['eso_server_online'] and
+                    g.observe.start['state'] == 'disabled' and not isRunActive(g)):
+                self.start_button.enable()
+
+
 class Start(w.ActButton):
     """
     Button to start a run.
@@ -1247,16 +1265,17 @@ class Start(w.ActButton):
         w.ActButton.__init__(self, master, width, text='Start')
         g = get_root(self).globals
         self.config(bg=g.COL['start'])
-
         self.target = None
+        self.run_type_set = False
 
     def enable(self):
         """
         Enable the button
         """
-        w.ActButton.enable(self)
-        g = get_root(self).globals
-        self.config(bg=g.COL['start'])
+        if self.run_type_set:
+            w.ActButton.enable(self)
+            g = get_root(self).globals
+            self.config(bg=g.COL['start'])
 
     def disable(self):
         """
@@ -1283,7 +1302,7 @@ class Start(w.ActButton):
         Turns off 'expert' status whereby to allow a button to be disabled
         """
         self._expert = False
-        if self._active:
+        if self._active and self.run_type_set:
             self.enable()
         else:
             self.disable()
@@ -1341,8 +1360,10 @@ class Start(w.ActButton):
 
         # Run successfully started.
         # enable stop button, disable Start
+        # also make inactive until RunType select box makes active again
         # start run timer
         self.disable()
+        self.run_type_set = False
         g.observe.stop.enable()
         g.info.timer.start()
         return True
@@ -1468,14 +1489,16 @@ class Observe(tk.LabelFrame):
         self.save = Save(self, width)
         self.unfreeze = Unfreeze(self, width)
         self.start = Start(self, width)
+        self.rtype = RunType(self, self.start)
         self.stop = w.Stop(self, width)
 
         # Lay them out
         self.load.grid(row=0, column=0)
         self.save.grid(row=1, column=0)
         self.unfreeze.grid(row=2, column=0)
-        self.start.grid(row=0, column=1)
-        self.stop.grid(row=1, column=1)
+        self.rtype.grid(row=0, column=1, sticky=tk.EW)
+        self.start.grid(row=1, column=1)
+        self.stop.grid(row=2, column=1)
 
         # Define initial status
         self.start.disable()
@@ -1830,7 +1853,6 @@ class CCDInfoWidget(tk.Toplevel):
                 data['fpslide'] = pos_px
             except Exception as err:
                 g.clog.warn('Slide error: ' + str(err))
-        print(data)
         return data
 
     @property
