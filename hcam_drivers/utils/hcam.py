@@ -1811,7 +1811,7 @@ class CCDInfoWidget(tk.Toplevel):
         """
         Return value from widget if set, else return -99.
         """
-        return -99 if widg['text'] == 'nan' else float(widg['text'])
+        return -99 if widg.label['text'] == 'nan' else float(widg.label['text'])
 
     def dumpJSON(self):
         """
