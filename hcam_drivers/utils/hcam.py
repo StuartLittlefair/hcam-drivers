@@ -1555,6 +1555,10 @@ class HardwareDisplayWidget(tk.Frame):
         self.after(self.update_interval, self.start_update)
 
     def process_update(self):
+        """
+        Try and get the result of hardware update from the queue. If it's not ready yet,
+        reschedule this check for 200ms later.
+        """
         try:
             val, errmsg = self.queue.get(block=False)
             g = get_root(self.parent).globals
@@ -1579,13 +1583,16 @@ class HardwareDisplayWidget(tk.Frame):
             self.after(200, self.process_update)
 
     def start_update(self):
+        """
+        Start a thread to check hardware, and schedule a later check to see if it's done.
+        """
         t = threading.Thread(target=self.update)
         t.start()
         self.after(200, self.process_update)
 
     def update(self):
         """
-        Perform system update
+        Simple wrapper to call update function and put the return value and any error message into queue.
         """
         errmsg = None
         try:
