@@ -45,7 +45,13 @@ class RunHandler(websocket.WebSocketHandler):
     def open(self, run_id):
         print('Connection opened to access {}'.format(run_id))
         self.run_id = run_id
-        self.ffp = self.get_ffp(run_id)
+        try:
+            self.ffp = self.get_ffp(run_id)
+            self.write_message({'status': 'OK'})
+        except FileNotFoundError:
+            print('No such run: ', run_id)
+            self.write_message({'status': 'no such run'})
+            self.close(reason='no such run')
 
     def on_message(self, message):
         msg = json.loads(message)
@@ -61,7 +67,8 @@ class RunHandler(websocket.WebSocketHandler):
 
     def on_close(self):
         print('Socket closed')
-        self.ffp._fileobj.close()
+        if hasattr(self, 'ffp'):
+            self.ffp._fileobj.close()
 
     def get_ffp(self, run_id):
         fname = '{}.fits'.format(run_id)
