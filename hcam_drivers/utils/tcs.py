@@ -13,7 +13,7 @@ def getWhtTcs():
     cmd += "/wht/release/Ubuntu1404-64/bin/ParameterNoticeBoardLister | grep TCS"
     results = subprocess.check_output(cmd.split()).decode().split('\n')
     tcs_data = dict()
-    pattern = 'TCS\.\(\w*) -> (\w*) (.*)'
+    pattern = 'TCS\.(\w*) -> (\w*) (.*)'
     for result in results:
         if not result.startswith('TCS.'):
             continue
