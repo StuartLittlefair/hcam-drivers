@@ -4,8 +4,6 @@ import math
 import json
 import six
 import threading
-from abc import ABCMeta
-import abc
 
 import numpy as np
 if not six.PY3:
@@ -1556,9 +1554,6 @@ class HardwareDisplayWidget(tk.Frame):
     upper_limit : float, `~astropy.units.Quantity`
         upper limit for hardware check
     """
-
-    __metaclass__ = ABCMeta
-
     def __init__(self, parent, kind, name, update_interval, lower_limit, upper_limit):
         tk.Frame.__init__(self, parent)
         self.parent = parent
@@ -1625,9 +1620,8 @@ class HardwareDisplayWidget(tk.Frame):
             val = np.nan
         self.queue.put((val, errmsg))
 
-    @abc.abstractmethod
     def update_function(self):
-        pass
+        raise NotImplementedError('concrete class must implement update_function')
 
 
 class MeerstetterWidget(HardwareDisplayWidget):
