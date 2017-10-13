@@ -2460,7 +2460,7 @@ class InfoFrame(tk.LabelFrame):
                                  g.cpars['telins_name'])
                 try:
                     # Poll TCS for ra,dec etc.
-                    ra, dec, pa, focus, tracking = tcsfunc()
+                    ra, dec, pa, focus = tcsfunc()
 
                     # format ra, dec as HMS
                     coo = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg))
