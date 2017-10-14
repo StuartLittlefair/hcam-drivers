@@ -1698,7 +1698,7 @@ class VacuumWidget(HardwareDisplayWidget):
     def update_function(self):
         g = get_root(self.parent).globals
         if g.cpars['ccd_vac_monitoring_on']:
-            return self.gauge.pressure
+            return 1000*self.gauge.pressure.value
         else:
             return np.nan
 
