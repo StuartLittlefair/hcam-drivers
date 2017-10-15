@@ -51,7 +51,7 @@ class ObsMode(object):
             'DET.NSKIPS3': nr-1,
             'DET.NSKIPS4': ni-1,
             'DET.NSKIPS5': nz-1,
-            'DET.SEQ.DIT': app_data['exptime']
+            'DET.SEQ1.DIT': app_data['exptime']
         }
 
         # parameters for user-defined headers
