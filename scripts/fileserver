@@ -64,6 +64,8 @@ class RunHandler(websocket.WebSocketHandler):
             self.get_next_frame()
         elif action == 'get_nframes':
             self.get_nframes()
+        elif action == 'get_last':
+            self.get_last_frame()
 
     def on_close(self):
         print('Socket closed')
@@ -87,6 +89,10 @@ class RunHandler(websocket.WebSocketHandler):
         Read data from HDU in FITS file and send FITS HDUs as binary data
         """
         self.ffp.seek_frame(frame_id)
+        self._send_frame()
+
+    def get_last_frame(self):
+        self.ffp.seek_frame(self.ffp.num_frames - 1)
         self._send_frame()
 
     def get_nframes(self):
