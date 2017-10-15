@@ -1671,10 +1671,10 @@ class FlowRateWidget(HardwareDisplayWidget):
     """
     Flow rates from honeywell
     """
-    def __init__(self, parent, honey, pen_address, name, update_interval, lower_limit, upper_limit):
+    def __init__(self, parent, honey_ip, pen_address, name, update_interval, lower_limit, upper_limit):
         HardwareDisplayWidget.__init__(self, parent, 'flow rate', name, update_interval,
                                        lower_limit, upper_limit)
-        self.honey = honey
+        self.honey = honeywell.Honeywell(honey_ip, 502)
         self.pen_address = pen_address
 
     def update_function(self):
@@ -1728,7 +1728,7 @@ class CCDInfoWidget(tk.Toplevel):
 
         # create hardware references
         g = get_root(self.parent).globals
-        self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
+        honey_ip = g.cpars['honeywell_ip']
         self.meerstetters = [
             meerstetter.MeerstetterTEC1090(ip_addr, 50000) for ip_addr in
             g.cpars['meerstetter_ip']]
@@ -1754,7 +1754,7 @@ class CCDInfoWidget(tk.Toplevel):
         self.ccd_flow_rates = []
         self.vacuums = []
         self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, -5, 15)
-        self.ngc_flow_rate = FlowRateWidget(self.flow_frm, self.honey, 'ngc', 'NGC', update_interval,
+        self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
                                             1.0, np.inf)
 
         ms1 = self.meerstetters[0]
@@ -1794,7 +1794,7 @@ class CCDInfoWidget(tk.Toplevel):
             pen_address = 'ccd{}'.format(iccd+1)
 
             self.ccd_flow_rates.append(
-                FlowRateWidget(self.flow_frm, self.honey, pen_address, name, update_interval,
+                FlowRateWidget(self.flow_frm, honey_ip, pen_address, name, update_interval,
                                1.0, np.inf)
             )
             self.ccd_flow_rates[-1].grid(
