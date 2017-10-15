@@ -10,8 +10,10 @@ import numpy as np
 import six
 if not six.PY3:
     import Tkinter as tk
+    from Queue import Queue, Empty
 else:
     import tkinter as tk
+    from queue import Queue, Empty
 
 # astropy utilities
 from astropy import coordinates as coord
@@ -2420,6 +2422,11 @@ class InfoFrame(tk.LabelFrame):
         self.count = 0
         self.update()
 
+        # queue for filling TCS info
+        self.tcs_data_queue = Queue()
+        # start checking TCS info
+        self.after(20000, self.update_tcs)
+
     def _getVal(self, widg):
         return -99.0 if widg['text'] == 'UNDEF' else float(widg['text'])
 
@@ -2438,6 +2445,29 @@ class InfoFrame(tk.LabelFrame):
             mdist=self._getVal(self.mdist)
         )
 
+    def update_tcs(self):
+        """
+        Periodically update TCS info.
+
+        A long running process, so run in a thread and fill a queue
+        """
+        if g.cpars['telins_name'] == 'WHT':
+            tcsfunc = tcs.getWhtTcs
+        elif g.cpars['telins_name'] == 'GTC':
+            tcsfunc = tcs.getGtcTcs
+        else:
+            g.clog.debug('TCS error: could not recognise ' +
+                         g.cpars['telins_name'])
+            return
+
+        def tcs_threaded_update():
+            ra, dec, pa, focus = tcsfunc()
+            self.tcs_data_queue.put((ra, dec, pa, focus))
+
+        t = threading.Thread(target=tcs_threaded_update)
+        t.start()
+        self.after(20000, self.update_tcs)
+
     def update(self):
         """
         Updates run & tel status window. Runs
@@ -2451,16 +2481,10 @@ class InfoFrame(tk.LabelFrame):
 
         try:
             if g.cpars['tcs_on']:
-                if g.cpars['telins_name'] == 'WHT':
-                    tcsfunc = tcs.getWhtTcs
-                elif g.cpars['telins_name'] == 'GTC':
-                    tcsfunc = tcs.getGtcTcs
-                else:
-                    g.clog.debug('TCS error: could not recognise ' +
-                                 g.cpars['telins_name'])
+
                 try:
                     # Poll TCS for ra,dec etc.
-                    ra, dec, pa, focus = tcsfunc()
+                    ra, dec, pa, focus = self.tcs_data_queue.get(block=False)
 
                     # format ra, dec as HMS
                     coo = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg))
@@ -2527,7 +2551,9 @@ class InfoFrame(tk.LabelFrame):
                         self.mdist.configure(bg=g.COL['warn'])
                     else:
                         self.mdist.configure(bg=g.COL['main'])
-
+                except Empty:
+                    # silently do nothing if queue is empty
+                    pass
                 except Exception as err:
                     self.ra.configure(text='UNDEF')
                     self.dec.configure(text='UNDEF')
