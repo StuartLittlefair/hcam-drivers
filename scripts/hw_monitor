@@ -71,7 +71,7 @@ if __name__ == "__main__":
             for ccd in pressures:
                 iccd = int(ccd) - 1
                 try:
-                    presssure = 1000*gauges[iccd].pressure.value
+                    pressure = 1000*gauges[iccd].pressure.value
                 except:
                     print('warning: failed to log pressure for ccd {}'.format(ccd))
                     pressure = np.nan
