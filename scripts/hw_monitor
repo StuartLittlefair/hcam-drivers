@@ -88,7 +88,7 @@ if __name__ == "__main__":
                 else:
                     meer = ms[1]
                 try:
-                    temp = meer.get_ccd_temp(address)
+                    temp = meer.get_ccd_temp(address).value
                 except:
                     print('warning: failed to log temp for ccd {}'.format(ccd))
                     temp = np.nan
