@@ -839,6 +839,7 @@ class RunPars(tk.LabelFrame):
         msg = ''
         g = get_root(self).globals
         dtype = g.observe.rtype()
+
         if dtype == 'bias' or dtype == 'flat' or dtype == 'dark':
             self.pi.configure(state='disable')
             self.progid.configure(state='disable')
@@ -1236,6 +1237,7 @@ class RunType(w.Select):
             if (g.cpars['hcam_server_on'] and g.cpars['eso_server_online'] and
                     g.observe.start['state'] == 'disabled' and not isRunActive(g)):
                 self.start_button.enable()
+            g.rpars.check()
 
 
 class Start(w.ActButton):

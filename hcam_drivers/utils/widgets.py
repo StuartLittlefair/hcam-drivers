@@ -2452,6 +2452,10 @@ class InfoFrame(tk.LabelFrame):
         A long running process, so run in a thread and fill a queue
         """
         g = get_root(self).globals
+
+        if not g.cpars['tcs_on']:
+            return
+
         if g.cpars['telins_name'] == 'WHT':
             tcsfunc = tcs.getWhtTcs
         elif g.cpars['telins_name'] == 'GTC':
