@@ -71,6 +71,15 @@ Unit:
 Comment Format:    Time for line shift in drift mode (msecs)
 Description:       Line shift is where we shift row down by one
 
+Parameter Name:    DET.TDRIFTLINEDUMP
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    Time for line dump in drift mode (msecs)
+Description:       Line dump is where we dump rows not in drift windows
+
 Parameter Name:    DET.DRIFTNWINS
 Class:             header
 Context:           FITS
