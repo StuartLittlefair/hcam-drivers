@@ -62,7 +62,7 @@ Unit:
 Comment Format:    Time for frame transfer (msecs)
 Description:       FT time
 
-Parameter Name:    DET.TDRIFTLINESHIFT
+Parameter Name:    DET.DRIFT.TLINESHIFT
 Class:             header
 Context:           FITS
 Type:              double
@@ -71,7 +71,7 @@ Unit:
 Comment Format:    Time for line shift in drift mode (msecs)
 Description:       Line shift is where we shift row down by one
 
-Parameter Name:    DET.TDRIFTLINEDUMP
+Parameter Name:    DET.DRIFT.TLINEDUMP
 Class:             header
 Context:           FITS
 Type:              double
@@ -80,7 +80,7 @@ Unit:
 Comment Format:    Time for line dump in drift mode (msecs)
 Description:       Line dump is where we dump rows not in drift windows
 
-Parameter Name:    DET.DRIFTNWINS
+Parameter Name:    DET.DRIFT.NWINS
 Class:             header
 Context:           FITS
 Type:              integer
@@ -89,7 +89,7 @@ Unit:
 Comment Format:    Time for line dump in drift mode (msecs)
 Description:       WIPE time is either 0 or the time to run several clears
 
-Parameter Name:    DET.DRIFTNROWS
+Parameter Name:    DET.DRIFT.NROWS
 Class:             header
 Context:           FITS
 Type:              integer
