@@ -1568,8 +1568,8 @@ class HardwareDisplayWidget(tk.Frame):
         self.upper_limit = upper_limit
         self.lower_limit = lower_limit
 
-        tk.Label(self, text=self.name + ':', width=8, anchor=tk.E).pack(side=tk.LEFT, anchor=tk.N, padx=5)
-        self.label = w.Ilabel(self, text='nan')
+        tk.Label(self, text=self.name + ':', width=9, anchor=tk.E).pack(side=tk.LEFT, anchor=tk.N, padx=5)
+        self.label = w.Ilabel(self, text='nan', width=9)
         self.label.pack(side=tk.LEFT, anchor=tk.N, padx=5)
 
         self.after(self.update_interval, self.start_update)

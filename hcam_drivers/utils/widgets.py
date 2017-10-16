@@ -3279,7 +3279,7 @@ class WinQuads(tk.Frame):
         row = 1
         allowed_quads = (1, 2)
         aq = [quadnum for quadnum in allowed_quads if quadnum <= nquad]
-        self.nquad = ListInt(top, aq[0], aq, checker, width=2)
+        self.nquad = ListInt(top, aq[0], aq, self.check, width=2)
         if nquad > 1:
             # Second row: number of quads selector
             tk.Label(top, text='Number of window quads: ').grid(
