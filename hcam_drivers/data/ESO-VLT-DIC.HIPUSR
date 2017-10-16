@@ -24,6 +24,72 @@ Status:            draft
 Description:       Data Interface Dictionary for NGC Hipercam user hdrs
 
 #
+# Timing of HiPERCAM sequencer routines
+#
+Parameter Name:    DET.TWIPE
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    Time for WIPE of CCD (msecs)
+Description:       WIPE time is either 0 or the time to run several clears
+
+Parameter Name:    DET.TEXPOSE
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    DWELL (expose time for all CCDs, msecs)
+Description:       Expose time is the time we wait, not clocking or reading out
+
+Parameter Name:    DET.TREAD
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    Time for READ routine (FT and READOUT, msecs)
+Description:       READ
+
+Parameter Name:    DET.TFT
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    Time for frame transfer (msecs)
+Description:       FT time
+
+Parameter Name:    DET.TDRIFTLINESHIFT
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    Time for line shift in drift mode (msecs)
+Description:       Line shift is where we shift row down by one
+
+Parameter Name:    DET.DRIFTNWINS
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    Time for line dump in drift mode (msecs)
+Description:       WIPE time is either 0 or the time to run several clears
+
+Parameter Name:    DET.DRIFTNROWS
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    Time for READ routine (FT and READOUT ,msecs)
+Description:       WIPE time is either 0 or the time to run several clears
+
+#
 # PRIMARY KEYWORDS FROM USER ENTRY IN GUI
 #
 Parameter Name:    OBSERVER
