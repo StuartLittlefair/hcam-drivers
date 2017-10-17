@@ -71,8 +71,8 @@ MAX_MM = MM_PER_MS*MAX_MS
 # MAX_PX = -798.
 
 # TNT values March 2014 -- present
-MIN_PX = 2712
-MAX_PX = -1150
+MIN_PX = 2712.258
+MAX_PX = -1150.117
 
 # Standard pixel positions for unblocking and blocking the CCD
 UNBLOCK_POS = 1100.
