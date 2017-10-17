@@ -57,20 +57,22 @@ FALSE = 0
 # the next define ranges for the movement in terms of
 # microsteps, millimetres and pixels
 MIN_MS = 0
-MAX_MS = 100*672255
+MAX_MS = 1664000
 MM_PER_MS = 0.000078
 MIN_MM = MM_PER_MS*MIN_MS
 MAX_MM = MM_PER_MS*MAX_MS
 
 # Next numbers set the limits in pixel numbers. They are telescope dependent.
+# WHT/HIPERCAM Numbers, Oct 2017
+# 429.85589 MS per PIX
 
 # TNT values before re-calibration of March 2014:
 # MIN_PX = 1230.0
 # MAX_PX = -798.
 
 # TNT values March 2014 -- present
-MIN_PX = 1240.0
-MAX_PX = -788.
+MIN_PX = 2712
+MAX_PX = -1150
 
 # Standard pixel positions for unblocking and blocking the CCD
 UNBLOCK_POS = 1100.
@@ -93,7 +95,7 @@ MAX_TIMEOUT = 70
 
 class Slide(object):
 
-    def __init__(self, log=None, host='195.194.120.72', port=10002):
+    def __init__(self, log=None, host='192.168.1.3', port=10001):
         """
         Creates a Slide. Arguments::
 
@@ -181,9 +183,7 @@ class Slide(object):
         """
         if nstep < MIN_MS or nstep > MAX_MS:
             raise SlideError("Attempting to set position = %d ms," +
-                             " which is out of range %d to %d" % (nstep,
-                                                                  MIN_MS,
-                                                                  MAX_MS))
+                             " which is out of range %d to %d" % (nstep, MIN_MS, MAX_MS))
         if not timeout:
             timeout = self.time_absolute(nstep)
 
@@ -205,8 +205,7 @@ class Slide(object):
         attempt_pos = start_pos+nstep
         if attempt_pos < MIN_MS or attempt_pos > MAX_MS:
             raise SlideError("Attempting to set position = %d ms," +
-                             " which is out of range %d to %d" % (nstep, MIN_MS,
-                                                                  MAX_MS))
+                             " which is out of range %d to %d" % (nstep, MIN_MS, MAX_MS))
         if not timeout:
             timeout = self.compute_timeout(nstep)
 
