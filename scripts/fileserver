@@ -48,7 +48,7 @@ class RunHandler(websocket.WebSocketHandler):
         try:
             self.ffp = self.get_ffp(run_id)
             self.write_message({'status': 'OK'})
-        except FileNotFoundError:
+        except IOError:
             print('No such run: ', run_id)
             self.write_message({'status': 'no such run'})
             self.close(reason='no such run')
