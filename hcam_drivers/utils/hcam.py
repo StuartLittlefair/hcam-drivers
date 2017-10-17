@@ -613,11 +613,11 @@ class InstPars(tk.LabelFrame):
         # Set the readout speed
         readSpeed = self.readSpeed()
 
-        if readSpeed == 'Fast' and not self.dummy():
+        if readSpeed == 'Fast' and self.dummy():
             video = VIDEO_FAST
-        elif readSpeed == 'Slow' and not self.dummy():
+        elif readSpeed == 'Slow' and self.dummy():
             video = VIDEO_SLOW
-        elif self.dummy():
+        elif not self.dummy():
             video = VIDEO_SLOW_SE
         else:
             raise DriverError('InstPars.timing: readout speed = ' +
