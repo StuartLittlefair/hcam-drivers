@@ -51,6 +51,7 @@ class ObsMode(object):
             'DET.NSKIPS3': nr-1,
             'DET.NSKIPS4': ni-1,
             'DET.NSKIPS5': nz-1,
+            'DET.SEQ.CLKFILE': 'hipercam.bclk' if not dummy else 'hipercam_se.bclk',
             'DET.SEQ1.DIT': app_data['exptime']
         }
 

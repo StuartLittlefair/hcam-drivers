@@ -30,6 +30,7 @@ from ..hardware import honeywell, meerstetter, unichiller, vacuum
 VCLOCK = 20e-6  # vertical clocking time
 HCLOCK = 0.24e-6  # horizontal clocking time
 SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
+VIDEO_SLOW_SE = 1 / 113e3  # 113 kHz, Naidu's clock speed for single output mode
 VIDEO_SLOW = 1 / 260e3  # 260 kHz
 VIDEO_FAST = 1 / 520e3  # 520 kHz
 GAIN_FAST = 1.2  # electrons/ADU
@@ -164,7 +165,7 @@ class InstPars(tk.LabelFrame):
         # dummy mode enabled (expert mode only)
         self.dummyLab = tk.Label(lhs, text='Dummy Output')
         self.dummyLab.grid(row=4, column=0, sticky=tk.W)
-        self.dummy = w.OnOff(lhs, False, None)
+        self.dummy = w.OnOff(lhs, False, self.check)
         self.dummy.grid(row=4, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # Readout speed
@@ -175,7 +176,7 @@ class InstPars(tk.LabelFrame):
         # Exp delay
         tk.Label(lhs, text='Exposure delay (s)').grid(row=6, column=0,
                                                       sticky=tk.W)
-        self.expose = w.Expose(lhs, 0.1, 0.00001, 1677.7207,
+        self.expose = w.Expose(lhs, 0.1, 0.0001, 1677.7207,
                                self.check, width=7)
         self.expose.grid(row=6, column=1, columnspan=2, pady=2, sticky=tk.W)
 
@@ -612,10 +613,12 @@ class InstPars(tk.LabelFrame):
         # Set the readout speed
         readSpeed = self.readSpeed()
 
-        if readSpeed == 'Fast':
+        if readSpeed == 'Fast' and not self.dummy():
             video = VIDEO_FAST
-        elif readSpeed == 'Slow':
+        elif readSpeed == 'Slow' and not self.dummy():
             video = VIDEO_SLOW
+        elif self.dummy():
+            video = VIDEO_SLOW_SE
         else:
             raise DriverError('InstPars.timing: readout speed = ' +
                               readSpeed + ' not recognised.')
