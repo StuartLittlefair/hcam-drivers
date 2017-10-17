@@ -57,8 +57,8 @@ FALSE = 0
 # the next define ranges for the movement in terms of
 # microsteps, millimetres and pixels
 MIN_MS = 0
-MAX_MS = 672255
-MM_PER_MS = 0.00015619
+MAX_MS = 100*672255
+MM_PER_MS = 0.000078
 MIN_MM = MM_PER_MS*MIN_MS
 MAX_MM = MM_PER_MS*MAX_MS
 
