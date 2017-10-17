@@ -86,8 +86,8 @@ Context:           FITS
 Type:              integer
 Value Format:      %d
 Unit:
-Comment Format:    Time for line dump in drift mode (msecs)
-Description:       WIPE time is either 0 or the time to run several clears
+Comment Format:    Number of windows that fit in CCD
+Description:       Number of windows that fit in CCD
 
 Parameter Name:    DET.DRIFT.NROWS
 Class:             header
@@ -95,8 +95,8 @@ Context:           FITS
 Type:              integer
 Value Format:      %d
 Unit:
-Comment Format:    Time for READ routine (FT and READOUT ,msecs)
-Description:       WIPE time is either 0 or the time to run several clears
+Comment Format:    Extra rows that need to be clocked
+Description:       Extra rows that need to be clocked
 
 #
 # PRIMARY KEYWORDS FROM USER ENTRY IN GUI
