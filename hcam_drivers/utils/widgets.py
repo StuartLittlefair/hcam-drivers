@@ -2413,11 +2413,6 @@ class InfoFrame(tk.LabelFrame):
         tk.Label(self, text='CCD temps:').grid(row=4, column=6, padx=5, sticky=tk.W)
         self.ccd_temps.grid(row=4, column=7, padx=5, sticky=tk.W)
 
-        # these are used to judge whether we are tracking or not
-        self.coo_old = coord.SkyCoord(0, 0, unit=(u.deg, u.deg))
-        self.pa_old = 0*u.deg
-        self.tracking = False
-
         # start
         self.count = 0
         self.update()
@@ -2501,29 +2496,6 @@ class InfoFrame(tk.LabelFrame):
                     # wrap pa from 0 to 360
                     pa = coord.Longitude(pa*u.deg)
                     self.pa.configure(text='{0:6.2f}'.format(pa.value))
-
-                    # check for significant changes in position to flag
-                    # tracking failures. I have removed a test of tflag
-                    # to be True because the telescope often switches to
-                    # "slewing" status even when nominally tracking.
-                    if (coo.separation(self.coo_old) < 4*u.arcsec):
-                        self.tracking = True
-                        self.ra.configure(bg=g.COL['main'])
-                        self.dec.configure(bg=g.COL['main'])
-                    else:
-                        self.tracking = False
-                        self.ra.configure(bg=g.COL['warn'])
-                        self.dec.configure(bg=g.COL['warn'])
-
-                    # check for changing sky PA
-                    if abs(pa-self.pa_old) > 0.1*u.deg:
-                        self.pa.configure(bg=g.COL['warn'])
-                    else:
-                        self.pa.configure(bg=g.COL['main'])
-
-                    # store current values for comparison with next
-                    self.coo_old = coo
-                    self.pa_old = pa
 
                     # set focus
                     self.focus.configure(text='{0:+5.2f}'.format(focus))
