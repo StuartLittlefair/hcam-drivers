@@ -35,10 +35,10 @@ SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
 VIDEO_SLOW_SE = 1 / 113e3  # 113 kHz, Naidu's clock speed for single output mode
 VIDEO_SLOW = 1 / 260e3  # 260 kHz
 VIDEO_FAST = 1 / 520e3  # 520 kHz
-GAIN_FAST = 1.2  # electrons/ADU
-GAIN_SLOW = 1.2
-RNO_FAST = 4.0  # e- / pixel
-RNO_SLOW = 2.5
+GAIN_FAST = 1.7  # electrons/ADU
+GAIN_SLOW = 1.7
+RNO_FAST = 4.5  # e- / pixel
+RNO_SLOW = 4.5
 DARK_E = 0.02  # e/pix/s
 
 
