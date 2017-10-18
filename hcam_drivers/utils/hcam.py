@@ -670,7 +670,7 @@ class InstPars(tk.LabelFrame):
             dxsr = self.wframe.xsr[0].value()
             # differential shift needed to line both
             # windows up with the edge of the chip
-            diffshift = abs(dxsl - 1 - (FFX - dxsr - dnx + 1))
+            diffshift = abs(dxsl - 1 - (2*FFX - dxsr - dnx + 1))
         elif isFF:
             nwin = 1
             ys = [0]
