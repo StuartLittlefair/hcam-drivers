@@ -32,7 +32,14 @@ class ObsMode(object):
         app_data = setup_data['appdata']
         nu, ng, nr, ni, nz = app_data['multipliers']
         dummy = app_data.get('dummy_out', 0)  # works even if dummy not set in app, default 0
+        fastclk = app_data.get('fast_clks', 0)
         oscany = app_data.get('oscany', 0)
+
+        clockfile = 'hipercam.bclk'
+        if not dummy:
+            clockfile = 'hipercam_se.bclk'
+        elif fastclk:
+            clockfile = 'hipercam_fastclk.bclk'
 
         self.finite = app_data['numexp']
         self.detpars = {
@@ -51,7 +58,7 @@ class ObsMode(object):
             'DET.NSKIPS3': nr-1,
             'DET.NSKIPS4': ni-1,
             'DET.NSKIPS5': nz-1,
-            'DET.SEQ.CLKFILE': 'hipercam.bclk' if dummy else 'hipercam_se.bclk',
+            'DET.SEQ.CLKFILE': clockfile,
             'DET.SEQ1.DIT': app_data['exptime']
         }
 
