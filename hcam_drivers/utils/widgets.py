@@ -2421,6 +2421,9 @@ class InfoFrame(tk.LabelFrame):
         self.tcs_data_queue = Queue()
         # start checking TCS info
         self.after(20000, self.update_tcs)
+        # queue for slide position info
+        self.slide_pos_queue = Queue()
+        self.after(20000, self.update_slidepos)
 
     def _getVal(self, widg):
         return -99.0 if widg['text'] == 'UNDEF' else float(widg['text'])
@@ -2449,6 +2452,7 @@ class InfoFrame(tk.LabelFrame):
         g = get_root(self).globals
 
         if not g.cpars['tcs_on']:
+            self.after(20000, self.update_tcs)
             return
 
         if g.cpars['telins_name'] == 'WHT':
@@ -2467,6 +2471,28 @@ class InfoFrame(tk.LabelFrame):
         t = threading.Thread(target=tcs_threaded_update)
         t.start()
         self.after(20000, self.update_tcs)
+
+    def update_slidepos(self):
+        """
+        Periodically update the slide position.
+
+        Also farmed out to a thread to avoid hanging GUI main thread
+        """
+        g = get_root(self).globals
+        if not g.cpars['focal_plane_slide_on']:
+            self.after(20000, self.update_slidepos)
+            return
+
+        def slide_threaded_update():
+            try:
+                pos_ms, pos_mm, pos_px = g.fpslide.slide.return_position()
+                self.slide_pos_queue.put((pos_ms, pos_mm, pos_px))
+            except:
+                pass
+
+        t = threading.Thread(target=slide_threaded_update)
+        t.start()
+        self.after(20000, self.update_slidepos)
 
     def update(self):
         """
@@ -2569,7 +2595,7 @@ class InfoFrame(tk.LabelFrame):
             # poll at 5x slower rate than the frame
             if self.count % 5 == 0 and g.cpars['focal_plane_slide_on']:
                 try:
-                    pos_ms, pos_mm, pos_px = g.fpslide.slide.return_position()
+                    pos_ms, pos_mm, pos_px = self.slide_pos_queue.get(block=False)
                     self.fpslide.configure(text='{0:d}'.format(
                         int(round(pos_px))))
                     if pos_px < 1050.:
@@ -2577,9 +2603,7 @@ class InfoFrame(tk.LabelFrame):
                     else:
                         self.fpslide.configure(bg=g.COL['main'])
                 except Exception as err:
-                    g.clog.warn('Slide error: ' + str(err))
-                    self.fpslide.configure(text='UNDEF')
-                    self.fpslide.configure(bg=g.COL['warn'])
+                    pass
 
             # get the CCD temperature poll at 5x slower rate than the frame
             if self.count % 5 == 0:
