@@ -27,8 +27,10 @@ from ..hardware import honeywell, meerstetter, unichiller, vacuum
 
 # Timing, Gain, Noise parameters
 # Times in seconds
-VCLOCK = 20e-6  # vertical clocking time
-HCLOCK = 0.24e-6  # horizontal clocking time
+VCLOCK_SLOW = 20e-6  # vertical clocking time
+HCLOCK_SLOW = 0.24e-6  # horizontal clocking time
+VCLOCK_FAST = 13e-6  # faster mode with poorer CTE
+HCLOCK_FAST = 0.12e-6  # faster mode with poorer CTE
 SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
 VIDEO_SLOW_SE = 1 / 113e3  # 113 kHz, Naidu's clock speed for single output mode
 VIDEO_SLOW = 1 / 260e3  # 260 kHz
@@ -168,22 +170,28 @@ class InstPars(tk.LabelFrame):
         self.dummy = w.OnOff(lhs, False, self.check)
         self.dummy.grid(row=4, column=1, columnspan=2, pady=2, sticky=tk.W)
 
+        # Faster Clock speed enabled
+        self.fastClkLab = tk.Label(lhs, text='Fast Clocks')
+        self.fastClkLab.grid(row=5, column=0, sticky=tk.W)
+        self.fastClk = w.OnOff(lhs, False, self.check)
+        self.fastClk.grid(row=5, column=1, columnspan=2, pady=2, sticky=tk.W)
+
         # Readout speed
-        tk.Label(lhs, text='Readout speed').grid(row=5, column=0, sticky=tk.W)
+        tk.Label(lhs, text='Readout speed').grid(row=6, column=0, sticky=tk.W)
         self.readSpeed = w.Select(lhs, 1, ('Fast', 'Slow'), self.check)
-        self.readSpeed.grid(row=5, column=1, columnspan=2, pady=2, sticky=tk.W)
+        self.readSpeed.grid(row=6, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # Exp delay
-        tk.Label(lhs, text='Exposure delay (s)').grid(row=6, column=0,
+        tk.Label(lhs, text='Exposure delay (s)').grid(row=7, column=0,
                                                       sticky=tk.W)
         self.expose = w.Expose(lhs, 0.1, 0.0001, 1677.7207,
                                self.check, width=7)
-        self.expose.grid(row=6, column=1, columnspan=2, pady=2, sticky=tk.W)
+        self.expose.grid(row=7, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # num exp
-        tk.Label(lhs, text='Num. exposures  ').grid(row=7, column=0,  sticky=tk.W)
+        tk.Label(lhs, text='Num. exposures  ').grid(row=8, column=0,  sticky=tk.W)
         self.number = w.PosInt(lhs, 1, None, False, width=7)
-        self.number.grid(row=7, column=1, columnspan=2, pady=2, sticky=tk.W)
+        self.number.grid(row=8, column=1, columnspan=2, pady=2, sticky=tk.W)
 
         # nb, ng, nr etc
         labels = ('nu', 'ng', 'nr', 'ni', 'nz')
@@ -322,6 +330,7 @@ class InstPars(tk.LabelFrame):
             app=self.app.value(),
             led_flsh=self.led(),
             dummy_out=self.dummy(),
+            fast_clks=self.fastClk(),
             readout=self.readSpeed(),
             dwell=self.expose.value(),
             exptime=expTime,
@@ -372,6 +381,8 @@ class InstPars(tk.LabelFrame):
         self.led.set(data.get('led_flsh', 0))
         # Dummy output enabled
         self.dummy.set(data.get('dummy_out', 0))
+        # Fast clocking option?
+        self.fastClk.set(data.get('fast_clks', 0))
         # readout speed
         self.readSpeed.set(data.get('readout', 'Slow'))
         # dwell
@@ -622,6 +633,13 @@ class InstPars(tk.LabelFrame):
         else:
             raise DriverError('InstPars.timing: readout speed = ' +
                               readSpeed + ' not recognised.')
+
+        if self.fastClk():
+            VCLOCK = VCLOCK_FAST
+            HCLOCK = HCLOCK_FAST
+        else:
+            VCLOCK = VCLOCK_SLOW
+            HCLOCK = HCLOCK_SLOW
 
         # clear chip on/off?
         lclear = not isDriftMode and self.clear()
