@@ -27,18 +27,21 @@ from ..hardware import honeywell, meerstetter, unichiller, vacuum
 
 # Timing, Gain, Noise parameters
 # Times in seconds
-VCLOCK_SLOW = 20e-6  # vertical clocking time
+VCLOCK_FRAME_SLOW = 15e-6  # vertical clocking time in image area
+VCLOCK_STORAGE_SLOW = 20e-6  # vertical clocking time in storage area
 HCLOCK_SLOW = 0.24e-6  # horizontal clocking time
 VCLOCK_FAST = 13e-6  # faster mode with poorer CTE
 HCLOCK_FAST = 0.12e-6  # faster mode with poorer CTE
 SETUP_READ = 4.0e-9  # time required for Naidu's setup_read SR
+DUMP_TIME_SLOW = 18e-6  # time to dump extra pixels in drift mode, slow clocking
+DUMP_TIME_FAST = 3.6e-6  # time to dump extra pixels, fast clocking
 VIDEO_SLOW_SE = 1 / 113e3  # 113 kHz, Naidu's clock speed for single output mode
 VIDEO_SLOW = 1 / 260e3  # 260 kHz
 VIDEO_FAST = 1 / 520e3  # 520 kHz
-GAIN_FAST = 1.2  # electrons/ADU
-GAIN_SLOW = 1.2
-RNO_FAST = 4.0  # e- / pixel
-RNO_SLOW = 2.5
+GAIN_FAST = 1.7  # electrons/ADU
+GAIN_SLOW = 1.7
+RNO_FAST = 4.5  # e- / pixel
+RNO_SLOW = 4.5
 DARK_E = 0.02  # e/pix/s
 
 
@@ -479,7 +482,7 @@ class InstPars(tk.LabelFrame):
             self.clearLab.config(state='disable')
             if not self.drift_frame.winfo_ismapped():
                 self.quad_frame.grid_forget()
-                self.drift_frame.grid(row=7, column=0, columnspan=3,
+                self.drift_frame.grid(row=9, column=0, columnspan=3,
                                       sticky=tk.W+tk.N)
 
             if not self.frozen:
@@ -497,7 +500,7 @@ class InstPars(tk.LabelFrame):
             self.clearLab.config(state='normal')
             if not self.quad_frame.winfo_ismapped():
                 self.drift_frame.grid_forget()
-                self.quad_frame.grid(row=7, column=0, columnspan=3,
+                self.quad_frame.grid(row=9, column=0, columnspan=3,
                                      sticky=tk.W+tk.N)
 
             if not self.frozen:
@@ -635,10 +638,14 @@ class InstPars(tk.LabelFrame):
                               readSpeed + ' not recognised.')
 
         if self.fastClk():
-            VCLOCK = VCLOCK_FAST
+            DUMP_TIME = DUMP_TIME_FAST
+            VCLOCK_FRAME = VCLOCK_FAST
+            VCLOCK_STORAGE = VCLOCK_FAST
             HCLOCK = HCLOCK_FAST
         else:
-            VCLOCK = VCLOCK_SLOW
+            DUMP_TIME = DUMP_TIME_SLOW
+            VCLOCK_FRAME = VCLOCK_FRAME_SLOW
+            VCLOCK_STORAGE = VCLOCK_STORAGE_SLOW
             HCLOCK = HCLOCK_SLOW
 
         # clear chip on/off?
@@ -659,6 +666,11 @@ class InstPars(tk.LabelFrame):
             dys = self.wframe.ys[0].value() - 1
             dnx = self.wframe.nx[0].value()
             dny = self.wframe.ny[0].value()
+            dxsl = self.wframe.xsl[0].value()
+            dxsr = self.wframe.xsr[0].value()
+            # differential shift needed to line both
+            # windows up with the edge of the chip
+            diffshift = abs(dxsl - 1 - (2*FFX - dxsr - dnx + 1))
         elif isFF:
             nwin = 1
             ys = [0]
@@ -677,7 +689,8 @@ class InstPars(tk.LabelFrame):
 
         # clear chip by VCLOCK-ing the image and storage areas
         if lclear:
-            clear_time = 2*FFY*VCLOCK + (FFX + PRSCX)*HCLOCK
+            clear_time = (FFY*VCLOCK_STORAGE + FFY*VCLOCK_FRAME +
+                          (FFX + PRSCX)*HCLOCK)
         else:
             clear_time = 0.0
 
@@ -687,9 +700,9 @@ class InstPars(tk.LabelFrame):
             nrows = FFY  # number of rows in storage area
             pnwin = int(((nrows / dny) + 1)/2)
             pshift = nrows - (2*pnwin-1)*dny
-            frame_transfer = (dny+dys)*VCLOCK
+            frame_transfer = (dny+dys)*VCLOCK_FRAME
 
-            yshift = [dys*VCLOCK]
+            yshift = [dys*VCLOCK_STORAGE]
 
             # After placing the window adjacent to the serial register, the
             # register must be cleared by clocking out the entire register,
@@ -698,19 +711,39 @@ class InstPars(tk.LabelFrame):
             if yshift[0] != 0:
                 line_clear[0] = (FFX + PRSCX)*HCLOCK
 
-            numhclocks = [FFX + PRSCX]
-            line_read = [(VCLOCK*ybin + numhclocks[0]*HCLOCK +
-                         video*dnx/xbin) + 3*SETUP_READ]
+            # to calculate number of HCLOCKS needed to read a line in
+            # drift mode we have to account for the diff shifts and dumping.
+            # first perform diff shifts
+            # for now we need this *2 (for quadrants E, H or F, G)
+            numhclocks = 2*diffshift
+            # now add the amount of clocks needed to get
+            # both windows to edge of chip
+            if dxsl - 1 > 2*FFX - dxsr - dnx + 1:
+                # it was the left window that got the diff shift,
+                # so the number of hclocks increases by the amount
+                # needed to get the RH window to the edge
+                numhclocks += 2*FFX - dxsr - dnx + 1
+            else:
+                # vice versa
+                numhclocks += dxsl - 1
+            # now we actually clock the windows themselves
+            numhclocks += dnx
+            # finally, we need to hclock the additional pre-scan pixels
+            numhclocks += PRSCX
+
+            # here is the total time to read the whole line
+            line_read = [(VCLOCK_STORAGE*ybin + numhclocks*HCLOCK +
+                         video*dnx/xbin) + DUMP_TIME + 3*SETUP_READ]
 
             readout = [(dny/ybin) * line_read[0]]
         else:
             # If not drift mode, move entire image into storage area
-            frame_transfer = FFY*VCLOCK + (FFX + PRSCX)*HCLOCK
+            frame_transfer = FFY*VCLOCK_FRAME + (FFX + PRSCX)*HCLOCK
 
             yshift = nwin*[0.]
-            yshift[0] = ys[0]*VCLOCK
+            yshift[0] = ys[0]*VCLOCK_STORAGE
             for nw in range(1, nwin):
-                yshift[nw] = (ys[nw]-ys[nw-1]-ny[nw-1])*VCLOCK
+                yshift[nw] = (ys[nw]-ys[nw-1]-ny[nw-1])*VCLOCK_STORAGE
 
             line_clear = nwin*[0.]
             for nw in range(nwin):
@@ -725,7 +758,7 @@ class InstPars(tk.LabelFrame):
 
             line_read = nwin*[0.]
             for nw in range(nwin):
-                line_read[nw] = (VCLOCK*ybin + numhclocks[nw]*HCLOCK +
+                line_read[nw] = (VCLOCK_STORAGE*ybin + numhclocks[nw]*HCLOCK +
                                  video*nx[nw]/xbin) + 3*SETUP_READ
                 if oscan:
                     line_read[nw] += PRSCX*HCLOCK + video*PRSCX/xbin
@@ -740,7 +773,7 @@ class InstPars(tk.LabelFrame):
         # now get the total time to read out one exposure.
         cycleTime = expose_delay + clear_time + frame_transfer
         if isDriftMode:
-            cycleTime += pshift*VCLOCK + yshift[0] + line_clear[0] + readout[0]
+            cycleTime += pshift*VCLOCK_STORAGE + yshift[0] + line_clear[0] + readout[0]
         else:
             for nw in range(nwin):
                 cycleTime += yshift[nw] + line_clear[nw] + readout[nw]
