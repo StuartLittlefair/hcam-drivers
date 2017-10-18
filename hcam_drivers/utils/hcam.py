@@ -254,7 +254,7 @@ class InstPars(tk.LabelFrame):
                                      ys, ysmin, ysmax, nx, ny,
                                      xbfac, ybfac, self.check)
 
-        self.quad_frame.grid(row=8, column=0, columnspan=3,
+        self.quad_frame.grid(row=9, column=0, columnspan=3,
                              sticky=tk.W+tk.N)
 
         # Pack two halfs
