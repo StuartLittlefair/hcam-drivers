@@ -98,6 +98,15 @@ Unit:
 Comment Format:    Extra rows that need to be clocked
 Description:       Extra rows that need to be clocked
 
+Parameter Name:    DET.FASTCLK
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    Fast clock file used?
+Description:       Fast clock file used?
+
 #
 # WINDOW Parameters from the GUI
 #
