@@ -179,7 +179,11 @@ class Windows(ObsMode):
             'DET.WIN1.XSF': 2049 - app_data['x1start_lowerright'] - app_data['x1size'],
             'DET.WIN1.XSG': 2049 - app_data['x1start_upperright'] - app_data['x1size'],
             'DET.WIN1.XSH': app_data['x1start_upperleft'] - 1,
-            'DET.WIN1.YS': app_data['y1start'] - 1
+            'DET.WIN1.YS': app_data['y1start'] - 1,
+            'DET.WIN1.XSLL': app_data['x1start_lowerleft'],
+            'DET.WIN1.XSLR': app_data['x1start_lowerright'],
+            'DET.WIN1.XSUL': app_data['x1start_upperleft'],
+            'DET.WIN1.XSUR': app_data['x1start_upperright']
         }
         self.detpars.update(win1)
         if 'x2size' in app_data:
@@ -190,7 +194,11 @@ class Windows(ObsMode):
                 'DET.WIN2.XSF': 2049 - app_data['x2start_lowerright'] - app_data['x2size'],
                 'DET.WIN2.XSG': 2049 - app_data['x2start_upperright'] - app_data['x2size'],
                 'DET.WIN2.XSH': app_data['x2start_upperleft'] - 1,
-                'DET.WIN2.YS': app_data['y2start'] - 1
+                'DET.WIN2.YS': app_data['y2start'] - 1,
+                'DET.WIN2.XSLL': app_data['x2start_lowerleft'],
+                'DET.WIN2.XSLR': app_data['x2start_lowerright'],
+                'DET.WIN2.XSUL': app_data['x2start_upperleft'],
+                'DET.WIN2.XSUR': app_data['x2start_upperright']
             }
             self.detpars.update(win2)
 
@@ -214,7 +222,9 @@ class Drift(ObsMode):
             'DET.DRWIN.XSE': app_data['x1start_left'] - 1,
             'DET.DRWIN.XSF': 2049 - app_data['x1start_right'] - app_data['x1size'],
             'DET.DRWIN.XSH': app_data['x1start_left'] - 1,
-            'DET.DRWIN.XSG': 2049 - app_data['x1start_right'] - app_data['x1size']
+            'DET.DRWIN.XSG': 2049 - app_data['x1start_right'] - app_data['x1size'],
+            'DET.DRWIN.XSL': app_data['x1start_left'],
+            'DET.DRWIN.XSR': app_data['x1start_right'],
         }
         self.detpars.update(win1)
         self.nrows = 520  # number of rows in storage area
