@@ -410,7 +410,7 @@ class InstPars(tk.LabelFrame):
                 self.wframe.npair.set(1)
 
                 # set the window pair values
-                labels = ('x1start_left', 'y1_start',
+                labels = ('x1start_left', 'y1start',
                           'x1start_right', 'x1size',
                           'y1size')
                 if not all(label in data for label in labels):
@@ -418,7 +418,7 @@ class InstPars(tk.LabelFrame):
                 # now actually set them
                 self.wframe.xsl[0].set(data['x1start_left'])
                 self.wframe.xsr[0].set(data['x1start_right'])
-                self.wframe.ys[0].set(data['y1_start'])
+                self.wframe.ys[0].set(data['y1start'])
                 self.wframe.nx[0].set(data['x1size'])
                 self.wframe.ny[0].set(data['y1size'])
 
