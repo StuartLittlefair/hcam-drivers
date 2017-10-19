@@ -49,6 +49,7 @@ class ObsMode(object):
             'DET.CLRCCD': 'T' if app_data['clear'] else 'F',
             'DET.NCLRS': 5,
             'DET.DUMMY': dummy,
+            'DET.FASTCLK': fastclk,
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
             'DET.GPS': 'T',
             'DET.INCPRSCX': 'T' if app_data['oscan'] else 'F',
