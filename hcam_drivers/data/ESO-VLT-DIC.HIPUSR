@@ -99,6 +99,99 @@ Comment Format:    Extra rows that need to be clocked
 Description:       Extra rows that need to be clocked
 
 #
+# WINDOW Parameters from the GUI
+#
+Parameter Name:    DET.DRWIN.XSL
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    X-start of left window (GUI coords)
+Description:       X-start of left window (GUI coords)
+
+Parameter Name:    DET.DRWIN.XSR
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    X-start of right window (GUI coords)
+Description:       X-start of right window (GUI coords)
+
+Parameter Name:    DET.WIN1.XSLL
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart lower left window (GUI coords)
+Description:       xstart lower left window (GUI coords)
+
+Parameter Name:    DET.WIN1.XSLR
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart lower right window (GUI coords)
+Description:       xstart lower right window (GUI coords)
+
+Parameter Name:    DET.WIN1.XSUL
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart upper left window (GUI coords)
+Description:       xstart upper left window (GUI coords)
+
+Parameter Name:    DET.WIN1.XSUR
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart upper right window (GUI coords)
+Description:       xstart upper right window (GUI coords)
+
+Parameter Name:    DET.WIN2.XSLL
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart lower left window (GUI coords)
+Description:       xstart lower left window (GUI coords)
+
+Parameter Name:    DET.WIN2.XSLR
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart lower right window (GUI coords)
+Description:       xstart lower right window (GUI coords)
+
+Parameter Name:    DET.WIN2.XSUL
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart upper left window (GUI coords)
+Description:       xstart upper left window (GUI coords)
+
+Parameter Name:    DET.WIN2.XSUR
+Class:             header
+Context:           FITS
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    xstart upper right window (GUI coords)
+Description:       xstart upper right window (GUI coords)
+
+#
 # PRIMARY KEYWORDS FROM USER ENTRY IN GUI
 #
 Parameter Name:    OBSERVER
