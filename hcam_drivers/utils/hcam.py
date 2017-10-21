@@ -594,13 +594,13 @@ class InstPars(tk.LabelFrame):
                         xsll, ys, nx, ny
                     )
                     ret += '{:d} {:d} {:d} {:d}\r\n'.format(
-                        xsul, ys, nx, ny
+                        xsul, 1025 - ys - ny, nx, ny
                     )
                     ret += '{:d} {:d} {:d} {:d}\r\n'.format(
                         xslr, ys, nx, ny
                     )
                     ret += '{:d} {:d} {:d} {:d}\r\n'.format(
-                        xsur, ys, nx, ny
+                        xsur, 1025 - ys - ny, nx, ny
                     )
                 return ret
         except:

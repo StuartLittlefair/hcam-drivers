@@ -19,9 +19,9 @@ class RtplotHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         wins = self.server.instpars.getRtplotWins()
         if wins == '':
-            self.wfile.write('No valid data available\r\n')
+            self.wfile.write('No valid data available\r\n'.encode())
         else:
-            self.wfile.write(wins)
+            self.wfile.write(wins.encode())
 
 
 class RtplotServer(socketserver.TCPServer):

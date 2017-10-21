@@ -8,6 +8,16 @@ import logging
 import six
 from six.moves import queue
 
+import hcam_drivers.utils as utils
+from hcam_drivers.globals import Container
+import hcam_drivers.utils.widgets as w
+from hcam_drivers.utils import hcam
+from hcam_drivers.utils.rtplot import RtplotServer
+from hcam_drivers.utils.misc import execCommand, FifoThread
+from hcam_drivers.config import (load_config, write_config,
+                                 check_user_dir, dump_app)
+from hcam_drivers.hardware import slide
+
 if not six.PY3:
     import Tkinter as tk
     import tkFileDialog as filedialog
@@ -16,15 +26,6 @@ else:
     import tkinter as tk
     from tkinter import filedialog, messagebox
 
-import hcam_drivers.utils as utils
-from hcam_drivers.globals import Container
-import hcam_drivers.utils.widgets as w
-from hcam_drivers.utils import hcam
-from hcam_drivers.utils.rtplot import RtplotServer
-from hcam_drivers.utils.misc import execCommand
-from hcam_drivers.config import (load_config, write_config,
-                                 check_user_dir, dump_app)
-from hcam_drivers.hardware import slide
 
 usage = """
 Python GUI for HiperCAM
@@ -208,6 +209,12 @@ class GUI(tk.Tk):
         check_user_dir(self.globals)
 
         # TODO: rtplot server?
+        if self.globals.cpars['rtplot_server_on']:
+            t = FifoThread('Rtplot', self.startRtplotServer, self.globals.FIFO)
+            t.daemon = True
+            t.start()
+        else:
+            self.server = None
 
         # File logging
         if self.globals.cpars['file_logging_on']:
@@ -256,6 +263,8 @@ class GUI(tk.Tk):
     def update(self):
         """
         Run regular checks of FIFO queue which stores exceptions raised in threads
+
+        Also check to see if we should start rtplot server
         """
         tk.Tk.update(self)
         try:
@@ -267,10 +276,15 @@ class GUI(tk.Tk):
             self.globals.clog.warn('Error in thread: ' + error)
             self.globals.clog.debug(tback)
 
+        if self.server is None and self.globals.cpars['rtplot_server_on']:
+            t = FifoThread('Rtplot', self.startRtplotServer, self.globals.FIFO)
+            t.daemon = True
+            t.start()
+
         # schedule next check
         self.after(2000, self.update)
 
-    def startRtplotServer(self, x):
+    def startRtplotServer(self):
         """
         Starts up the server to handle GET requests from rtplot
         It is at this point that we pass the window parameters
@@ -278,7 +292,7 @@ class GUI(tk.Tk):
         """
         self.server = RtplotServer(self.globals.ipars,
                                    self.globals.cpars['rtplot_server_port'])
-        self.server.run()
+        self.server.run(self.globals)
 
 
 if __name__ == "__main__":
