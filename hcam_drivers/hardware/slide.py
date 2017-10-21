@@ -6,13 +6,8 @@ Class to talk to the focal plane slide
 Written by Stu.
 """
 from __future__ import (print_function, division, absolute_import)
-import serial
 import struct
 import six
-if not six.PY3:
-    import Tkinter as tk
-else:
-    import tkinter as tk
 
 # internal imports
 from ..utils.logs import Logger
@@ -20,6 +15,11 @@ from ..utils.widgets import GuiLogger, IntegerEntry
 from ..utils.misc import FifoThread
 from ..utils.tkutils import get_root
 from .termserver import netdevice
+
+if not six.PY3:
+    import Tkinter as tk
+else:
+    import tkinter as tk
 
 
 class SlideError(Exception):

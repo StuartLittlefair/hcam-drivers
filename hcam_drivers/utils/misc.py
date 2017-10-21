@@ -3,10 +3,6 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import json
 from six.moves import urllib
 import six
-if not six.PY3:
-    import tkFileDialog as filedialog
-else:
-    from tkinter import filedialog
 import threading
 import sys
 import traceback
@@ -14,6 +10,10 @@ import os
 import re
 
 from . import DriverError
+if not six.PY3:
+    import tkFileDialog as filedialog
+else:
+    from tkinter import filedialog
 
 
 class ReadServer(object):
@@ -357,6 +357,6 @@ class FifoThread(threading.Thread):
         except Exception:
             t, v, tb = sys.exc_info()
             error = traceback.format_exception_only(t, v)[0][:-1]
-            tback = self.name + ' Traceback (most recent call last):\n' + \
-                    ''.join(traceback.format_tb(tb))
+            tback = (self.name + ' Traceback (most recent call last):\n' +
+                     ''.join(traceback.format_tb(tb)))
             self.fifo.put((error, tback))
