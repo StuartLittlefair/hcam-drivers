@@ -1365,9 +1365,6 @@ class Start(w.ActButton):
         """
         Carries out action associated with start button
         """
-        if not messagebox.askokcancel('Confirm', 'Really start?'):
-            return False
-
         g = get_root(self).globals
         # check binning against overscan
         msg = """

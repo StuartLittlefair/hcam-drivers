@@ -3322,7 +3322,7 @@ class WinQuads(tk.Frame):
                 self.label.append(tk.Label(bottom, text='Quad: '))
             else:
                 self.label.append(
-                    tk.Label(bottom, text='Quad ' + str(nr) + ': ')
+                    tk.Label(bottom, text='Quad ' + str(nr + 1) + ': ')
                 )
 
             self.xsll.append(
