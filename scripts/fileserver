@@ -118,7 +118,7 @@ def make_app(db, debug):
     return Application([
         # url routing. look for runXXX pattern first, assume everything else
         # is a directory for e.g uls
-        url(r"/(run[0-9]+)", RunHandler, dict(db=db)),
+        url(r"/(.*run[0-9]+)", RunHandler, dict(db=db)),
         url(r"/(.*)", MainHandler, dict(db=db), name="path")
     ], debug=debug)
 
