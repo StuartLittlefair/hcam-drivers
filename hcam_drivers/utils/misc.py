@@ -9,6 +9,8 @@ import traceback
 import os
 import re
 
+from astropy.io import fits
+
 from . import DriverError
 if not six.PY3:
     import tkFileDialog as filedialog
@@ -194,6 +196,87 @@ def createJSON(g, full=True):
         data['hardware'] = g.ccd_hw.dumpJSON()
         data['tcs'] = g.info.dumpJSON()
     return data
+
+
+def jsonFromFits(fname):
+    hdr = fits.getheader(fname)
+
+    def full_key(key):
+        return 'HIERARCH ESO {}'.format(key)
+
+    def get(name, default=None):
+        return hdr.get(full_key(name), default)
+
+    app_data = dict(
+        multpliers=[1 + get('DET NSKIPS{}'.format(i+1), 0) for i in range(5)],
+        dummy_out=get('DET DUMMY', 0),
+        fastclk=get('DET FASTCLK', 0),
+        oscan=int(get('DET INCPRSCX', False)),
+        oscany=int(get('DET INCOVSCY', False)),
+        readout='Slow' if get('DET SPEED', 0) == 0 else 'Fast',
+        xbin=get('DET BINX1', 1),
+        ybin=get('DET BINY1', 1),
+        clear=int(get('DET CLRCCD', True)),
+        led_flsh=int(get('DET EXPLED', False)),
+        dwell=get('DET TEXPOSE', 0.1)/1000
+        # TODO: numexp
+    )
+
+    user = dict(
+        Observers=hdr.get('OBSERVER', ''),
+        target=hdr.get('OBJECT', ''),
+        comment=hdr.get('RUNCOM', ''),
+        flags=hdr.get('IMAGETYP', 'data'),
+        filters=hdr.get('FILTERS', 'us,gs,rs,is,zs'),
+        ID=hdr.get('PROGRM', ''),
+        PI=hdr.get('PI', '')
+
+    )
+
+    mode = get('DET READ CURID')
+    if mode == 2:
+        # one window
+        app_data['app'] = 'Windows'
+        app_data['x1size'] = get('DET WIN1 NX')
+        app_data['y1size'] = get('DET WIN1 NY')
+        app_data['x1start_lowerleft'] = get('DET WIN1 XSLL')
+        app_data['x1start_lowerright'] = get('DET WIN1 XSLR')
+        app_data['x1start_upperleft'] = get('DET WIN1 XSUL')
+        app_data['x1start_upperright'] = get('DET WIN1 XSUR')
+        app_data['y1start'] = get('DET WIN1 YS') + 1
+    elif mode == 3:
+        # two window
+        app_data['app'] = 'Windows'
+        app_data['x1size'] = get('DET WIN1 NX')
+        app_data['y1size'] = get('DET WIN1 NY')
+        app_data['x1start_lowerleft'] = get('DET WIN1 XSLL')
+        app_data['x1start_lowerright'] = get('DET WIN1 XSLR')
+        app_data['x1start_upperleft'] = get('DET WIN1 XSUL')
+        app_data['x1start_upperright'] = get('DET WIN1 XSUR')
+        app_data['y1start'] = get('DET WIN1 YS') + 1
+        app_data['x2size'] = get('DET WIN2 NX')
+        app_data['y2size'] = get('DET WIN2 NY')
+        app_data['x2start_lowerleft'] = get('DET WIN2 XSLL')
+        app_data['x2start_lowerright'] = get('DET WIN2 XSLR')
+        app_data['x2start_upperleft'] = get('DET WIN2 XSUL')
+        app_data['x2start_upperright'] = get('DET WIN2 XSUR')
+        app_data['y2start'] = get('DET WIN2 YS') + 1
+    elif mode == 4:
+        # drift mode
+        app_data['app'] = 'Drift'
+        app_data['x1size'] = get('DET DRWIN NX')
+        app_data['y1size'] = get('DET DRWIN NY')
+        app_data['x1start_left'] = get('DET DRWIN XSL')
+        app_data['x1start_right'] = get('DET DRWIN XSR')
+        app_data['y1start'] = 1 + get('DET DRWIN YS')
+    else:
+        app_data['app'] = 'FullFrame'
+
+    setup_data = dict(
+        appdata=app_data,
+        user=user
+    )
+    return json.dumps(setup_data)
 
 
 def execCommand(g, command, timeout=10):

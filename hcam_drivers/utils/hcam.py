@@ -21,7 +21,7 @@ from . import widgets as w
 from . import DriverError
 from .tkutils import get_root, addStyle
 from .misc import (createJSON, saveJSON, postJSON,
-                   execCommand, isRunActive)
+                   execCommand, isRunActive, jsonFromFits)
 from ..hardware import honeywell, meerstetter, unichiller, vacuum
 
 
@@ -1439,15 +1439,19 @@ class Load(w.ActButton):
         """
         g = get_root(self).globals
         fname = filedialog.askopenfilename(
-            defaultextension='.json', filetypes=[('json files', '.json'), ],
+            defaultextension='.json',
+            filetypes=[('json files', '.json'), ('fits files', '.fits')],
             initialdir=g.cpars['app_directory'])
         if not fname:
             g.clog.warn('Aborted load from disk')
             return False
 
         # load json
-        with open(fname) as ifname:
-            json_string = ifname.read()
+        if fname.endswith('.json'):
+            with open(fname) as ifname:
+                json_string = ifname.read()
+        else:
+            json_string = jsonFromFits(fname)
 
         # load up the instrument settings
         g.ipars.loadJSON(json_string)
