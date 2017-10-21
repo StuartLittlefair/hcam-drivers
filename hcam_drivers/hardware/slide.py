@@ -483,7 +483,7 @@ class FocalPlaneSlide(tk.LabelFrame):
                     timeout = self.slide.time_home()
                     if timeout > 3:
                         inback = True
-                        t = FifoThread(self.slide.home, g.FIFO,
+                        t = FifoThread('Slide', self.slide.home, g.FIFO,
                                        args=(timeout,))
                     else:
                         self.slide.home(timeout)
@@ -492,7 +492,7 @@ class FocalPlaneSlide(tk.LabelFrame):
                     timeout = self.slide.time_absolute(UNBLOCK_POS, 'px')
                     if timeout > 3:
                         inback = True
-                        t = FifoThread(self.slide.move_absolute, g.FIFO,
+                        t = FifoThread('Slide', self.slide.move_absolute, g.FIFO,
                                        args=(UNBLOCK_POS, 'px', timeout))
                     else:
                         self.slide.move_absolute(1100, 'px', timeout)
@@ -501,7 +501,7 @@ class FocalPlaneSlide(tk.LabelFrame):
                     timeout = self.slide.time_absolute(BLOCK_POS, 'px')
                     if timeout > 3:
                         inback = True
-                        t = FifoThread(self.slide.move_absolute, g.FIFO,
+                        t = FifoThread('Slide', self.slide.move_absolute, g.FIFO,
                                        args=(BLOCK_POS, 'px', timeout))
                     else:
                         self.slide.move_absolute(BLOCK_POS, 'px', timeout)
@@ -511,11 +511,11 @@ class FocalPlaneSlide(tk.LabelFrame):
 
                 elif comm[0] == 'reset':
                     inback = True
-                    t = FifoThread(self.slide.reset, g.FIFO)
+                    t = FifoThread('Slide', self.slide.reset, g.FIFO)
 
                 elif comm[0] == 'restore':
                     inback = True
-                    t = FifoThread(self.slide.restore, g.FIFO)
+                    t = FifoThread('Slide', self.slide.restore, g.FIFO)
 
                 elif comm[0] == 'enable':
                     self.slide.enable()
@@ -531,9 +531,9 @@ class FocalPlaneSlide(tk.LabelFrame):
                         timeout = self.slide.time_absolute(comm[1], 'px')
                         if timeout > 3:
                             inback = True
-                            t = FifoThread(
-                                self.slide.move_absolute, g.FIFO,
-                                args=(comm[1], 'px', timeout))
+                            t = FifoThread('Slide',
+                                           self.slide.move_absolute, g.FIFO,
+                                           args=(comm[1], 'px', timeout))
                         else:
                             self.slide.move_absolute(comm[1], 'px', timeout)
                     else:

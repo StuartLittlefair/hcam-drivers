@@ -342,9 +342,10 @@ class FifoThread(threading.Thread):
     that otherwise exceptions thrown from withins threaded operations are
     lost.
     """
-    def __init__(self, target, fifo, args=()):
+    def __init__(self, name, target, fifo, args=()):
         threading.Thread.__init__(self, target=target, args=args)
         self.fifo = fifo
+        self.name = name
 
     def run(self):
         """
@@ -356,6 +357,6 @@ class FifoThread(threading.Thread):
         except Exception:
             t, v, tb = sys.exc_info()
             error = traceback.format_exception_only(t, v)[0][:-1]
-            tback = 'Traceback (most recent call last):\n' + \
+            tback = self.name + ' Traceback (most recent call last):\n' + \
                     ''.join(traceback.format_tb(tb))
             self.fifo.put((error, tback))

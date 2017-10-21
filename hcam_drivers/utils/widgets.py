@@ -1,6 +1,8 @@
 # general purpose widgets
 from __future__ import print_function, unicode_literals, absolute_import, division
 from six.moves import urllib
+import sys
+import traceback
 import threading
 import time
 import socket
@@ -2465,8 +2467,15 @@ class InfoFrame(tk.LabelFrame):
             return
 
         def tcs_threaded_update():
-            ra, dec, pa, focus = tcsfunc()
-            self.tcs_data_queue.put((ra, dec, pa, focus))
+            try:
+                ra, dec, pa, focus = tcsfunc()
+                self.tcs_data_queue.put((ra, dec, pa, focus))
+            except Exception as err:
+                t, v, tb = sys.exc_info()
+                error = traceback.format_exception_only(t, v)[0].strip()
+                tback = 'TCS Traceback (most recent call last):\n' + \
+                        ''.join(traceback.format_tb(tb))
+                g.FIFO.put((error, tback))
 
         t = threading.Thread(target=tcs_threaded_update)
         t.start()
@@ -2487,8 +2496,12 @@ class InfoFrame(tk.LabelFrame):
             try:
                 pos_ms, pos_mm, pos_px = g.fpslide.slide.return_position()
                 self.slide_pos_queue.put((pos_ms, pos_mm, pos_px))
-            except:
-                pass
+            except Exception as err:
+                t, v, tb = sys.exc_info()
+                error = traceback.format_exception_only(t, v)[0].strip()
+                tback = 'Slide Traceback (most recent call last):\n' + \
+                        ''.join(traceback.format_tb(tb))
+                g.FIFO.put((error, tback))
 
         t = threading.Thread(target=slide_threaded_update)
         t.start()
