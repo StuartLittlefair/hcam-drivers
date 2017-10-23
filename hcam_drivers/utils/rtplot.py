@@ -1,5 +1,4 @@
 from __future__ import print_function, unicode_literals, absolute_import, division
-import six
 from six.moves import socketserver
 try:
     from http.server import BaseHTTPRequestHandler
