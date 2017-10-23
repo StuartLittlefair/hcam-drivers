@@ -208,7 +208,7 @@ def jsonFromFits(fname):
         return hdr.get(full_key(name), default)
 
     app_data = dict(
-        multpliers=[1 + get('DET NSKIPS{}'.format(i+1), 0) for i in range(5)],
+        multipliers=[1 + get('DET NSKIPS{}'.format(i+1), 0) for i in range(5)],
         dummy_out=get('DET DUMMY', 0),
         fastclk=get('DET FASTCLK', 0),
         oscan=int(get('DET INCPRSCX', False)),
