@@ -872,13 +872,23 @@ class RunPars(tk.LabelFrame):
         Encodes current parameters to JSON compatible dictionary
         """
         g = get_root(self).globals
+        dtype = g.observe.rtype()
+        if dtype == 'bias':
+            target = 'BIAS'
+        elif dtype == 'flat':
+            target = 'FLAT'
+        elif dtype == 'dark':
+            target = 'DARK'
+        else:
+            target = self.target.value()
+
         return dict(
-            target=self.target.value(),
+            target=target,
             ID=self.progid.value(),
             PI=self.pi.value(),
             Observers=self.observers.value(),
             comment=self.comment.value(),
-            flags=g.observe.rtype(),
+            flags=dtype,
             filters=self.filter.value()
         )
 
