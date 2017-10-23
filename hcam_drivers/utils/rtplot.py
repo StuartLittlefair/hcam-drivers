@@ -1,14 +1,17 @@
 from __future__ import print_function, unicode_literals, absolute_import, division
 import six
 from six.moves import socketserver
-import http.server
+try:
+    from http.server import BaseHTTPRequestHandler
+except:
+    from BaseHTTPServer import BaseHTTPRequestHandler
 import socket
 import errno
 
 from . import DriverError
 
 
-class RtplotHandler(http.server.BaseHTTPRequestHandler):
+class RtplotHandler(BaseHTTPRequestHandler):
     """
     Handler for requests from rtplot. It accesses the window
     parameters via the 'server' attribute; the Server class
