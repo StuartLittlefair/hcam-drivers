@@ -69,7 +69,7 @@ then
     echo "starting HServer"
     $XTERM -title "HServer" -e "hserver" &
 else
-    echo "HServer already running"
+    echo "HServer already running ($HS)"
 fi
 
 # launch server for File Transfer
@@ -80,7 +80,7 @@ then
     echo "starting FileServer"
     $XTERM -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
 else
-    echo "fileServer already running"
+    echo "fileServer already running ($FS)"
 fi
 
 # start GUI
@@ -90,5 +90,5 @@ then
     echo "starting GUI"
     hdriver &
 else
-    echo "GUI already running"
+    echo "GUI already running ($HD)"
 fi
