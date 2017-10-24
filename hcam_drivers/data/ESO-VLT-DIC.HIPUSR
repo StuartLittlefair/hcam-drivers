@@ -16,7 +16,7 @@
 
 Dictionary Name:   ESO-VLT-DIC.HIPUSR
 Scope:             GENERIC
-Source:            ESO DET
+Source:            SL
 Version Control:   "@(#) $Id: ESO-VLT-DIC.HIPUSR 297835 2017-07-11 13:51:15Z jstegmei $"
 Revision:          1.0
 Date:              2017-07-11
@@ -175,6 +175,15 @@ Value Format:      %s
 Unit:
 Comment Format:    Observer(s) at Telescope
 Description:       Short description of observers
+
+Parameter Name:    TELESCOP
+Class:             header
+Context:           FITS
+Type:              string
+Value Format:      %30s
+Unit:
+Comment Format:    <TEL>
+Description:       Telescope name
 
 Parameter Name:    OBJECT
 Class:             header
