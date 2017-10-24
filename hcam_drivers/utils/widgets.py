@@ -2434,9 +2434,11 @@ class InfoFrame(tk.LabelFrame):
         """
         Return dictionary of data for FITS headers.
         """
+        g = get_root(self).globals
         return dict(
             RA=self.ra['text'],
             DEC=self.dec['text'],
+            tel=g.cpars['telins_name'],
             alt=self._getVal(self.alt),
             az=self._getVal(self.az),
             secz=self._getVal(self.airmass),

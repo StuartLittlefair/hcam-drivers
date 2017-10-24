@@ -79,6 +79,7 @@ class ObsMode(object):
         # data from TCS
         tcs_data = setup_data.get('tcs', {})
         userpars.extend([
+            ('TELESCOP', tcs_data.get('tel', 'WHT')),
             ('RA', tcs_data.get('RA', '00:00:00.00')),
             ('DEC', tcs_data.get('DEC', '+00:00:00.0')),
             ('ALTITUDE', tcs_data.get('alt', -99)),
