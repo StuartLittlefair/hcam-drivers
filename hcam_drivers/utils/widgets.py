@@ -1545,16 +1545,6 @@ class Stop(ActButton):
                     # Report that run has stopped
                     g.clog.info('Run stopped')
                     self.stopped_ok = True
-
-                    idle = {'appdata': {'app': 'Idle'}}
-                    try:
-                        success = postJSON(g, idle)
-                        if not success:
-                            raise Exception('postJSON returned false')
-                    except Exception as err:
-                        g.clog.warn('Failed to enable idle mode')
-                        g.clog.warn(str(err))
-
                 else:
                     g.clog.warn('Failed to stop run')
                     self.stopped_ok = False
@@ -1584,7 +1574,19 @@ class Stop(ActButton):
             g.setup.powerOff.enable()
 
             # Stop exposure meter
+            # do this first, so timer doesn't also try to enable idle mode
             g.info.timer.stop()
+
+            # enable idle mode now run has stopped
+            g.clog.info('Setting chips to idle')
+            idle = {'appdata': {'app': 'Idle'}}
+            try:
+                success = postJSON(g, idle)
+                if not success:
+                    raise Exception('postJSON returned false')
+            except Exception as err:
+                g.clog.warn('Failed to enable idle mode')
+                g.clog.warn(str(err))
             return True
 
         elif self.stopping:
@@ -2323,6 +2325,18 @@ class Timer(tk.Label):
                     g.setup.powerOn.disable()
                     g.setup.powerOff.enable()
                     g.clog.info('Run stopped')
+
+                    # enable idle mode now run has stopped
+                    g.clog.info('Setting chips to idle')
+                    idle = {'appdata': {'app': 'Idle'}}
+                    try:
+                        success = postJSON(g, idle)
+                        if not success:
+                            raise Exception('postJSON returned false')
+                    except Exception as err:
+                        g.clog.warn('Failed to enable idle mode')
+                        g.clog.warn(str(err))
+
                     self.stop()
                     return
 
