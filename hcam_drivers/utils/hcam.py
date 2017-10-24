@@ -118,10 +118,12 @@ class ExposureMultiplier(tk.LabelFrame):
     def disable(self):
         for widget in self.widgets:
             widget.configure(state='disable')
+            widget.set_unbind()
 
     def enable(self):
         for widget in self.widgets:
             widget.configure(state='normal')
+            widget.set_bind()
 
 
 class InstPars(tk.LabelFrame):
@@ -328,6 +330,7 @@ class InstPars(tk.LabelFrame):
         expTime, _, _, _, _ = self.timing()
         if numexp == 0:
             numexp = -1
+
         data = dict(
             numexp=self.number.value(),
             app=self.app.value(),
@@ -344,9 +347,18 @@ class InstPars(tk.LabelFrame):
             multipliers=self.nmult.getall(),
             clear=self.clear()
         )
+        # no mixing clear and multipliers, no matter what GUI says
+        if data['clear']:
+            data['multipliers'] = [1 for i in self.nmult.getall()]
+
         # add window mode
         if not self.isFF():
             if self.isDrift():
+                # no clear, multipliers or oscan in drift
+                for setting in ('clear', 'oscan', 'oscany'):
+                    data[setting] = 0
+                data['multipliers'] = [1 for i in self.nmult.getall()]
+
                 for iw, (xsl, xsr, ys, nx, ny) in enumerate(self.wframe):
                     data['x{}start_left'.format(iw+1)] = xsl
                     data['x{}start_right'.format(iw+1)] = xsr
@@ -354,6 +366,9 @@ class InstPars(tk.LabelFrame):
                     data['y{}size'.format(iw+1)] = ny
                     data['x{}size'.format(iw+1)] = nx
             else:
+                # no oscany in window mode
+                data['oscany'] = 0
+
                 for iw, (xsll, xsul, xslr, xsur, ys, nx, ny) in enumerate(self.wframe):
                     data['x{}start_upperleft'.format(iw+1)] = xsul
                     data['x{}start_lowerleft'.format(iw+1)] = xsll
@@ -478,6 +493,13 @@ class InstPars(tk.LabelFrame):
         frame.xbin.set(xbin)
         frame.ybin.set(ybin)
 
+        if not self.frozen:
+            if self.clear() or self.isDrift():
+                # disable nmult in clear or drift mode
+                self.nmult.disable()
+            else:
+                self.nmult.enable()
+
         if self.isDrift():
             self.clearLab.config(state='disable')
             if not self.drift_frame.winfo_ismapped():
@@ -486,6 +508,8 @@ class InstPars(tk.LabelFrame):
                                       sticky=tk.W+tk.N)
 
             if not self.frozen:
+                self.oscany.config(state='disable')
+                self.oscan.config(state='disable')
                 self.clear.config(state='disable')
                 self.wframe.enable()
                 status = self.wframe.check()
@@ -493,6 +517,8 @@ class InstPars(tk.LabelFrame):
         elif self.isFF():
             self.clearLab.config(state='normal')
             if not self.frozen:
+                self.oscany.config(state='normal')
+                self.oscan.config(state='normal')
                 self.clear.config(state='normal')
                 self.wframe.disable()
 
@@ -504,6 +530,8 @@ class InstPars(tk.LabelFrame):
                                      sticky=tk.W+tk.N)
 
             if not self.frozen:
+                self.oscany.config(state='disable')
+                self.oscan.config(state='normal')
                 self.clear.config(state='normal')
                 self.wframe.enable()
                 status = self.wframe.check()
