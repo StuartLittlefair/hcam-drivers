@@ -64,7 +64,7 @@ XTERM="xterm -bg white -fg black -aw -vb -sb -sl 5000 -rightbar -geometry 80x16 
 
 # launch server for GUI communication
 HS=`ps ax | grep hserver | wc -l`
-if [ $HS -eq 1 ]
+if [ $HS -le 1 ]
 then
     echo "starting HServer"
     $XTERM -title "HServer" -e "hserver" &
@@ -75,7 +75,7 @@ fi
 # launch server for File Transfer
 username=`whoami`
 FS=`ps ax | grep fileserver | wc -l`
-if [ $FS -eq 1 ]
+if [ $FS -le 1 ]
 then
     echo "starting FileServer"
     $XTERM -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
@@ -85,7 +85,7 @@ fi
 
 # start GUI
 HD=`ps ax | grep hdriver | wc -l`
-if [ $HD -eq 1 ]
+if [ $HD -le 1 ]
 then
     echo "starting GUI"
     hdriver &
