@@ -39,38 +39,18 @@ def addStyle(w):
     g = root.globals
 
     # Default font
-    fam_name_list = [fam for fam in font.families() if 'times' in fam.lower()]
-    if len(fam_name_list):
-        font_dict = {'family': fam_name_list[0],
-                     'weight': 'bold',
-                     'size': 10}
-        g.DEFAULT_FONT = font.Font(w, **font_dict)
-    else:
-        print('falling back to defaults')
-        g.DEFAULT_FONT = font.nametofont("TkDefaultFont")
-        g.DEFAULT_FONT.configure(size=10, weight='bold')
+    g.DEFAULT_FONT = font.nametofont("TkDefaultFont")
+    g.DEFAULT_FONT.configure(size=9, weight='bold', family='helvetica')
     w.option_add('*Font', g.DEFAULT_FONT)
 
     # Menu font
-    if len(fam_name_list):
-        font_dict = {'family': fam_name_list[0],
-                     'weight': 'normal',
-                     'size': 10}
-        g.MENU_FONT = font.Font(w, **font_dict)
-    else:
-        g.MENU_FONT = font.nametofont("TkMenuFont")
-        g.MENU_FONT.configure(size=10)
+    g.MENU_FONT = font.nametofont("TkMenuFont")
+    g.MENU_FONT.configure(size=9)
     w.option_add('*Menu.Font', g.MENU_FONT)
 
     # Entry font
-    if len(fam_name_list):
-        font_dict = {'family': fam_name_list[0],
-                     'weight': 'normal',
-                     'size': 10}
-        g.ENTRY_FONT = font.Font(w, **font_dict)
-    else:
-        g.ENTRY_FONT = font.nametofont("TkTextFont")
-        g.ENTRY_FONT.configure(size=10)
+    g.ENTRY_FONT = font.nametofont("TkTextFont")
+    g.ENTRY_FONT.configure(size=9)
     w.option_add('*Entry.Font', g.ENTRY_FONT)
 
     # position and size
