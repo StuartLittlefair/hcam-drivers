@@ -128,6 +128,24 @@ Unit:
 Comment Format:    X-start of right window (GUI coords)
 Description:       X-start of right window (GUI coords)
 
+Parameter Name:    DET.DRWIN.YS.GUI
+Class:             header
+Context:           Detector
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    ystart of windows (GUI coords)
+Description:       ystart of windows (GUI coords)
+
+Parameter Name:    DET.WINi.YS.GUI
+Class:             header
+Context:           Detector
+Type:              integer
+Value Format:      %d
+Unit:
+Comment Format:    ystart of windows (GUI coords)
+Description:       ystart of windows (GUI coords)
+
 Parameter Name:    DET.WINi.XSLL
 Class:             header
 Context:           Detector
