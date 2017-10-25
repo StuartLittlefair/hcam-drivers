@@ -39,7 +39,7 @@ def addStyle(w):
     g = root.globals
 
     # Default font
-    fam_name_list = [fam for fam in font.families() if 'symbol' in fam.lower()]
+    fam_name_list = [fam for fam in font.families() if 'helvetica' in fam.lower()]
     if len(fam_name_list):
         font_dict = {'family': fam_name_list[0],
                      'weight': 'bold',
