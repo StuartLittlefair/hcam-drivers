@@ -164,7 +164,8 @@ class Idle(ObsMode):
             'numexp': 0,
             'oscany': False,
             'multipliers': (1, 1, 1, 1, 1),
-            'exptime': 10
+            'exptime': 10,
+            'dwell': 10
         }
         setup_data = {'appdata': app_data}
         super(Idle, self).__init__(setup_data)
