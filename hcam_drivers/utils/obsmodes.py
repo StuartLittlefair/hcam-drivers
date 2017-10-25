@@ -61,7 +61,7 @@ class ObsMode(object):
             'DET.NSKIPS5': nz-1,
             'DET.SEQ.CLKFILE': clockfile,
             'DET.SEQ1.DIT': app_data['exptime'],
-            'DET.TDELAY.GUI': app_data['dwell']
+            'DET.TDELAY.GUI': 1000*app_data['dwell']
         }
 
         # parameters for user-defined headers
