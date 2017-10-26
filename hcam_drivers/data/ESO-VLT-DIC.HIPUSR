@@ -26,23 +26,41 @@ Description:       Data Interface Dictionary for NGC Hipercam user hdrs
 #
 # Timing of HiPERCAM sequencer routines
 #
-Parameter Name:    DET.TWIPE
+Parameter Name:    DET.TCLEAR
 Class:             header
 Context:           FITS
 Type:              double
 Value Format:      %.4f
 Unit:
-Comment Format:    Time for WIPE of CCD (msecs)
-Description:       WIPE time is either 0 or the time to run several clears
+Comment Format:    Time for clear of CCD (msecs)
+Description:       clear time is either 0 or the time to run several clears
 
-Parameter Name:    DET.TEXPOSE
+Parameter Name:    DET.TDELAY
 Class:             header
 Context:           FITS
 Type:              double
 Value Format:      %.4f
 Unit:
-Comment Format:    DWELL (expose time for all CCDs, msecs)
-Description:       Expose time is the time we wait, not clocking or reading out
+Comment Format:    delay (delay time for all CCDs, msecs)
+Description:       delay (delay time for all CCDs, msecs)
+
+Parameter Name:    DET.TDELAY.GUI
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    delay time in GUI (msecs)
+Description:       delay time in GUI (msecs)
+
+Parameter Name:    DET.TCYCLE
+Class:             header
+Context:           FITS
+Type:              double
+Value Format:      %.4f
+Unit:
+Comment Format:    cycle time in msecs
+Description:       cycle time in msecs
 
 Parameter Name:    DET.TREAD
 Class:             header
@@ -50,8 +68,8 @@ Context:           FITS
 Type:              double
 Value Format:      %.4f
 Unit:
-Comment Format:    Time for READ routine (FT and READOUT, msecs)
-Description:       READ
+Comment Format:    FT and READOUT, msecs
+Description:       FT and READOUT, msecs
 
 Parameter Name:    DET.TFT
 Class:             header

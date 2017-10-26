@@ -60,7 +60,8 @@ class ObsMode(object):
             'DET.NSKIPS4': ni-1,
             'DET.NSKIPS5': nz-1,
             'DET.SEQ.CLKFILE': clockfile,
-            'DET.SEQ1.DIT': app_data['exptime']
+            'DET.SEQ1.DIT': app_data['exptime'],
+            'DET.TDELAY.GUI': 1000*app_data['dwell']
         }
 
         # parameters for user-defined headers
@@ -163,7 +164,8 @@ class Idle(ObsMode):
             'numexp': 0,
             'oscany': False,
             'multipliers': (1, 1, 1, 1, 1),
-            'exptime': 10
+            'exptime': 10,
+            'dwell': 10
         }
         setup_data = {'appdata': app_data}
         super(Idle, self).__init__(setup_data)
