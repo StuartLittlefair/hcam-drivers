@@ -715,10 +715,9 @@ class InstPars(tk.LabelFrame):
         # convert timing parameters to seconds
         expose_delay = expose
 
-        # clear chip by VCLOCK-ing the image and storage areas
+        # clear chip by VCLOCK-ing the image and area and dumping storage area (x5)
         if lclear:
-            clear_time = (FFY*VCLOCK_STORAGE + FFY*VCLOCK_FRAME +
-                          (FFX + PRSCX)*HCLOCK)
+            clear_time = 5*(FFY*VCLOCK_FRAME + FFY*DUMP_TIME)
         else:
             clear_time = 0.0
 
