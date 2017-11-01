@@ -1,0 +1,167 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+import time
+import tqdm
+
+from six.moves.queue import Queue
+from hcam_drivers.hardware import slide
+from hcam_drivers.globals import Container
+from hcam_drivers.config import load_config
+from hcam_drivers.utils.misc import FifoThread
+
+usage = """
+'slide' controls the focal plane slide; it takes a single argument,
+with the following possible forms:
+
+    home         -- return the slide to its home position
+    park         -- move the focal plane just out of the field
+    position     -- return the current slide position
+    reset        -- equivalent to powering off and then on
+    stop         -- stop the device during a move
+    enable       -- enable potentiometer on back of slide
+    disable      -- disable potentiometer on back of slide
+    +<off>mm     -- add 'off' millimetres to current position
+    +<off>ms     -- add 'off' microsteps to current position
+    +<off>px     -- add 'off' pixels to current position
+    -<off>mm     -- subtract 'off' millimetres from current position
+    -<off>ms     -- subtract 'off' microsteps from current position
+    -<off>px     -- subtract 'off' pixels from current position
+    pos=<pos>mm  -- go to absolute position of 'pos' millimetres
+    pos=<pos>ms  -- go to absolute position of 'pos' microsteps
+    pos=<pos>px  -- go to absolute position of 'pos' pixels
+
+    Hitting <Ctrl-C> will terminate a move that has already started.
+"""
+
+
+def action(command, estimated_time, args=()):
+    """
+    Run a long running slide command, stopping on <Ctrl-C>
+    """
+    errq = Queue()
+    tstep = 0.1
+    pbar = tqdm.tqdm(total=int(estimated_time/tstep),
+                     ncols=40, leave=False,
+                     bar_format='{l_bar}{bar} | {remaining}')
+    t = FifoThread('Slide', command, errq, args=args)
+    t.start()
+    try:
+        while t.is_alive():
+            t.join(timeout=tstep)
+            pbar.update(1)
+    except KeyboardInterrupt:
+        raise  # re-raise so calling thread can stop slide
+
+    # handle exceptions raised in thread
+    try:
+        exc = errq.get(block=False)
+    except Queue.Empty:
+        pass
+    else:
+        error, tback = exc
+        print('\n\nError in slide thread: {}'.format(error))
+        print(tback)
+
+
+def parse_move(move_str):
+    return int(move_str[:-2]), move_str[-2:]
+
+
+def parse_position(pos_str):
+    return parse_move(pos_str.split('=')[1])
+
+
+if __name__ == "__main__":
+
+    # read defaults from hdriver config file
+    g = Container()
+    g.cpars = dict()
+    load_config(g)
+    cpars = g.cpars
+
+    ip, port = cpars['termserver_ip'], cpars['slide_port']
+    sl = slide.Slide(None, ip, port)
+
+    import sys
+    try:
+        comm = sys.argv[1]
+    except:
+        print(usage)
+        sys.exit(-1)
+
+    in_background = False
+    args = ()
+    if comm == 'home':
+        in_background = True
+        timeout = sl.time_home()
+        command = sl.home
+        args = (timeout,)
+
+    elif comm == 'park':
+        in_background = True
+        timeout = sl.time_absolute(slide.UNBLOCK_POS, 'px')
+        command = sl.move_absolute
+        args = (slide.UNBLOCK_POS, 'px', timeout)
+
+    elif comm == 'position':
+        command = sl.report_position
+
+    elif comm == 'reset':
+        in_background = True
+        command = sl.reset
+
+    elif comm == 'stop':
+        command = sl.stop
+
+    elif comm == 'enable':
+        command = sl.enable
+
+    elif comm == 'disable':
+        command = sl.disable
+
+    elif comm.startswith('+'):
+        try:
+            offset, unit = parse_move(comm[1:])
+        except:
+            raise ValueError('offset {} not understood'.format(comm))
+        in_background = True
+        nstep = sl._convert_to_microstep(offset, unit)
+        timeout = sl.compute_timeout(nstep)
+        command = sl.move_relative
+        args = (offset, unit, timeout)
+
+    elif comm.startswith('-'):
+        try:
+            offset, unit = parse_move(comm[1:])
+        except:
+            raise ValueError('offset {} not understood'.format(comm))
+        in_background = True
+        nstep = sl._convert_to_microstep(offset, unit)
+        timeout = sl.compute_timeout(nstep)
+        command = sl.move_relative
+        args = (-offset, unit, timeout)
+
+    elif comm.startswith('pos='):
+        try:
+            position, unit = parse_position(comm[1:])
+        except:
+            raise ValueError('position {} not understood'.format(comm))
+        in_background = True
+        timeout = sl.time_absolute(position, unit)
+        command = sl.move_absolute
+        args = (position, unit, timeout)
+
+    else:
+        print('Command not recognised!')
+        print(usage)
+
+    if in_background:
+        try:
+            action(command, timeout, args)
+        except:
+            # handle keyboardinterrupt
+            sl.stop()
+    else:
+        result = command(*args)
+        if result is not None:
+            print(result)

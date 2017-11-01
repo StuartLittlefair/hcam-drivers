@@ -103,7 +103,7 @@ package_info['package_data'][PACKAGENAME].extend(c_files)
 # https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
 
 install_requires = ['astropy', 'pyserial', 'tornado',
-                    'pyaml', 'configobj']
+                    'pyaml', 'configobj', 'tqdm']
 if sys.version_info[0] == 2:
     install_requires.append('pymodbus')
 else:
