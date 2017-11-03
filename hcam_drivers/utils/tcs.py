@@ -11,7 +11,11 @@ def getWhtTcs():
     cmd = "ssh whtguest@taurus.ing.iac.es "
     cmd += "setenv LD_LIBRARY_PATH /wht/release/Ubuntu1404-64/lib; "
     cmd += "/wht/release/Ubuntu1404-64/bin/ParameterNoticeBoardLister | grep TCS"
-    results = subprocess.check_output(cmd.split(), timeout=10).decode().split('\n')
+    try:
+        results = subprocess.check_output(cmd.split(), timeout=10).decode().split('\n')
+    except subprocess.TimeoutExpired:
+        raise IOError('Checking TCS info timed out')
+
     tcs_data = dict()
     pattern = 'TCS\.(\w*) -> (\w*) (.*)'
     for result in results:
