@@ -1,19 +1,17 @@
 HiperCAM Python Driver
 ===================================
 
-.. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
-    :target: http://www.astropy.org
-    :alt: Powered by Astropy Badge
-
 ``hcam_drivers`` provides Python tools for interfacing with the HiperCAM high-speed
 camera. ``hcam_drivers`` is written in Python and is based on TKinter. It should be
-compatible with Python2 and Python3. 
+compatible with Python2 and Python3.
 
 Installation
 ------------
 
 The software is written as much as possible to make use of core Python
 components. The third-party requirements are:
+
+- My own `hcam_widgets <https://github.com/HiPERCAM/hcam_widgets/>`_ package;
 
 - `astropy <http://astropy.org/>`_, a package for astronomical calculations;
 
@@ -28,20 +26,14 @@ components. The third-party requirements are:
 
 Usually, installing with pip will handle these dependencies for you, so installation is a simple matter of typing::
 
- pip install .
+ pip install hcam_drivers
 
 or if you don't have root access::
 
- pip install --prefix=my_own_installation_directory .
+ pip install --prefix=my_own_installation_directory hcam_drivers
 
 For more information, see:
 
 * `The documentation <http://hcam-drivers.readthedocs.io/en/latest/>`_
-* `This packages' Github code repository <https://github.com/StuartLittlefair/hcam_drivers>`_
+* `This packages' Github code repository <https://github.com/HiPERCAM/hcam_drivers>`_
 
-Status reports for developers
------------------------------
-
-.. image:: https://travis-ci.org/astropy/package-template.svg
-    :target: https://travis-ci.org/StuartLittlefair/hcam-drivers
-    :alt: Travis Status
