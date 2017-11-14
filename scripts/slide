@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 from __future__ import print_function, division, unicode_literals
-import time
 import tqdm
 
 from six.moves.queue import Queue
-from hcam_drivers.hardware import slide
-from hcam_drivers.globals import Container
+from hcam_widgets.misc import FifoThread
+from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
-from hcam_drivers.utils.misc import FifoThread
+from hcam_drivers.hardware import slide
+
 
 usage = """
 'slide' controls the focal plane slide; it takes a single argument,

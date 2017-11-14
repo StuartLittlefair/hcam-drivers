@@ -4,19 +4,19 @@ from __future__ import print_function, division, unicode_literals
 import argparse
 import os
 import logging
-# import threading
 import six
 from six.moves import queue
 
-import hcam_drivers.utils as utils
-from hcam_drivers.globals import Container
-import hcam_drivers.utils.widgets as w
-from hcam_drivers.utils import hcam
+from hcam_widgets.globals import Container
+import hcam_widgets.widgets as w
+from hcam_widgets import hcam
+from hcam_widgets.misc import execCommand, FifoThread
+from hcam_widgets.tkutils import addStyle
+
 from hcam_drivers.utils.rtplot import RtplotServer
-from hcam_drivers.utils.misc import execCommand, FifoThread
 from hcam_drivers.config import (load_config, write_config,
                                  check_user_dir, dump_app)
-from hcam_drivers.hardware import slide
+from hcam_drivers.hardware import slide, CCDInfoWidget
 
 if not six.PY3:
     import Tkinter as tk
@@ -58,7 +58,7 @@ class GUI(tk.Tk):
             logging.basicConfig(level=logging.INFO)
 
         # style
-        utils.tkutils.addStyle(self)
+        addStyle(self)
 
         # define frames for LHS and RHS, and bottom
         lhs = tk.Frame(self)
@@ -96,7 +96,7 @@ class GUI(tk.Tk):
         self.globals.astro = w.AstroFrame(lhs)
 
         # CCD temp monitoring
-        self.globals.ccd_hw = hcam.CCDInfoWidget(self)
+        self.globals.ccd_hw = CCDInfoWidget(self)
 
         # add switcher
         switch = w.Switch(topLhsFrame)

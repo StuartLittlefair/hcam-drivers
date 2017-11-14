@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals, print_function, division
 import time
 
-from hcam_drivers.hardware.termserver import netdevice
+from .termserver import netdevice
 
 QUERY_DEV = '[M01V07'
 QUERY_STATUS = '[M01G0D******'

@@ -10,10 +10,10 @@ import struct
 import six
 
 # internal imports
-from ..utils.logs import Logger
-from ..utils.widgets import GuiLogger, IntegerEntry
-from ..utils.misc import FifoThread
-from ..utils.tkutils import get_root
+from hcam_widgets.logs import Logger
+from hcam_widgets.widgets import GuiLogger, IntegerEntry
+from hcam_widgets.misc import FifoThread
+from hcam_widgets.tkutils import get_root
 from .termserver import netdevice
 
 if not six.PY3:
