@@ -1,7 +1,7 @@
 .. highlight:: shell
 
 ============
-Installation
+Detailed Installation
 ============
 
 
