@@ -7,7 +7,7 @@ except:
 import socket
 import errno
 
-from . import DriverError
+from hcam_widgets import DriverError
 
 
 class RtplotHandler(BaseHTTPRequestHandler):

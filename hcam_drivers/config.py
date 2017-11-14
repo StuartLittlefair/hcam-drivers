@@ -5,7 +5,7 @@ import pkg_resources
 import os
 import validate
 
-from .utils.misc import createJSON, saveJSON
+from hcam_widgets.misc import createJSON, saveJSON
 
 
 def check_user_dir(g):
