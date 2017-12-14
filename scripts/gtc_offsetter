@@ -5,9 +5,12 @@ import os
 import sys
 import time
 import datetime
+from itertools import cycle
+import traceback
 
 import tornado.ioloop
-from tornado.web import RequestHandler, Application, url
+from tornado.web import RequestHandler, Application, url, HTTPError
+from tornado.escape import json_encode, json_decode
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
@@ -35,11 +38,21 @@ def scheduleTrigger(inTime):
 
 
 class FITSWriteHandler(PatternMatchingEventHandler):
+    """
+    Class to handle FITS write events.abs
+
+    Upon write events to the current run, we send offset to
+    the telescope, schedule callbacks to see if the
+    offset is complete, and then send a trigger to the
+    sequencer to continue with the observation.
+    """
     patterns = ['*.fits']
 
-    def __init__(self, path, *args, **kwargs):
+    def __init__(self, path, ra_offsets, dec_offsets, *args, **kwargs):
         super(FITSWriteHandler, self).__init__()
         self.path = path
+        self.ra_offsets = ra_offsets
+        self.dec_offsets = dec_offsets
         try:
             pattern = os.path.join(self.path, self.patterns[0])
             self.existing_runs = glob.glob(pattern)
@@ -72,7 +85,9 @@ class FITSWriteHandler(PatternMatchingEventHandler):
                 # latest file has just been written to
 
                 # send telescope offset command
-                print('sending tel offset')
+                print('sending tel offsets {} {}'.format(
+                    next(self.ra_offsets), next(self.dec_offsets)
+                ))
 
                 # assume offset takes X seconds
                 # trigger sequencer to start again in X s
@@ -87,35 +102,82 @@ class FITSWriteHandler(PatternMatchingEventHandler):
             self.existing_runs.append(event.src_path)
 
 
-class StartHandler(RequestHandler):
+class BaseHandler(RequestHandler):
+    """
+    Abstract class for request handling
+    """
     def initialize(self, db):
         self.db = db
 
+    def write_error(self, status_code, **kwargs):
+        self.set_header('Content-Type', 'application/json')
+        resp_dict = dict(status='NOK')
+        print(kwargs)
+        if "exc_info" in kwargs:
+            lines = []
+            for line in traceback.format_exception(*kwargs["exc_info"]):
+                lines.append(line)
+            resp_dict['traceback'] = lines
+        self.finish(json_encode(resp_dict))
+
+
+class StartHandler(BaseHandler):
     def get(self):
-        db['observer'] = make_observer(db['path'])
+        if 'ra_offs' not in self.db or 'dec_offs' not in self.db:
+            raise HTTPError(reason='No offsets define. Post a setup first',
+                            status_code=500)
+
+        self.db['observer'] = make_observer(self.db['path'],
+                                            self.db['ra_offs'],
+                                            self.db['dec_offs'])
         db['observer'].start()
 
 
-class StopHandler(RequestHandler):
-    def initialize(self, db):
-        self.db = db
-
+class StopHandler(BaseHandler):
     def get(self):
-        if db.get('observer'):
-            db['observer'].stop()
+        if self.db.get('observer'):
+            self.db['observer'].stop()
 
 
-class EchoHandler(RequestHandler):
-    def initialize(self, db):
-        self.db = db
+class PostOffsetPatternHandler(BaseHandler):
+    """
+    Receive and store a POST request with ra and dec offsets
 
-    def get(self):
-        print('echo')
+    Offsets are JSON encoded in body of request as lists.
+
+    We create itertools.cycle objects and store them on the application
+    database.
+    """
+    def post(self):
+        req_json = json_decode(self.request.body.decode())
+        if not req_json or 'ra' not in req_json or 'dec' not in req_json:
+            raise HTTPError(reason='Malformed JSON in body of request',
+                            status_code=400)
+
+        try:
+            if len(req_json['ra']) != len(req_json['dec']):
+                raise ValueError('mismatched lengths')
+        except (ValueError, TypeError):
+            raise HTTPError(reason='Offsets either different lengths, or not iterable',
+                            status_code=500)
+
+        try:
+            ra_offs = cycle(req_json['ra'])
+            dec_offs = cycle(req_json['dec'])
+        except ValueError:
+            raise HTTPError(reason='Could not create offset patterns from JSON',
+                            status_code=500)
+
+        self.db['ra_offs'] = ra_offs
+        self.db['dec_offs'] = dec_offs
+
+        retMsg = json_encode({'status': 'OK'})
+        self.finish(retMsg)
 
 
-def make_observer(path):
+def make_observer(path, ra_offs, dec_offs):
     observer = Observer()
-    handler = FITSWriteHandler(path)
+    handler = FITSWriteHandler(path, ra_offs, dec_offs)
     observer.schedule(handler, path=path, recursive=False)
     observer.daemon = True
     return observer
@@ -128,7 +190,7 @@ if __name__ == "__main__":
     app = Application([
         url(r'/start', StartHandler, dict(db=db), name='start'),
         url(r'/stop', StopHandler, dict(db=db), name='stop'),
-        url(r'/echo', EchoHandler, dict(db=db), name='echo')
+        url(r'/setup', PostOffsetPatternHandler, dict(db=db), name='setup')
     ])
     app.listen(5001)
     tornado.ioloop.IOLoop.current().start()
