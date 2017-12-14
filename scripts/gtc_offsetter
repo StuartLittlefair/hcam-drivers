@@ -69,14 +69,20 @@ class FITSWriteHandler(PatternMatchingEventHandler):
     def on_modified(self, event):
         if self.check_debounce():
             if event.src_path == self.existing_runs[-1]:
-                # latest file
+                # latest file has just been written to
+
+                # send telescope offset command
                 print('sending tel offset')
+
+                # assume offset takes X seconds
+                # trigger sequencer to start again in X s
                 tornado.ioloop.IOLoop.instance().add_callback(
                     scheduleTrigger, 3
                 )
 
     def on_created(self, event):
         self.check_debounce()
+        # if we don't know about this, it's a new run.
         if event.src_path not in self.existing_runs:
             self.existing_runs.append(event.src_path)
 
@@ -126,4 +132,3 @@ if __name__ == "__main__":
     ])
     app.listen(5001)
     tornado.ioloop.IOLoop.current().start()
-
