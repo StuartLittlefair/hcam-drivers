@@ -46,6 +46,10 @@ font_size = 10
 # ===========================================
 # The URL of the hipercam server on the rack PC
 hipercam_server = http://localhost:5000/
+# The URL of the GTC offset server
+gtc_offset_server = http://localhost:5001/
+# Whether to nod the telescope or not
+nod_telescope = 0
 # The URL of the termserver for serial connections
 termserver_ip = 192.168.1.3
 slide_port = 10001
