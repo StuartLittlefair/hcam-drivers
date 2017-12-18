@@ -3,12 +3,12 @@
 # usage info
 function show_help {
 cat <<EOF
-Usage: ${0##*/} [-h] [-g]
+Usage: ${0##*/} [-h] [-g] [-w]
 Start the hipercam software.
 
     -h    display this help and exit
     -g    start eso engineering GUI (for debugging)
-    -o    launch gtc offsetting server
+    -w    run on WHT (no offset script)
 EOF
 }
 
@@ -24,8 +24,8 @@ function test {
 
 gui=0
 OPTIND=1
-offset=0
-while getopts hgo opt; do
+offset=1
+while getopts hgw opt; do
     case $opt in
         h)
             show_help
@@ -33,7 +33,7 @@ while getopts hgo opt; do
             ;;
         g)  gui=1
             ;;
-        o)  offset=1
+        w)  offset=0
             ;;
         *)
             show_help >&2
