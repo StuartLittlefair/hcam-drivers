@@ -8,6 +8,7 @@ Start the hipercam software.
 
     -h    display this help and exit
     -g    start eso engineering GUI (for debugging)
+    -o    launch gtc offsetting server
 EOF
 }
 
@@ -23,13 +24,16 @@ function test {
 
 gui=0
 OPTIND=1
-while getopts hg opt; do
+offset=0
+while getopts hgo opt; do
     case $opt in
         h)
             show_help
             exit 0
             ;;
         g)  gui=1
+            ;;
+        o)  offset=1
             ;;
         *)
             show_help >&2
@@ -81,6 +85,19 @@ then
     $XTERM -title "FileServer" -e "fileserver --dir /insroot/${username}/SYSTEM/DETDATA/" &
 else
     echo "fileServer already running ($FS)"
+fi
+
+# launch gtc_offsetter script
+if [ $offset -eq 1 ]
+then
+    OF=`ps ax | grep gtc_offsetter | wc -l`
+    if [ $FS -le 1 ]
+    then
+        echo "starting GTC_Offsetter"
+        $XTERM -title "GTC_Offsetter" -e "gtc_offsetter /insroot/${username}/SYSTEM/DETDATA/" &
+    else
+        echo "GTC_Offsetter already running ($OF)"
+    fi
 fi
 
 # start GUI
