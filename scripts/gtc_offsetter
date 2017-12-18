@@ -123,6 +123,7 @@ class BaseHandler(RequestHandler):
 
 class StartHandler(BaseHandler):
     def get(self):
+        print('starting')
         if 'ra_offs' not in self.db or 'dec_offs' not in self.db:
             raise HTTPError(reason='No offsets define. Post a setup first',
                             status_code=500)
@@ -131,12 +132,20 @@ class StartHandler(BaseHandler):
                                             self.db['ra_offs'],
                                             self.db['dec_offs'])
         db['observer'].start()
+        self.finish({'status': 'OK', 'action': 'start'})
 
 
 class StopHandler(BaseHandler):
     def get(self):
+        print('stopping')
         if self.db.get('observer'):
-            self.db['observer'].stop()
+            try:
+                self.db['observer'].stop()
+            except Exception as err:
+                raise HTTPError(reason='Failed to stop offsetter.\n' + str(err),
+                                status_code=500)
+
+        self.finish({'status': 'OK', 'action': 'stop'})
 
 
 class PostOffsetPatternHandler(BaseHandler):
@@ -150,8 +159,20 @@ class PostOffsetPatternHandler(BaseHandler):
     """
     def post(self):
         req_json = json_decode(self.request.body.decode())
-        if not req_json or 'ra' not in req_json or 'dec' not in req_json:
+        if not req_json or 'appdata' not in req_json:
             raise HTTPError(reason='Malformed JSON in body of request',
+                            status_code=400)
+        req_json = req_json['appdata']
+
+        if 'nodpattern' not in req_json:
+            # nothing to do
+            retMsg = json_encode({'status': 'OK', 'action': 'none'})
+            self.finish(retMsg)
+            return
+
+        req_json = req_json['nodpattern']
+        if 'ra' not in req_json or 'dec' not in req_json:
+            raise HTTPError(reason='RA or Dec offsets missing from appdata',
                             status_code=400)
 
         try:
@@ -171,7 +192,7 @@ class PostOffsetPatternHandler(BaseHandler):
         self.db['ra_offs'] = ra_offs
         self.db['dec_offs'] = dec_offs
 
-        retMsg = json_encode({'status': 'OK'})
+        retMsg = json_encode({'status': 'OK', 'action': 'setup'})
         self.finish(retMsg)
 
 
