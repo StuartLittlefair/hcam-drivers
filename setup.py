@@ -42,7 +42,7 @@ setup(
     author="Stuart Littlefair",
     author_email='s.littlefair@shef.ac.uk',
     url='https://github.com/HiPERCAM/hcam-drivers',
-    download_url='https://github.com/HiPERCAM/hcam-drivers/archive/v0.2.1.tar.gz',
+    download_url='https://github.com/HiPERCAM/hcam-drivers/archive/v0.3.0.tar.gz',
     packages=[
         'hcam_drivers',
         'hcam_drivers.utils',
