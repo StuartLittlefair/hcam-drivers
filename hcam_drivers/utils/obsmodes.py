@@ -41,6 +41,7 @@ class ObsMode(object):
         elif fastclk:
             clockfile = 'hipercam_fastclk.bclk'
 
+        nodpattern = app_data.get('nodpattern', {})
         self.finite = app_data['numexp']
         self.detpars = {
             'DET.SPEED': 0 if app_data['readout'] == 'Slow' else 1,
@@ -61,6 +62,7 @@ class ObsMode(object):
             'DET.NSKIPS5': nz-1,
             'DET.SEQ.CLKFILE': clockfile,
             'DET.SEQ1.DIT': app_data['exptime'],
+            'DET.SEQ.TRIGGER': 'T' if nodpattern else 'F',  # wait for trigger if nodding
             'DET.TDELAY.GUI': 1000*app_data['dwell']
         }
 
