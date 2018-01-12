@@ -35,6 +35,10 @@ class ObsMode(object):
         fastclk = app_data.get('fast_clks', 0)
         oscany = app_data.get('oscany', 0)
 
+        # look in dictionary to see if we should use GPS hardware
+        # default is to assume GPS attached
+        self.use_gps_hardware = setup_data.get('gps_attached', 1)
+
         clockfile = 'hipercam.bclk'
         if not dummy:
             clockfile = 'hipercam_se.bclk'
@@ -44,6 +48,7 @@ class ObsMode(object):
         nodpattern = app_data.get('nodpattern', {})
         self.finite = app_data['numexp']
         self.detpars = {
+            'DET.RESTRICT': 'F',
             'DET.SPEED': 0 if app_data['readout'] == 'Slow' else 1,
             'DET.BINX1': app_data['xbin'],
             'DET.BINY1': app_data['ybin'],
@@ -115,6 +120,26 @@ class ObsMode(object):
         ])
         self.userpars = OrderedDict(userpars)
 
+    def setup_acq_task(self, nq=5):
+        self.acq_dict = dict(nq=nq, gps=self.use_gps_hardware)
+        if self.readoutMode == 4:
+            # drift mode
+            self.acq_dict['drf'] == 1
+        else:
+            self.acq_dict['drf'] == 0
+
+        if self.detpars['DET.SPEED'] == 0:
+            # slow
+            self.acq_dict['aveg'] == 4
+        else:
+            # fast
+            self.acq_dict['aveg'] == 1
+
+    @property
+    def acq_command(self):
+        template = 'acqproc hiperCamCCD -chip 5 -t 2 -nq {nq} -deml 0 -gps {gps} -aveg {aveg} -aps 8 -drf {drf}'
+        return template.format(**self.acq_dict)
+
     @property
     def readmode_command(self):
         return 'setup DET.READ.CURID {}'.format(self.readoutMode)
@@ -148,6 +173,7 @@ class FullFrame(ObsMode):
     def __init__(self, setup_data):
         super(FullFrame, self).__init__(setup_data)
         self.readoutMode = 1
+        self.setup_acq_task(nq=5)
 
 
 class Idle(ObsMode):
@@ -173,6 +199,7 @@ class Idle(ObsMode):
         super(Idle, self).__init__(setup_data)
         self.detpars['DET.GPS'] = 'F'
         self.readoutMode = 1  # FF, Slow
+        self.setup_acq_task(nq=5)
 
 
 class Windows(ObsMode):
@@ -194,6 +221,7 @@ class Windows(ObsMode):
             'DET.WIN1.XSUR': app_data['x1start_upperright']
         }
         self.detpars.update(win1)
+
         if 'x2size' in app_data:
             win2 = {
                 'DET.WIN2.NX': app_data['x2size'],
@@ -210,6 +238,11 @@ class Windows(ObsMode):
                 'DET.WIN2.XSUR': app_data['x2start_upperright']
             }
             self.detpars.update(win2)
+
+        if self.readoutMode == 2:
+            self.setup_acq_task(nq=30)
+        else:
+            self.setup_acq_task(nq=10)
 
     @property
     def readoutMode(self):
@@ -239,6 +272,7 @@ class Drift(ObsMode):
         self.detpars.update(win1)
         self.nrows = 520  # number of rows in storage area
         self.readoutMode = 4
+        self.setup_acq_task(nq=5)
 
     @property
     def num_stacked(self):

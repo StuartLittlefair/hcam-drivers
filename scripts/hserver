@@ -287,6 +287,12 @@ class PostRunHandler(BaseHandler):
             return
         time.sleep(0.1)
 
+        response = yaml.load(sendCommand(obsmode.acq_command))
+        if not response['RETCODE'] == "OK":
+            self.write(json_encode(response))
+            return
+        time.sleep(0.1)
+
         response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
         time.sleep(0.1)
