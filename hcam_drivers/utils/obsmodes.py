@@ -124,16 +124,16 @@ class ObsMode(object):
         self.acq_dict = dict(nq=nq, gps=self.use_gps_hardware)
         if self.readoutMode == 4:
             # drift mode
-            self.acq_dict['drf'] == 1
+            self.acq_dict['drf'] = 1
         else:
-            self.acq_dict['drf'] == 0
+            self.acq_dict['drf'] = 0
 
         if self.detpars['DET.SPEED'] == 0:
             # slow
-            self.acq_dict['aveg'] == 4
+            self.acq_dict['aveg'] = 4
         else:
             # fast
-            self.acq_dict['aveg'] == 1
+            self.acq_dict['aveg'] = 1
 
     @property
     def acq_command(self):
