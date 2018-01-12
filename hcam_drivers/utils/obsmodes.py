@@ -199,6 +199,7 @@ class Idle(ObsMode):
         super(Idle, self).__init__(setup_data)
         self.detpars['DET.GPS'] = 'F'
         self.readoutMode = 1  # FF, Slow
+        self.use_gps_hardware = 0
         self.setup_acq_task(nq=5)
 
 
