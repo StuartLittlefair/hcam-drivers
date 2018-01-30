@@ -78,7 +78,8 @@ class FastFITSPipe:
 
     @lazyproperty
     def framesize(self):
-        size = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']
+        nsamps = self.hdr.get('ESO DET NSAMP', 1)
+        size = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY'] // nsamps
         bitpix = self.hdr['BITPIX']
         size = abs(bitpix) * size // 8
         # currently metadata consists of 36 bytes per frame (for timestamp)
