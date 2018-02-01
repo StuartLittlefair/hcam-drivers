@@ -11,10 +11,12 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import six
 import numpy as np
 import threading
+import time
 
 from hcam_widgets import widgets as w
 from hcam_widgets.tkutils import get_root, addStyle
-from . import honeywell, meerstetter, unichiller, vacuum
+from . import honeywell, meerstetter, unichiller, vacuum, rack
+from ..utils.alarms import AlarmDialog
 
 if not six.PY3:
     import Tkinter as tk
@@ -24,6 +26,73 @@ else:
     from queue import Queue, Empty
 
 
+class NoAlarmState(object):
+    """
+    State representing no alarm
+    """
+    @staticmethod
+    def raise_alarm(widget):
+        widget.alarmdialog = AlarmDialog(
+            widget,
+            'Critical {} fault on {}'.format(
+                widget.kind,
+                widget.name
+            )
+        )
+        widget.set_state(ActiveAlarmState)
+        widget.alarm_raised_time = time.time()
+
+    @staticmethod
+    def cancel_alarm(widget):
+        # no alarm, so do nothing
+        return
+
+    @staticmethod
+    def acknowledge_alarm(widget):
+        # no alarm, so do nothing
+        return
+
+
+class ActiveAlarmState(object):
+    """
+    State representing a currently active alarm
+    """
+    @staticmethod
+    def raise_alarm(widget):
+        # no sense raising an alarm that is already active
+        return
+
+    @staticmethod
+    def cancel_alarm(widget):
+        # called when cancel button in alarmwidget clicked
+        widget.set_state(NoAlarmState)
+
+    @staticmethod
+    def acknowledge_alarm(widget):
+        # called when acknowledge button in alarmwidget clicked
+        widget.set_state(AcknowledgedAlarmState)
+
+
+class AcknowledgedAlarmState(object):
+    """
+    An acknowledged alarm. Quiet, but won't raise again
+    for 10 minutes.
+    """
+    @staticmethod
+    def raise_alarm(widget):
+        if time.time() - widget.alarm_raised_time > 600:
+            widget.set_state(NoAlarmState)
+            widget.raise_alarm()
+
+    @staticmethod
+    def cancel_alarm(widget):
+        widget.set_state(NoAlarmState)
+
+    @staticmethod
+    def acknowledge_alarm(widget):
+        return
+
+
 class HardwareDisplayWidget(tk.Frame):
     """
     A widget that displays and checks the status of a piece of hardware.
@@ -31,6 +100,9 @@ class HardwareDisplayWidget(tk.Frame):
     Consists of a label naming the piece of hardware, and an Ilabel to display the results of
     the hardware check. Checks itself repeatedly in the background using a thread so as
     not to hang the GUI main thread.
+
+    Each HardwareDisplayWidget has its own status (ok/nok) and an alarm state which can
+    be NoAlarm, ActiveAlarm, AcknowledgedAlarm.
 
     Arguments
     ----------
@@ -60,7 +132,7 @@ class HardwareDisplayWidget(tk.Frame):
         self.fmt = '{:.1f}'
         self.upper_limit = upper_limit
         self.lower_limit = lower_limit
-
+        self.set_state(NoAlarmState)
         tk.Label(self, text=self.name + ':', width=9, anchor=tk.E).pack(side=tk.LEFT, anchor=tk.N, padx=5)
         self.label = w.Ilabel(self, text='nan', width=9)
         self.label.pack(side=tk.LEFT, anchor=tk.N, padx=5)
@@ -82,7 +154,7 @@ class HardwareDisplayWidget(tk.Frame):
 
             if errmsg is None and val < self.upper_limit and val > self.lower_limit:
                 self.ok = True
-            elif np.isfinite(val):
+            elif np.isnan(val) and errmsg is None:
                 # no error and nan returned means checking disabled
                 self.ok = True
             else:
@@ -117,6 +189,18 @@ class HardwareDisplayWidget(tk.Frame):
 
     def update_function(self):
         raise NotImplementedError('concrete class must implement update_function')
+
+    def acknowledge_alarm(self):
+        self._state.acknowledge_alarm(self)
+
+    def raise_alarm(self):
+        self._state.raise_alarm(self)
+
+    def cancel_alarm(self):
+        self._state.cancel_alarm(self)
+
+    def set_state(self, state):
+        self._state = state
 
 
 class MeerstetterWidget(HardwareDisplayWidget):
@@ -158,6 +242,23 @@ class ChillerWidget(HardwareDisplayWidget):
         g = get_root(self.parent).globals
         if g.cpars['chiller_temp_monitoring_on']:
             return self.chiller.temperature
+        else:
+            return np.nan
+
+
+class RackSensorWidget(HardwareDisplayWidget):
+    """
+    Get Temperature and Humidity from Rack Sensor
+    """
+    def __init__(self, parent, rack_sensor, update_interval, lower_limit, upper_limit):
+        HardwareDisplayWidget.__init__(self, parent, 'temperature', 'RACK',
+                                       update_interval, lower_limit, upper_limit)
+        self.rack_sensor = rack_sensor
+
+    def update_function(self):
+        g = get_root(self.parent).globals
+        if g.cpars['chiller_temp_monitoring_on']:
+            return self.rack_sensor.temperature
         else:
             return np.nan
 
@@ -231,8 +332,11 @@ class CCDInfoWidget(tk.Toplevel):
             vacuum.PDR900(g.cpars['termserver_ip'], port) for port in
             g.cpars['vacuum_ports']
         ]
-        self.chiller = unichiller.UnichillerMPC(g.cpars['termserver_ip'],
-                                                g.cpars['chiller_port'])
+        if g.cpars['telins_name'].lower() == 'wht':
+            self.chiller = unichiller.UnichillerMPC(g.cpars['termserver_ip'],
+                                                    g.cpars['chiller_port'])
+        else:
+            self.chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
 
         # create label frames
         self.temp_frm = tk.LabelFrame(self, text='Temperatures (C)', padx=4, pady=4)
@@ -248,7 +352,10 @@ class CCDInfoWidget(tk.Toplevel):
         self.peltier_powers = []
         self.ccd_flow_rates = []
         self.vacuums = []
-        self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, -5, 15)
+        if g.cpars['telins_name'].lower() == 'wht':
+            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, -5, 15)
+        else:
+            self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval, 15, 25)
         self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
                                             1.0, np.inf)
 
@@ -317,7 +424,7 @@ class CCDInfoWidget(tk.Toplevel):
         self.flow_frm.grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
         self.vac_frm.grid(row=4, column=0, padx=4, pady=4, sticky=tk.W)
 
-        self.after(60000, self.raise_if_nok)
+        self.after(10000, self.raise_if_nok)
 
     def _getVal(self, widg):
         """
@@ -354,6 +461,13 @@ class CCDInfoWidget(tk.Toplevel):
         return all(okl)
 
     def raise_if_nok(self):
-        if self.ok:
-            self.deiconify()
+        widgets = [self.chiller_temp, self.ngc_flow_rate]
+        widgets.extend(self.ccd_temps)
+        widgets.extend(self.ccd_flow_rates)
+        widgets.extend(self.peltier_powers)
+        for widget in widgets:
+            if not widget.ok:
+                self.deiconify()
+                widget.raise_alarm()
+
         self.after(60000, self.raise_if_nok)

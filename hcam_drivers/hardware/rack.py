@@ -6,7 +6,7 @@ from six.moves.urllib.request import urlopen
 
 class GTCRackSensor(object):
     def __init__(self, address):
-        self.url = 'http://{}/'.format(self.address)
+        self.url = 'http://{}/'.format(address)
 
     def __call__(self):
         try:
