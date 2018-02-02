@@ -376,7 +376,7 @@ class CCDInfoWidget(tk.Toplevel):
             # meerstetter widgets
             self.ccd_temps.append(
                 MeerstetterWidget(self.temp_frm, ms, address, name,
-                                  'temperature', update_interval, -85, -75)
+                                  'temperature', update_interval, -105, -75)
             )
             self.heatsink_temps.append(
                 MeerstetterWidget(self.heatsink_frm, ms, address, name,
