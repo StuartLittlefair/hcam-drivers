@@ -21,8 +21,8 @@ alarm_cmd = '{} {} {}'.format(
 )
 
 kill_alarm_cmd = '{} {}'.format(
-    login, 
-    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123' 
+    login,
+    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123'
 )
 
 
@@ -114,18 +114,18 @@ class AlarmDialog(tk.Toplevel):
 
     def kill_alarm(self):
         proc = subprocess.Popen(kill_alarm_cmd.split(), shell=False,
-                                stdout=subprocess.PIPE, 
+                                stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         if self.alarm_proc:
             self.kill_proc(self.alarm_proc)
         proc.wait()
         AlarmDialog.alarm_playing = False
-        
+
     def kill_proc(self, proc):
         if proc.poll() is not None:
             return
         proc.terminate()
-        
+
         # kill if it has not exited after countdown
         def kill_after(countdown):
             if proc.poll() is None:  # process hasn't quit yet
@@ -135,11 +135,11 @@ class AlarmDialog(tk.Toplevel):
                 else:
                     self.after(1000, kill_after, countdown)
                     return
- 
+
             proc.stdout.close()
             proc.wait()
 
         kill_after(countdown=5)
-        
-        
-        
+
+
+
