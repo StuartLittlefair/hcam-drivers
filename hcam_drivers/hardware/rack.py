@@ -11,7 +11,11 @@ class GTCRackSensor(object):
     def __call__(self):
         try:
             resp = urlopen(self.url, timeout=5)
-            if resp.status != 200:
+            try:
+                status = resp.status
+            except AttributeError:
+                status = resp.getcode()
+            if status != 200:
                 raise URLError('response code from rack sensor NOK')
             html = resp.read()
             fields = html.split('">')
