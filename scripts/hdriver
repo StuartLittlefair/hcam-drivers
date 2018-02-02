@@ -180,7 +180,10 @@ class GUI(tk.Tk):
                                var=w.Boolean(self, 'flow_monitoring_on'))
         hwMenu.add_checkbutton(label='Pressure monitoring',
                                var=w.Boolean(self, 'ccd_vac_monitoring_on'))
-        hwMenu.add_checkbutton(label='Chiller temperature monitoring',
+        label = '{} temperature monitoring'.format(
+            'Chiller' if self.globals.cpars['telins_name'].lower == 'wht' else 'Rack'
+        )
+        hwMenu.add_checkbutton(label=label,
                                var=w.Boolean(self, 'chiller_temp_monitoring_on'))
 
         # stick the menubar in place
