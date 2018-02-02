@@ -82,7 +82,7 @@ class FastFITSPipe:
         bitpix = self.hdr['BITPIX']
         size = abs(bitpix) * size // 8
         # currently metadata consists of 36 bytes per frame (for timestamp)
-        return size + 36
+        return size
 
     def seek_frame(self, frame_number):
         """
