@@ -130,7 +130,7 @@ class AlarmDialog(tk.Toplevel):
         def kill_after(countdown):
             if proc.poll() is None:  # process hasn't quit yet
                 countdown -= 1
-                if countdown < 0: # kill
+                if countdown < 0:  # kill
                     proc.kill()
                 else:
                     self.after(1000, kill_after, countdown)

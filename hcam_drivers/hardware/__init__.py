@@ -83,7 +83,9 @@ class AcknowledgedAlarmState(object):
     """
     @staticmethod
     def raise_alarm(widget):
-        if time.time() - widget.alarm_raised_time > 600:
+        g = get_root(widget).globals
+        acknowledged_time_limit = g.cpars['alarm_sleep_time']
+        if time.time() - widget.alarm_raised_time > acknowledged_time_limit:
             widget.set_state(NoAlarmState)
             widget.raise_alarm()
 
