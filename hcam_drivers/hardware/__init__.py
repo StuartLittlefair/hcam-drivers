@@ -277,6 +277,7 @@ class FlowRateWidget(HardwareDisplayWidget):
                                        lower_limit, upper_limit)
         self.honey = honeywell.Honeywell(honey_ip, 502)
         self.pen_address = pen_address
+        self.fmt = '{:.2f}'
 
     def update_function(self):
         g = get_root(self.parent).globals
