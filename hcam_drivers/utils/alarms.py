@@ -12,9 +12,7 @@ if not six.PY3:
 else:
     import tkinter as tk
 
-alarm_file = '{}/alarms/phat_alarm.mp3'.format(
-    os.path.expanduser(getpass.getuser())
-)
+alarm_file = '/home/observer/alarms/phat_alarm.mp3'
 login = '/usr/bin/ssh -t observer@192.168.1.1'
 alarm_cmd = '{} {} {}'.format(
     login,
