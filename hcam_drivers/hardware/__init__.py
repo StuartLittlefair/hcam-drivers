@@ -155,7 +155,7 @@ class HardwareDisplayWidget(tk.Frame):
 
             self.label.configure(text=self.fmt.format(val), bg=g.COL['main'])
 
-            if errmsg is None and val < self.upper_limit and val > self.lower_limit:
+            if errmsg is None and val <= self.upper_limit and val >= self.lower_limit:
                 self.ok = True
             elif np.isnan(val) and errmsg is None:
                 # no error and nan returned means checking disabled
