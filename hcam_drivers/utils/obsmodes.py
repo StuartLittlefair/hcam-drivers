@@ -121,7 +121,8 @@ class ObsMode(object):
         self.userpars = OrderedDict(userpars)
 
     def setup_acq_task(self, nq=5):
-        self.acq_dict = dict(nq=nq, gps=self.use_gps_hardware)
+        gps = 1 if self.use_gps_hardware else 0
+        self.acq_dict = dict(nq=nq, gps=gps)
         if self.readoutMode == 4:
             # drift mode
             self.acq_dict['drf'] = 1
