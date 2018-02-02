@@ -70,6 +70,9 @@ class ActiveAlarmState(object):
     @staticmethod
     def acknowledge_alarm(widget):
         # called when acknowledge button in alarmwidget clicked
+        g = get_root(widget.parent).globals
+        istr = 'Alarm on {} acknowledged, will re-raise in 10 mins if not fixed'
+        g.clog.info(istr.format(widget.name))
         widget.set_state(AcknowledgedAlarmState)
 
 
@@ -470,4 +473,4 @@ class CCDInfoWidget(tk.Toplevel):
                 self.deiconify()
                 widget.raise_alarm()
 
-        self.after(60000, self.raise_if_nok)
+        self.after(10000, self.raise_if_nok)
