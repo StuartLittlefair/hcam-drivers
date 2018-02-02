@@ -78,6 +78,9 @@ class FastFITSPipe:
 
     @lazyproperty
     def framesize(self):
+        # get nsamples per pixel, old format should default to 1
+        # since NX and NY are always right in old format, but
+        # NX is four times too high when NSAMP = 4
         nsamp = self.hdr.get('ESO DET NSAMP', 1)
         size = 18 + (self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']) // nsamp
         bitpix = self.hdr['BITPIX']
