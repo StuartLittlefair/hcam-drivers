@@ -384,7 +384,7 @@ class CCDInfoWidget(tk.Toplevel):
             )
             self.peltier_powers.append(
                 MeerstetterWidget(self.peltier_frm, ms, address, name,
-                                  'peltier power', update_interval, -5, 85)
+                                  'peltier power', update_interval, -5, 90)
             )
 
             # grid
