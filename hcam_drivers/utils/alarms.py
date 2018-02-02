@@ -3,7 +3,8 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import six
 import subprocess
 import sys
-import pkg_resources
+import os
+import getpass
 from hcam_widgets.tkutils import addStyle, get_root
 
 if not six.PY3:
@@ -11,11 +12,13 @@ if not six.PY3:
 else:
     import tkinter as tk
 
-alarm_file = pkg_resources.resource_filename(
-    'hcam_drivers', 'data/phat_alarm.mp3'
+alarm_file = '{}/alarms/phat_alarm.mp3'.format(
+    os.path.expanduser(getpass.getuser())
 )
-alarm_cmd = '{} {}'.format(
-    'afplay' if sys.platform == 'darwin' else 'aplay',
+login = '/usr/bin/ssh -t observer@192.168.1.1'
+alarm_cmd = '{} {} {}'.format(
+    login,
+    '/usr/bin/afplay' if sys.platform == 'darwin' else '/usr/bin/mpg123',
     alarm_file
 )
 
@@ -59,7 +62,9 @@ class AlarmDialog(tk.Toplevel):
                                   parent.winfo_rooty()+50))
         self.initial_focus.focus_set()
         if play_sound:
-            self.alarm_proc = subprocess.Popen(alarm_cmd, shell=True)
+            self.alarm_proc = subprocess.Popen(alarm_cmd.split(), shell=False,
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE)
         else:
             self.alarm_proc = None
         addStyle(self)
