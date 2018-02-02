@@ -357,7 +357,7 @@ class CCDInfoWidget(tk.Toplevel):
         else:
             self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval, 15, 25)
         self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
-                                            1.0, np.inf)
+                                            0.5, np.inf)
 
         ms1 = self.meerstetters[0]
         ms2 = self.meerstetters[1]
