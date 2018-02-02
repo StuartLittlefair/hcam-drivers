@@ -356,11 +356,11 @@ class CCDInfoWidget(tk.Toplevel):
         self.ccd_flow_rates = []
         self.vacuums = []
         if g.cpars['telins_name'].lower() == 'wht':
-            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, -5, 15)
+            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, 5, 15)
         else:
             self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval, 15, 25)
         self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
-                                            0.5, np.inf)
+                                            0.5, 10)
 
         ms1 = self.meerstetters[0]
         ms2 = self.meerstetters[1]
@@ -377,7 +377,7 @@ class CCDInfoWidget(tk.Toplevel):
             )
             self.heatsink_temps.append(
                 MeerstetterWidget(self.heatsink_frm, ms, address, name,
-                                  'heatsink temperature', update_interval, 0, 50)
+                                  'heatsink temperature', update_interval, 0, 40)
             )
             self.peltier_powers.append(
                 MeerstetterWidget(self.peltier_frm, ms, address, name,
@@ -400,7 +400,7 @@ class CCDInfoWidget(tk.Toplevel):
 
             self.ccd_flow_rates.append(
                 FlowRateWidget(self.flow_frm, honey_ip, pen_address, name, update_interval,
-                               1.0, np.inf)
+                               1.0, 10)
             )
             self.ccd_flow_rates[-1].grid(
                     row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
