@@ -104,7 +104,12 @@ if __name__ == "__main__":
         args = (slide.UNBLOCK_POS, 'px', timeout)
 
     elif comm == 'position':
-        command = sl.report_position
+        def show_position():
+            pos_ms, pos_mm, pos_px = sl.return_position()
+            print('{} microsteps, {} mm, {} pixels'.format(
+                pos_ms, pos_mm, pos_px
+            ))
+        command = show_position
 
     elif comm == 'reset':
         in_background = True
