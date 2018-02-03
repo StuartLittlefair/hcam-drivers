@@ -172,6 +172,15 @@ class SeqStartHandler(BaseHandler):
         self.command = 'seq 0 start'
 
 
+class TriggerHandler(BaseHandler):
+    """
+    Send a trigger to the sequencer, which will start exposure
+    """
+    def initialize(self, db):
+        self.db = db
+        self.command = 'seq trigger'
+
+
 class SeqStopHandler(BaseHandler):
     """
     Stop sequencer running
@@ -319,6 +328,7 @@ if __name__ == '__main__':
         url(r'/poff', PowerOffHandler, dict(db=db), name='off'),
         url(r'/seqStart', SeqStartHandler, dict(db=db), name='seqStart'),
         url(r'/seqStop', SeqStopHandler, dict(db=db), name='seqStart'),
+        url(r'/trigger', TriggerHandler, dict(db=db), name='trigger'),
         url(r'/reset', ResetHandler, dict(db=db), name="reset"),
         url(r'/standby', StandbyHandler, dict(db=db), name="standby"),
         url(r'/summary', SummaryHandler, dict(db=db), name="summary"),
