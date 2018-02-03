@@ -3,8 +3,6 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import six
 import subprocess
 import sys
-import os
-import getpass
 from hcam_widgets.tkutils import addStyle, get_root
 
 if not six.PY3:
@@ -13,11 +11,16 @@ else:
     import tkinter as tk
 
 alarm_file = '/home/observer/alarms/phat_alarm.mp3'
-login = '/usr/bin/ssh -t observer@192.168.1.1'
+login = '/usr/bin/ssh observer@192.168.1.1'
 alarm_cmd = '{} {} {}'.format(
     login,
     '/usr/bin/afplay' if sys.platform == 'darwin' else '/usr/bin/mpg123',
     alarm_file
+)
+
+kill_alarm_cmd = '{} {}'.format(
+    login,
+    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123'
 )
 
 
@@ -40,6 +43,8 @@ class AlarmDialog(tk.Toplevel):
     title : string, optional
         title for widget
     """
+    alarm_playing = False
+
     def __init__(self, widget, msg, play_sound=True, title='Alarm'):
         parent = widget.parent
         tk.Toplevel.__init__(self, parent)
@@ -55,14 +60,15 @@ class AlarmDialog(tk.Toplevel):
 
         self.initial_focus = self
 
-        self.protocol("WM_DELETE_WINDOW", self.ack_and_teardown)
+        self.protocol("WM_DELETE_WINDOW", self.ack)
         self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
                                   parent.winfo_rooty()+50))
         self.initial_focus.focus_set()
-        if play_sound:
+        if play_sound and not AlarmDialog.alarm_playing:
             self.alarm_proc = subprocess.Popen(alarm_cmd.split(), shell=False,
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE)
+            AlarmDialog.alarm_playing = True
         else:
             self.alarm_proc = None
         addStyle(self)
@@ -85,9 +91,9 @@ class AlarmDialog(tk.Toplevel):
     # standard button semantics
     def ack(self, event=None):
         # just stop the noise
-        if self.alarm_proc:
-            self.alarm_proc.kill()
+        self.kill_alarm()
         self.widget.acknowledge_alarm()
+        self.teardown()
 
     def teardown(self):
         self.withdraw()
@@ -97,11 +103,35 @@ class AlarmDialog(tk.Toplevel):
 
     def cancel(self, event=None):
         # cancel alarm
-        if self.alarm_proc:
-            self.alarm_proc.kill()
+        self.kill_alarm()
         self.widget.cancel_alarm()
         self.teardown()
 
-    def ack_and_teardown(self):
-        self.ack()
-        self.teardown()
+    def kill_alarm(self):
+        proc = subprocess.Popen(kill_alarm_cmd.split(), shell=False,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        if self.alarm_proc:
+            self.kill_proc(self.alarm_proc)
+        proc.wait()
+        AlarmDialog.alarm_playing = False
+
+    def kill_proc(self, proc):
+        if proc.poll() is not None:
+            return
+        proc.terminate()
+
+        # kill if it has not exited after countdown
+        def kill_after(countdown):
+            if proc.poll() is None:  # process hasn't quit yet
+                countdown -= 1
+                if countdown < 0:  # kill
+                    proc.kill()
+                else:
+                    self.after(1000, kill_after, countdown)
+                    return
+
+            proc.stdout.close()
+            proc.wait()
+
+        kill_after(countdown=5)

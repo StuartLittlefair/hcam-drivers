@@ -78,11 +78,15 @@ class FastFITSPipe:
 
     @lazyproperty
     def framesize(self):
-        size = self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']
+        # get nsamples per pixel, old format should default to 1
+        # since NX and NY are always right in old format, but
+        # NX is four times too high when NSAMP = 4
+        nsamp = self.hdr.get('ESO DET NSAMP', 1)
+        size = 18 + (self.hdr['ESO DET ACQ1 WIN NX'] * self.hdr['ESO DET ACQ1 WIN NY']) // nsamp
         bitpix = self.hdr['BITPIX']
         size = abs(bitpix) * size // 8
         # currently metadata consists of 36 bytes per frame (for timestamp)
-        return size + 36
+        return size
 
     def seek_frame(self, frame_number):
         """

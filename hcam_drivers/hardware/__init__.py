@@ -70,6 +70,9 @@ class ActiveAlarmState(object):
     @staticmethod
     def acknowledge_alarm(widget):
         # called when acknowledge button in alarmwidget clicked
+        g = get_root(widget.parent).globals
+        istr = 'Alarm on {} acknowledged, will re-raise in 10 mins if not fixed'
+        g.clog.info(istr.format(widget.name))
         widget.set_state(AcknowledgedAlarmState)
 
 
@@ -80,7 +83,9 @@ class AcknowledgedAlarmState(object):
     """
     @staticmethod
     def raise_alarm(widget):
-        if time.time() - widget.alarm_raised_time > 600:
+        g = get_root(widget).globals
+        acknowledged_time_limit = g.cpars['alarm_sleep_time']
+        if time.time() - widget.alarm_raised_time > acknowledged_time_limit:
             widget.set_state(NoAlarmState)
             widget.raise_alarm()
 
@@ -152,7 +157,7 @@ class HardwareDisplayWidget(tk.Frame):
 
             self.label.configure(text=self.fmt.format(val), bg=g.COL['main'])
 
-            if errmsg is None and val < self.upper_limit and val > self.lower_limit:
+            if errmsg is None and val <= self.upper_limit and val >= self.lower_limit:
                 self.ok = True
             elif np.isnan(val) and errmsg is None:
                 # no error and nan returned means checking disabled
@@ -272,6 +277,7 @@ class FlowRateWidget(HardwareDisplayWidget):
                                        lower_limit, upper_limit)
         self.honey = honeywell.Honeywell(honey_ip, 502)
         self.pen_address = pen_address
+        self.fmt = '{:.2f}'
 
     def update_function(self):
         g = get_root(self.parent).globals
@@ -353,11 +359,11 @@ class CCDInfoWidget(tk.Toplevel):
         self.ccd_flow_rates = []
         self.vacuums = []
         if g.cpars['telins_name'].lower() == 'wht':
-            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, -5, 15)
+            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, 5, 15)
         else:
             self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval, 15, 25)
         self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
-                                            0.5, np.inf)
+                                            0.5, 10)
 
         ms1 = self.meerstetters[0]
         ms2 = self.meerstetters[1]
@@ -370,15 +376,15 @@ class CCDInfoWidget(tk.Toplevel):
             # meerstetter widgets
             self.ccd_temps.append(
                 MeerstetterWidget(self.temp_frm, ms, address, name,
-                                  'temperature', update_interval, -85, -75)
+                                  'temperature', update_interval, -105, -75)
             )
             self.heatsink_temps.append(
                 MeerstetterWidget(self.heatsink_frm, ms, address, name,
-                                  'heatsink temperature', update_interval, 0, 50)
+                                  'heatsink temperature', update_interval, 0, 40)
             )
             self.peltier_powers.append(
                 MeerstetterWidget(self.peltier_frm, ms, address, name,
-                                  'peltier power', update_interval, -5, 85)
+                                  'peltier power', update_interval, -5, 90)
             )
 
             # grid
@@ -397,7 +403,7 @@ class CCDInfoWidget(tk.Toplevel):
 
             self.ccd_flow_rates.append(
                 FlowRateWidget(self.flow_frm, honey_ip, pen_address, name, update_interval,
-                               1.0, np.inf)
+                               0.85, 10)
             )
             self.ccd_flow_rates[-1].grid(
                     row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
@@ -470,4 +476,4 @@ class CCDInfoWidget(tk.Toplevel):
                 self.deiconify()
                 widget.raise_alarm()
 
-        self.after(60000, self.raise_if_nok)
+        self.after(10000, self.raise_if_nok)
