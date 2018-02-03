@@ -44,7 +44,7 @@ def hex_to_float32(hexstring):
 
 
 def float32_to_hex(f):
-    return format(struct.unpack('<I', struct.pack('<f', f))[0], 'X')
+    return format(struct.unpack(str('<I'), struct.pack(str('<f'), f))[0], 'X')
 
 
 class CRCCalculator(object):
