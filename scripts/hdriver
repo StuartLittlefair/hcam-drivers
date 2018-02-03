@@ -16,7 +16,7 @@ from hcam_widgets.tkutils import addStyle
 from hcam_drivers.utils.rtplot import RtplotServer
 from hcam_drivers.config import (load_config, write_config,
                                  check_user_dir, dump_app)
-from hcam_drivers.hardware import slide, CCDInfoWidget
+from hcam_drivers.hardware import slide, CCDInfoWidget, meerstetter
 
 if not six.PY3:
     import Tkinter as tk
@@ -86,6 +86,7 @@ class GUI(tk.Tk):
         # container frame for switch options (observe, fps and setup)
         topLhsFrame = tk.Frame(lhs)
         self.globals.fpslide = slide.FocalPlaneSlide(topLhsFrame)
+        self.globals.tecs = meerstetter.CCDTempFrame(topLhsFrame)
         self.globals.setup = w.InstSetup(topLhsFrame)
         self.globals.observe = hcam.Observe(topLhsFrame)
 
@@ -134,7 +135,7 @@ class GUI(tk.Tk):
         # expert settingsMenu
         expertMenu = w.ExpertMenu(settingsMenu, self.globals.observe, self.globals.setup,
                                   self.globals.ipars,
-                                  self.globals.fpslide)
+                                  self.globals.fpslide, switch)
         settingsMenu.add_cascade(label='Expert', menu=expertMenu)
 
         # telescope chooser
