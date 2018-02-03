@@ -3,8 +3,6 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import six
 import subprocess
 import sys
-import os
-import getpass
 from hcam_widgets.tkutils import addStyle, get_root
 
 if not six.PY3:
@@ -62,7 +60,7 @@ class AlarmDialog(tk.Toplevel):
 
         self.initial_focus = self
 
-        self.protocol("WM_DELETE_WINDOW", self.ack_and_teardown)
+        self.protocol("WM_DELETE_WINDOW", self.ack)
         self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
                                   parent.winfo_rooty()+50))
         self.initial_focus.focus_set()
@@ -95,6 +93,7 @@ class AlarmDialog(tk.Toplevel):
         # just stop the noise
         self.kill_alarm()
         self.widget.acknowledge_alarm()
+        self.teardown()
 
     def teardown(self):
         self.withdraw()
@@ -106,10 +105,6 @@ class AlarmDialog(tk.Toplevel):
         # cancel alarm
         self.kill_alarm()
         self.widget.cancel_alarm()
-        self.teardown()
-
-    def ack_and_teardown(self):
-        self.ack()
         self.teardown()
 
     def kill_alarm(self):
@@ -140,6 +135,3 @@ class AlarmDialog(tk.Toplevel):
             proc.wait()
 
         kill_after(countdown=5)
-
-
-
