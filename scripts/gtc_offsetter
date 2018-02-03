@@ -7,6 +7,7 @@ import time
 import datetime
 from itertools import cycle
 import traceback
+import subprocess
 
 import tornado.ioloop
 from tornado.web import RequestHandler, Application, url, HTTPError
@@ -14,27 +15,48 @@ from tornado.escape import json_encode, json_decode
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
-
-def sendSeqTrigger():
-    print('ngcbCmd seq trigger')
+from hcam_widgets.gtc.corba import get_telescope_server
 
 
-def scheduleTrigger(inTime):
+def send_trigger_when_ready(timeout):
     """
-    Schedule a sendSeqTrigger request
+    Wait for telescope to be ready to observe, with timeout.
 
-    This can be called from any thread to schedule a trigger. It is needed
-    because ``IOLoop.add_timeout`` is not thread safe and so can only be
-    called from the IOLoop's own thread.
-
-    Parameters
-    ----------
-    inTime : float
-        time in seconds to wait before sending trigger
+    Arguments
+    ---------
+    timeout : int
+        time to wait before carrying on anyway
     """
-    tornado.ioloop.IOLoop.instance().add_timeout(
-        datetime.timedelta(seconds=inTime), sendSeqTrigger
-    )
+    if timeout <= 0:
+        print('WARNING: timed out waiting for telescope to be ready')
+        print(' starting exposure anyway')
+        subprocess.Popen('ngcbCmd seq trigger'.split())
+        return
+
+    print('Checking if telescope is ready')
+    server = get_telescope_server()
+
+    # is telescope on target?
+    try:
+        ready = server.areMACSFollowErrorBelowThreshold()
+        # has mirror settled?
+        ready = ready and server.isM1NoiseBelowThreshold()
+    except:
+        # failed to read status, don't assume OK.
+        ready = False
+
+    if ready:
+        # ready to go, send trigger
+        print('telescope ready - starting exposure')
+        subprocess.Popen('ngcbCmd seq trigger'.split())
+
+    else:
+        # not ready yet, so call again in one second
+        print('telescope not ready yet - check again in 1s')
+        timeout -= 1
+        tornado.ioloop.IOLoop.instance().add_timeout(
+            datetime.timedelta(seconds=1), send_trigger_when_ready, timeout
+        )
 
 
 class FITSWriteHandler(PatternMatchingEventHandler):
@@ -45,6 +67,15 @@ class FITSWriteHandler(PatternMatchingEventHandler):
     the telescope, schedule callbacks to see if the
     offset is complete, and then send a trigger to the
     sequencer to continue with the observation.
+
+    Arguments
+    ----------
+    path : str
+        location of fits files to monitor
+    ra_offsets : itertools.cycle
+        absolute RA offsets in arcseconds
+    dec_offsets : itertools.cycle
+        absolute Dec offsets in arcseconds
     """
     patterns = ['*.fits']
 
@@ -62,6 +93,27 @@ class FITSWriteHandler(PatternMatchingEventHandler):
         # events which may be duplicates.
         self.debounce_time = 0.1
         self.last_event = 0
+        # offsets are supplied as absolute values, but telescope wants
+        # relative offsets. Keep track of cumulative offsets to date
+        # to allow conversion
+        self.cumulative_ra_offset = 0.0
+        self.cumulative_dec_offset = 0.0
+
+    def get_relative_offsets(self, abs_ra_offset, abs_dec_offset):
+        return (abs_ra_offset - self.cumulative_ra_offset,
+                abs_dec_offset - self.cumulative_dec_offset)
+
+    def do_offsets(self, raoff, decoff):
+        server = get_telescope_server()
+        try:
+            server.requestTelescopeOffset(raoff, decoff)
+        except Exception as err:
+            print('offset failed!\n' + str(err))
+            return False
+
+        self.cumulative_ra_offset += raoff
+        self.cumulative_dec_offset += decoff
+        return True
 
     def check_debounce(self):
         """
@@ -84,15 +136,20 @@ class FITSWriteHandler(PatternMatchingEventHandler):
             if event.src_path == self.existing_runs[-1]:
                 # latest file has just been written to
 
+                # get next relative offsets
+                next_ra_offset, next_dec_offset = self.get_relative_offsets(
+                    next(self.ra_offsets), next(self.dec_offsets)
+                )
                 # send telescope offset command
                 print('sending tel offsets {} {}'.format(
-                    next(self.ra_offsets), next(self.dec_offsets)
+                    next_ra_offset, next_dec_offset
                 ))
+                self.do_offsets(next_ra_offset, next_dec_offset)
 
-                # assume offset takes X seconds
-                # trigger sequencer to start again in X s
+                # launch thread to wait for telescope to be in place
+                # and send trigger to NGC controller
                 tornado.ioloop.IOLoop.instance().add_callback(
-                    scheduleTrigger, 3
+                    send_trigger_when_ready, 10
                 )
 
     def on_created(self, event):
