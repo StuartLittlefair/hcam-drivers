@@ -17,7 +17,7 @@ class GTCRackSensor(object):
                 status = resp.getcode()
             if status != 200:
                 raise URLError('response code from rack sensor NOK')
-            html = resp.read()
+            html = resp.read().decode()
             fields = html.split('">')
             temp = float(fields[1].split(' ')[0])
             hum = float(fields[2].split(' ')[0])
