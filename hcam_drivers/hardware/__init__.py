@@ -98,6 +98,22 @@ class AcknowledgedAlarmState(object):
         return
 
 
+class BoolFormatter(object):
+    """
+    A simple class to convert integer values to True/False strings.
+
+    This class is a bit of a Kludge to make boolean values work nicely with the
+    HardwareDisplayWidget, which was originally written with floating point numbers
+    in mind. It provides one function, format, which converts 0 to 'ERROR' and 1 to
+    'OK'.
+    """
+    def format(self, val):
+        if val == 1:
+            return 'OK'
+        else:
+            return 'ERROR'
+
+
 class HardwareDisplayWidget(tk.Frame):
     """
     A widget that displays and checks the status of a piece of hardware.
@@ -218,10 +234,15 @@ class MeerstetterWidget(HardwareDisplayWidget):
         self.address = address
         if kind == 'peltier power':
             self.fmt = '{:.0f}'
+        elif kind == 'status':
+            self.fmt = BoolFormatter()
 
     def update_function(self):
         g = get_root(self.parent).globals
         if g.cpars['ccd_temp_monitoring_on']:
+            if self.kind == 'status':
+                ok, code = self.ms.get_status(self.address)
+                return int(ok)
             if self.kind == 'temperature':
                 return self.ms.get_ccd_temp(self.address).value
             elif self.kind == 'heatsink temperature':
@@ -345,6 +366,7 @@ class CCDInfoWidget(tk.Toplevel):
             self.chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
 
         # create label frames
+        self.status_frm = tk.LabelFrame(self, text='Meerstetter status', padx=4, pady=4)
         self.temp_frm = tk.LabelFrame(self, text='Temperatures (C)', padx=4, pady=4)
         self.heatsink_frm = tk.LabelFrame(self, text='Heatsink Temps (C)', padx=4, pady=4)
         self.peltier_frm = tk.LabelFrame(self, text='Peltier Powers (%)', padx=4, pady=4)
@@ -353,6 +375,7 @@ class CCDInfoWidget(tk.Toplevel):
 
         # variables to store hardware widgets
         update_interval = 20
+        self.ms_status = []
         self.ccd_temps = []
         self.heatsink_temps = []
         self.peltier_powers = []
@@ -374,6 +397,10 @@ class CCDInfoWidget(tk.Toplevel):
             ms, address = mapping[iccd+1]
             name = 'CCD {}'.format(iccd+1)
             # meerstetter widgets
+            self.ms_status.append(
+                MeerstetterWidget(self.status_frm, ms, address, name,
+                                  'status', update_interval, 0.5, 1.5)  # ok is 1, which is between 0.5 and 1.5
+            )
             self.ccd_temps.append(
                 MeerstetterWidget(self.temp_frm, ms, address, name,
                                   'temperature', update_interval, -105, -75)
@@ -388,6 +415,9 @@ class CCDInfoWidget(tk.Toplevel):
             )
 
             # grid
+            self.ms_status[-1].grid(
+                    row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
+                )
             self.ccd_temps[-1].grid(
                     row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
                 )
@@ -424,11 +454,12 @@ class CCDInfoWidget(tk.Toplevel):
         self.ngc_flow_rate.grid(row=1, column=2, padx=5, sticky=tk.W)
 
         # grid frames
-        self.temp_frm.grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        self.heatsink_frm.grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
-        self.peltier_frm.grid(row=2, column=0, padx=4, pady=4, sticky=tk.W)
-        self.flow_frm.grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
-        self.vac_frm.grid(row=4, column=0, padx=4, pady=4, sticky=tk.W)
+        self.status_frm.grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        self.temp_frm.grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
+        self.heatsink_frm.grid(row=2, column=0, padx=4, pady=4, sticky=tk.W)
+        self.peltier_frm.grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
+        self.flow_frm.grid(row=4, column=0, padx=4, pady=4, sticky=tk.W)
+        self.vac_frm.grid(row=5, column=0, padx=4, pady=4, sticky=tk.W)
 
         self.after(10000, self.raise_if_nok)
 
@@ -460,6 +491,7 @@ class CCDInfoWidget(tk.Toplevel):
     @property
     def ok(self):
         okl = [self.chiller_temp.ok, self.ngc_flow_rate.ok]
+        okl += [ms_state.ok for ms_state in self.ms_status]
         okl += [ccd_temp.ok for ccd_temp in self.ccd_temps]
         okl += [vac.ok for vac in self.vacuums]
         okl += [flow.ok for flow in self.ccd_flow_rates]
@@ -469,6 +501,7 @@ class CCDInfoWidget(tk.Toplevel):
     def raise_if_nok(self):
         widgets = [self.chiller_temp, self.ngc_flow_rate]
         widgets.extend(self.ccd_temps)
+        widgets.extend(self.ms_status)
         widgets.extend(self.ccd_flow_rates)
         widgets.extend(self.peltier_powers)
         for widget in widgets:
