@@ -71,8 +71,9 @@ class ActiveAlarmState(object):
     def acknowledge_alarm(widget):
         # called when acknowledge button in alarmwidget clicked
         g = get_root(widget.parent).globals
-        istr = 'Alarm on {} acknowledged, will re-raise in 10 mins if not fixed'
-        g.clog.info(istr.format(widget.name))
+        acknowledged_time_limit = g.cpars['alarm_sleep_time']
+        istr = 'Alarm on {} acknowledged, will re-raise in {} mins if not fixed'
+        g.clog.info(istr.format(widget.name, acknowledged_time_limit // 60))
         widget.set_state(AcknowledgedAlarmState)
 
 
