@@ -20,7 +20,7 @@ alarm_cmd = '{} {} {}'.format(
 
 kill_alarm_cmd = '{} {}'.format(
     login,
-    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123'
+    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123.bin'
 )
 
 
