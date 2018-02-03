@@ -11,6 +11,17 @@ from astropy import units as u
 
 DEFAULT_TIMEOUT = 2
 
+error_codes = {
+    '+01': 'Command not available',
+    '+02': 'Device is busy',
+    '+03': 'Communication error',
+    '+04': 'Format error',
+    '+05': 'Parameter not available',
+    '+06': 'Parameter is read only',
+    '+07': 'Value is out of range',
+    '+08': 'Instance not available'
+}
+
 
 def hex_to_int(hexstring):
     return int(hexstring, 16)
@@ -124,8 +135,9 @@ class MeerstetterTEC1090(object):
         if ret_msg[0] == '!' and frame_msg[1:7] == ret_msg[1:7]:
             # a valid response, and same seq no. so far so good
             crc_back = ret_msg[-4:]
+            crc_out = frame_msg[-5:-1]
             package_in = ret_msg[:-4]
-            if self.crc_calc(package_in) != crc_back:
+            if self.crc_calc(package_in) != crc_back and crc_out != crc_back:
                 raise IOError('checksum of return message not OK:\nOut: {}\nBack: {}'.format(
                                 frame_msg, ret_msg
                               ))
@@ -151,6 +163,27 @@ class MeerstetterTEC1090(object):
         else:
             return hex_to_int(encoded_param_val)
 
+    def reset_tec(self, address):
+        payload = 'RS'
+        frame_msg = self._assemble_frame(address, payload)
+        ret_msg = self._send_frame(frame_msg)
+        if ret_msg != '':
+            raise IOError('unexpected response to reset command {}'.format(ret_msg))
+
+    def set_ccd_temp(self, address, target_temp):
+        param_no = 3000
+        payload = 'VS{param_no:0>4X}{instance:0>2X}{encoded_val}'.format(
+            param_no=param_no, instance=1,
+            encoded_val=float32_to_hex(target_temp)
+        )
+        frame_msg = self._assemble_frame(address, payload)
+        ret_msg = self._send_frame(frame_msg)
+        if ret_msg.startswith('+'):
+            if ret_msg in error_codes:
+                raise IOError(error_codes[ret_msg])
+            else:
+                raise IOError('unknown error code {}'.format(ret_msg))
+
     def get_ccd_temp(self, address):
         param_no = 1000
         return self.get_param(address, param_no, 1)*u.Celsius
@@ -163,3 +196,11 @@ class MeerstetterTEC1090(object):
         current = self.get_param(address, 1020, 1)
         voltage = self.get_param(address, 1021, 1)
         return current*voltage*u.W
+
+    def get_status(self, address):
+        param_no = 104
+        status = self.get_param(address, param_no, 1, param_type='int')
+        lut = {0: 'init', 1: 'ready', 2: 'run', 3: 'error',
+               4: 'bootloader', 5: 'resetting'}
+        # return OK/NOK and status
+        return status <= 2, lut[status]
