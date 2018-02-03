@@ -49,7 +49,6 @@ def send_trigger_when_ready(timeout):
         # ready to go, send trigger
         print('telescope ready - starting exposure')
         subprocess.Popen('ngcbCmd seq trigger'.split())
-
     else:
         # not ready yet, so call again in one second
         print('telescope not ready yet - check again in 1s')
