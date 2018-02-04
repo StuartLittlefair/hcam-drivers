@@ -73,12 +73,24 @@ class ObsMode(object):
 
         # parameters for user-defined headers
         user_data = setup_data.get('user', {})
+        imagetyp = user_data.get('flags', '')
+
+        # put OBSTYPE in for GTC
+        obstype = 'Imaging'
+        if imagetyp == 'bias':
+            obstype = 'Bias'
+        elif imagetyp == 'dark':
+            obstype = 'Dark'
+        elif imagetyp == 'flat':
+            obstype = 'SkyFlat'
+
         userpars = []
         userpars.extend([
             ('OBSERVER', user_data.get('Observers', '')),
             ('OBJECT', user_data.get('target', '')),
             ('RUNCOM', user_data.get('comment', '')),
-            ('IMAGETYP', user_data.get('flags', '')),
+            ('IMAGETYP', imagetyp),
+            ('OBSMODE', obstype),
             ('FILTERS', user_data.get('filters', '')),
             ('PROGRM', user_data.get('ID', '')),
             ('PI', user_data.get('PI', ''))
