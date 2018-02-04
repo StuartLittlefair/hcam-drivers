@@ -65,14 +65,12 @@ MAX_MM = MM_PER_MS*MAX_MS
 # Next numbers set the limits in pixel numbers. They are telescope dependent.
 # WHT/HIPERCAM Numbers, Oct 2017
 # 429.85589 MS per PIX
-
-# TNT values before re-calibration of March 2014:
-# MIN_PX = 1230.0
-# MAX_PX = -798.
+# GTC/HIPERCAM Numbers, Feb 2018
+# 424.8903 MS per PIX
 
 # TNT values March 2014 -- present
-MIN_PX = 2712.258
-MAX_PX = -1150.117
+MIN_PX = 2760.2
+MAX_PX = -1155.3
 
 # Standard pixel positions for unblocking and blocking the CCD
 UNBLOCK_POS = 1100.
