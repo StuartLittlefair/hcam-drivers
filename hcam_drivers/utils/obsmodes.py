@@ -96,6 +96,13 @@ class ObsMode(object):
             ('PI', user_data.get('PI', ''))
         ])
 
+        # gtc headers
+        gtc_header_info = setup_data.get('gtc_headers', {})
+        if gtc_header_info:
+            userpars.extend(
+                [(item, gtc_header_info[item]) for item in gtc_header_info]
+            )
+
         # data from TCS
         tcs_data = setup_data.get('tcs', {})
         userpars.extend([
