@@ -102,11 +102,11 @@ class ObsMode(object):
             ('TELESCOP', tcs_data.get('tel', 'WHT')),
             ('RA', tcs_data.get('RA', '00:00:00.00')),
             ('DEC', tcs_data.get('DEC', '+00:00:00.0')),
-            ('ALTITUDE', tcs_data.get('alt', -99)),
+            ('ELEVAT', tcs_data.get('alt', -99)),
             ('AZIMUTH', tcs_data.get('az', -99)),
             ('AIRMASS', tcs_data.get('secz', -99)),
-            ('PA', tcs_data.get('pa', -99)),
-            ('FOCUS', tcs_data.get('foc', -99)),
+            ('INSTRPA', tcs_data.get('pa', -99)),
+            ('TELFOCUS', tcs_data.get('foc', -99)),
             ('MOONDIST', tcs_data.get('mdist', -99))
         ])
 
