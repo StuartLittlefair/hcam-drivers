@@ -96,13 +96,6 @@ class ObsMode(object):
             ('PI', user_data.get('PI', ''))
         ])
 
-        # gtc headers
-        gtc_header_info = setup_data.get('gtc_headers', {})
-        if gtc_header_info:
-            userpars.extend(
-                [(item, gtc_header_info[item]) for item in gtc_header_info]
-            )
-
         # data from TCS
         tcs_data = setup_data.get('tcs', {})
         userpars.extend([
@@ -116,6 +109,20 @@ class ObsMode(object):
             ('TELFOCUS', tcs_data.get('foc', -99)),
             ('MOONDIST', tcs_data.get('mdist', -99))
         ])
+
+        # gtc headers
+        gtc_header_info = setup_data.get('gtc_headers', {})
+        if gtc_header_info:
+            userpars.extend(
+                [(item, gtc_header_info[item]) for item in gtc_header_info]
+            )
+
+        # getting pars from GTC header info and TCS/GUI can insert duplicates
+        # use a dict to remove duplicates, reversing order so earlier inserts
+        # have priority
+        userpars = OrderedDict(userpars[::-1])
+        # convert back to to list of tuples, reversing order again
+        userpars = [(key, userpars[key]) for key in userpars][::-1]
 
         # data from h/w monitoring processes
         hw_data = setup_data.get('hardware', {})
