@@ -181,8 +181,6 @@ class ObsMode(object):
 
     @property
     def header_commands(self):
-        setup_string = 'setup'
-
         def chunks(data, SIZE=10):
             it = iter(data)
             for i in range(0, len(data), SIZE):
@@ -191,9 +189,9 @@ class ObsMode(object):
         setup_strings = []
         for chunk in chunks(self.userpars):
             setup_string = 'setup'
-            for key in self.userpars:
-                if self.userpars[key] != '':
-                    value = self.userpars[key]
+            for key in chunk:
+                if chunk[key] != '':
+                    value = chunk[key]
                     # add quotes to strings with spaces
                     try:
                         if ' ' in value:
