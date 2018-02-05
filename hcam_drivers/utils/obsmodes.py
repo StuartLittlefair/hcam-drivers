@@ -178,7 +178,14 @@ class ObsMode(object):
         for key in self.detpars:
             setup_string += ' {} {} '.format(key, self.detpars[key])
 
-        # userpars first, because order dictates appearance in FITS header
+        if self.finite:
+            setup_string += ' DET.FRAM2.BREAK {} '.format(self.finite)
+
+        return setup_string
+
+    @property
+    def header_command(self):
+        setup_string = 'setup'
         for key in self.userpars:
             if self.userpars[key] != '':
                 value = self.userpars[key]
@@ -189,10 +196,6 @@ class ObsMode(object):
                 except:
                     pass
                 setup_string += ' {} {} '.format(key, value)
-
-        if self.finite:
-            setup_string += ' DET.FRAM2.BREAK {} '.format(self.finite)
-
         return setup_string
 
 
