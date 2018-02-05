@@ -302,13 +302,14 @@ class PostRunHandler(BaseHandler):
             return
         time.sleep(0.1)
 
-        response = sendCommand(obsmode.setup_command)
-        if not response['RETCODE'] == "OK":
-            self.write(json_encode(response))
-            return
-        time.sleep(0.1)
+        for header_command in obsmode.header_commands:
+            response = yaml.load(sendCommand(header_command))
+            if not response['RETCODE'] == "OK":
+                self.write(json_encode(response))
+                return
+            time.sleep(0.15)
 
-        response = sendCommand(obsmode.header_command)
+        response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
         time.sleep(0.1)
 

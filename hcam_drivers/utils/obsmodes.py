@@ -2,6 +2,7 @@
 # JSON encoded instrument setups into an
 from __future__ import print_function, unicode_literals, absolute_import, division
 from collections import OrderedDict
+from itertools import islice
 
 
 def get_obsmode(setup_data):
@@ -117,13 +118,6 @@ class ObsMode(object):
                 [(item, gtc_header_info[item]) for item in gtc_header_info]
             )
 
-        # getting pars from GTC header info and TCS/GUI can insert duplicates
-        # use a dict to remove duplicates, reversing order so earlier inserts
-        # have priority
-        userpars = OrderedDict(userpars[::-1])
-        # convert back to to list of tuples, reversing order again
-        userpars = [(key, userpars[key]) for key in userpars][::-1]
-
         # data from h/w monitoring processes
         hw_data = setup_data.get('hardware', {})
         userpars.extend([
@@ -144,6 +138,8 @@ class ObsMode(object):
             ('CCD5FLOW', hw_data.get('ccd5flow', -99)),
             ('FPSLIDE', hw_data.get('fpslide', -99))
         ])
+        # getting pars from GTC header info and TCS/GUI can insert duplicates
+        # use a dict to remove duplicates
         self.userpars = OrderedDict(userpars)
 
     def setup_acq_task(self, nq=5):
@@ -184,19 +180,29 @@ class ObsMode(object):
         return setup_string
 
     @property
-    def header_command(self):
+    def header_commands(self):
         setup_string = 'setup'
-        for key in self.userpars:
-            if self.userpars[key] != '':
-                value = self.userpars[key]
-                # add quotes to strings with spaces
-                try:
-                    if ' ' in value:
-                        value = '"' + value + '"'
-                except:
-                    pass
-                setup_string += ' {} {} '.format(key, value)
-        return setup_string
+
+        def chunks(data, SIZE=10):
+            it = iter(data)
+            for i in range(0, len(data), SIZE):
+                yield {k: data[k] for k in islice(it, SIZE)}
+
+        setup_strings = []
+        for chunk in chunks(self.userpars):
+            setup_string = 'setup'
+            for key in self.userpars:
+                if self.userpars[key] != '':
+                    value = self.userpars[key]
+                    # add quotes to strings with spaces
+                    try:
+                        if ' ' in value:
+                            value = '"' + value + '"'
+                    except:
+                        pass
+                    setup_string += ' {} {} '.format(key, value)
+            setup_strings.append(setup_string)
+        return setup_strings
 
 
 class FullFrame(ObsMode):
