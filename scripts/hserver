@@ -7,7 +7,11 @@ import yaml
 import subprocess
 import traceback
 import time
+import os
+from io import BytesIO
 
+from astropy.io import votable
+from astropy.io import fits
 from hcam_drivers.utils.obsmodes import get_obsmode, Idle
 
 
@@ -323,6 +327,42 @@ class PostRunHandler(BaseHandler):
         self.finish(retMsg)
 
 
+class InsertFITSTableHandler(BaseHandler):
+    """
+    Handle an uploaded table, and append it to the appropriate FITS file
+
+    Filename is included in POST data, table is a binary encoded VOTable, which
+    we will write to a FITS HDU, which is appended onto the original FITS file.
+    """
+    def post(self):
+        try:
+            fileinfo = self.request.files['file'][0]
+            filename = os.path.join('/data', self.get_argument('run'))
+            # put binary data into BytesIO object to read from
+            vot_data = BytesIO(fileinfo['body'])
+        except:
+            raise HServerException(reason='malformed POST request', status_code=500)
+
+        try:
+            vot = votable.parse(vot_data)
+            t = vot.get_first_table()
+        except:
+            raise HServerException(reason='could not decode table data', status_code=500)
+
+        try:
+            new_hdu = fits.table_to_hdu(t)
+            existing_hdu_list = fits.open(
+                filename, mode='append', memmap=True
+            )
+            existing_hdu_list.append(new_hdu)
+            existing_hdu_list.flush()
+        except:
+            raise HServerException(reason='could not write HDU to run', status_code=500)
+
+        retmsg = json_encode({'MESSAGEBUFFER': 'DONE', 'RETCODE': 'OK'})
+        self.finish(retmsg)
+
+
 if __name__ == '__main__':
     db = {}
     app = Application([
@@ -341,6 +381,7 @@ if __name__ == '__main__':
         url(r'/summary', SummaryHandler, dict(db=db), name="summary"),
         url(r'/status', StatusHandler, dict(db=db)),
         url(r'/setup', PostRunHandler, dict(db=db), name='setup'),
+        url(r'/addhdu', InsertFITSTableHandler, dict(db=db), name='addhdu'),
         url(r"/status/(.*)", StatusHandler, dict(db=db))
     ])
     app.listen(5000)
