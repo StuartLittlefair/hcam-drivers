@@ -10,7 +10,7 @@ import time
 import os
 from io import BytesIO
 
-from astropy.io import votable
+from astropy.io import ascii
 from astropy.io import fits
 from hcam_drivers.utils.obsmodes import get_obsmode, Idle
 
@@ -339,13 +339,12 @@ class InsertFITSTableHandler(BaseHandler):
             fileinfo = self.request.files['file'][0]
             filename = os.path.join('/data', self.get_argument('run'))
             # put binary data into BytesIO object to read from
-            vot_data = BytesIO(fileinfo['body'])
+            table_data = BytesIO(fileinfo['body'])
         except:
             raise HServerException(reason='malformed POST request', status_code=500)
 
         try:
-            vot = votable.parse(vot_data)
-            t = vot.get_first_table()
+            t = ascii.read(table_data, format='ecsv')
         except:
             raise HServerException(reason='could not decode table data', status_code=500)
 
