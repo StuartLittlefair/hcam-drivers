@@ -65,7 +65,7 @@ test ngcbCmd setup DET.FRAM.NAMING auto
 test ngcbCmd setup DET.FRAM.FILENAME run
 
 
-# make sure initial read is correct
+# make sure initial run number is correct
 NRUNS=`ls -1 /data/run*.fits | wc -l`
 LAST_FRAME=`printf run%04d.fits $NRUNS`
 echo "last written frame was $LAST_FRAME"
