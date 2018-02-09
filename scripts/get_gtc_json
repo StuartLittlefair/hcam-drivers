@@ -4,6 +4,7 @@ from __future__ import print_function, division, unicode_literals
 import argparse
 import os
 from six.moves.urllib.request import urlretrieve
+import json
 
 URL_TEMPLATE = 'http://gtc-phase2.gtc.iac.es/science/Parser/sequences/GTC{id:03d}-{semester:s}_{obid:04d}.json'
 FNAME_TEMPLATE = 'GTC{id:03d}-{semester:s}_{obid:04d}.json'
@@ -11,10 +12,22 @@ FNAME_TEMPLATE = 'GTC{id:03d}-{semester:s}_{obid:04d}.json'
 
 def download_json(proposal_id, semester, obid):
     pars = dict(id=proposal_id, semester=semester, obid=obid)
-    dir = os.path.join(os.path.expanduser('~/.hdriver'), 'apps')
-    fname = os.path.join(dir, FNAME_TEMPLATE.format(**pars))
+    dirname = os.path.join(os.path.expanduser('~/.hdriver'), 'apps')
+    fname = os.path.join(dirname, FNAME_TEMPLATE.format(**pars))
     url = URL_TEMPLATE.format(**pars)
     urlretrieve(url, fname)
+
+
+def check_download(proposal_id, semester, obid):
+    pars = dict(id=proposal_id, semester=semester, obid=obid)
+    dirname = os.path.join(os.path.expanduser('~/.hdriver'), 'apps')
+    fname = os.path.join(dirname, FNAME_TEMPLATE.format(**pars))
+    try:
+        data = json.load(open(fname))
+        print('Download complete - load JSON file from hdriver')
+    except:
+        os.unlink(fname)
+        print('No such JSON file, or download failed')
 
 
 if __name__ == "__main__":
@@ -27,4 +40,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     download_json(args.proposal_id, args.semester, args.obid)
-    print('Download complete - load JSON file from hdriver')
+    check_download(args.proposal_id, args.semester, args.obid)
