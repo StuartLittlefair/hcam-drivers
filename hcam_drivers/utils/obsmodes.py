@@ -86,6 +86,16 @@ class ObsMode(object):
             obstype = 'SkyFlat'
 
         userpars = []
+
+        # gtc headers
+        gtc_header_info = setup_data.get('gtc_headers', {})
+        if gtc_header_info:
+            userpars.extend(
+                [(item, gtc_header_info[item]) for item in gtc_header_info]
+            )
+
+        # now update with GUI values. Do this after to allow override of
+        # GTC telescope server headers
         userpars.extend([
             ('OBSERVER', user_data.get('Observers', '')),
             ('OBJECT', user_data.get('target', '')),
@@ -110,13 +120,6 @@ class ObsMode(object):
             ('TELFOCUS', tcs_data.get('foc', -99)),
             ('MOONDIST', tcs_data.get('mdist', -99))
         ])
-
-        # gtc headers
-        gtc_header_info = setup_data.get('gtc_headers', {})
-        if gtc_header_info:
-            userpars.extend(
-                [(item, gtc_header_info[item]) for item in gtc_header_info]
-            )
 
         # data from h/w monitoring processes
         hw_data = setup_data.get('hardware', {})
