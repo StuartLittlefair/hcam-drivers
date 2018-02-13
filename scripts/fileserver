@@ -88,12 +88,16 @@ class RunHandler(websocket.WebSocketHandler):
         """
         Read data from HDU in FITS file and send FITS HDUs as binary data
         """
-        self.ffp.seek_frame(frame_id)
+        try:
+            self.ffp.seek_frame(frame_id)
+        except IOError:
+            print('No such frame: ', frame_id)
+            self.write_message({'status': 'no such frame'})
+            self.close(reason='no such frame')
         self._send_frame()
 
     def get_last_frame(self):
-        self.ffp.seek_frame(self.ffp.num_frames - 1)
-        self._send_frame()
+        self.get_frame(self.ffp.num_frames)
 
     def get_nframes(self):
         """

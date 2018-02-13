@@ -60,8 +60,10 @@ class FastFITSPipe:
 
     @property
     def num_frames(self):
+        # cant use integer division because timestamps are buffered and 2800 fits
+        # block size causes trouble.
         current_size = os.stat(self._fileobj.name).st_size
-        return (current_size - self.header_bytesize) // self.framesize
+        return int(round((current_size - self.header_bytesize) / self.framesize))
 
     @lazyproperty
     def hdr(self):
