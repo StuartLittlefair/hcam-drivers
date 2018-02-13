@@ -275,7 +275,10 @@ class CCDTempFrame(tk.LabelFrame):
 
     def update(self, ccd):
         g = get_root(self).globals
-        g.clog.info('Updating CCD {}'.format(ccd))
+        if not g.cpars['ccd_temp_monitoring_on']:
+            g.clog.warn('Temperature monitoring disabled. Will not update CCD{}'.format(ccd))
+            return
+        g.clog.info('Updating CCD{}'.format(ccd))
         widget = self.temp_entry_widgets[ccd]
         val = widget.value()
         g.clog.info('desired setpoint ' + str(val))
@@ -285,11 +288,17 @@ class CCDTempFrame(tk.LabelFrame):
 
     def reset(self, ccd):
         g = get_root(self).globals
+        if not g.cpars['ccd_temp_monitoring_on']:
+            g.clog.warn('Temperature monitoring disabled. Will not reset CCD{}'.format(ccd))
+            return
         g.clog.info('Resetting TEC {}'.format(ccd))
         ms, address = self.ms_mapping[ccd]
         ms.reset_tec(address)
 
     def refresh_setpoints(self):
+        g = get_root(self).globals
+        if not g.cpars['ccd_temp_monitoring_on']:
+            g.clog.warn('Temperature monitoring disabled. Cannot check setpoint of CCD{}'.format(ccd))
         for i in range(1, 6):
             widget = self.setpoint_displays[i]
             ms, address = self.ms_mapping[i]
