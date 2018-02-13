@@ -286,8 +286,11 @@ class CCDTempFrame(tk.LabelFrame):
         val = widget.value()
         g.clog.info('desired setpoint ' + str(val))
         ms, address = self.ms_mapping[ccd]
-        ms.set_ccd_temp(address, int(val))
-        self.after(500, self.refresh_setpoints)
+        try:
+            ms.set_ccd_temp(address, int(val))
+            self.after(500, self.refresh_setpoints)
+        except:
+            g.clog.warn('Unable to update setpoint for CCD{}'.format(ccd))
 
     def reset(self, ccd):
         g = get_root(self).globals
@@ -296,7 +299,10 @@ class CCDTempFrame(tk.LabelFrame):
             return
         g.clog.info('Resetting TEC {}'.format(ccd))
         ms, address = self.ms_mapping[ccd]
-        ms.reset_tec(address)
+        try:
+            ms.reset_tec(address)
+        except:
+            g.clog.warn('Unable to reset TEC {}'.format(ccd))
 
     def refresh_setpoints(self):
         g = get_root(self).globals
@@ -306,5 +312,8 @@ class CCDTempFrame(tk.LabelFrame):
         for i in range(1, 6):
             widget = self.setpoint_displays[i]
             ms, address = self.ms_mapping[i]
-            setpoint = ms.get_setpoint(address).value
+            try:
+                setpoint = ms.get_setpoint(address).value
+            except:
+                g.clog.warn('Unable to get setpoint for CCD{}'.format(i))
             widget.configure(text=str(setpoint))
