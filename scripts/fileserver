@@ -97,7 +97,7 @@ class RunHandler(websocket.WebSocketHandler):
         self._send_frame()
 
     def get_last_frame(self):
-        self.get_frame(self.ffp.num_frames)
+        self.get_frame(self.ffp.num_frames - 1)
 
     def get_nframes(self):
         """
