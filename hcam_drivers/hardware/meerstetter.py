@@ -251,7 +251,10 @@ class CCDTempFrame(tk.LabelFrame):
         width = 8
         for i in range(1, 6):
             ms, address = self.ms_mapping[i]
-            ival = ms.get_setpoint(address).value
+            try:
+                ival = ms.get_setpoint(address).value
+            except:
+                ival = 5
             self.temp_entry_widgets[i] = RangedInt(
                 top, ival, -100, 20, None, True, width=width
             )
