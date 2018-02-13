@@ -311,7 +311,7 @@ class PostRunHandler(BaseHandler):
             if not response['RETCODE'] == "OK":
                 self.write(json_encode(response))
                 return
-            time.sleep(0.15)
+            time.sleep(0.1)
 
         response = sendCommand(obsmode.setup_command)
         retMsg = parse_response(response)
