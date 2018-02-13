@@ -302,6 +302,7 @@ class CCDTempFrame(tk.LabelFrame):
         g = get_root(self).globals
         if not g.cpars['ccd_temp_monitoring_on']:
             g.clog.warn('Temperature monitoring disabled. Cannot refresh CCD setpoints')
+            return
         for i in range(1, 6):
             widget = self.setpoint_displays[i]
             ms, address = self.ms_mapping[i]
