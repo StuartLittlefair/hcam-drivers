@@ -36,13 +36,13 @@ scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
 
 setup(
     name='hcam_drivers',
-    version='0.3.0',
+    version='0.4.0',
     description="Observation planning and finding charts for HiPerCAM",
     long_description=readme + '\n\n' + history,
     author="Stuart Littlefair",
     author_email='s.littlefair@shef.ac.uk',
     url='https://github.com/HiPERCAM/hcam-drivers',
-    download_url='https://github.com/HiPERCAM/hcam-drivers/archive/v0.3.0.tar.gz',
+    download_url='https://github.com/HiPERCAM/hcam-drivers/archive/v0.4.0.tar.gz',
     packages=[
         'hcam_drivers',
         'hcam_drivers.utils',
