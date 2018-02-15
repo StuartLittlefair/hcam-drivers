@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # usage info
 function show_help {
@@ -63,6 +63,13 @@ test ngcbCmd standby
 # set file naming
 test ngcbCmd setup DET.FRAM.NAMING auto
 test ngcbCmd setup DET.FRAM.FILENAME run
+
+
+# make sure initial run number is correct
+NRUNS=`ls -1 /data/run*.fits | wc -l`
+LAST_FRAME=`printf run%04d.fits $NRUNS`
+echo "last written frame was $LAST_FRAME"
+dbWrite "<alias>ngcircon_ircam1:exposure.newDataFileName" $LAST_FRAME
 
 XTERM="xterm -bg white -fg black -aw -vb -sb -sl 5000 -rightbar -geometry 80x16 -fa 'Monospace' -fs 8"
 

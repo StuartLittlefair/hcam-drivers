@@ -2,6 +2,7 @@
 # JSON encoded instrument setups into an
 from __future__ import print_function, unicode_literals, absolute_import, division
 from collections import OrderedDict
+from itertools import islice
 
 
 def get_obsmode(setup_data):
@@ -73,12 +74,34 @@ class ObsMode(object):
 
         # parameters for user-defined headers
         user_data = setup_data.get('user', {})
+        imagetyp = user_data.get('flags', '')
+
+        # put OBSTYPE in for GTC
+        obstype = 'Imaging'
+        if imagetyp == 'bias':
+            obstype = 'Bias'
+        elif imagetyp == 'dark':
+            obstype = 'Dark'
+        elif imagetyp == 'flat':
+            obstype = 'SkyFlat'
+
         userpars = []
+
+        # gtc headers
+        gtc_header_info = setup_data.get('gtc_headers', {})
+        if gtc_header_info:
+            userpars.extend(
+                [(item, gtc_header_info[item]) for item in gtc_header_info]
+            )
+
+        # now update with GUI values. Do this after to allow override of
+        # GTC telescope server headers
         userpars.extend([
             ('OBSERVER', user_data.get('Observers', '')),
             ('OBJECT', user_data.get('target', '')),
             ('RUNCOM', user_data.get('comment', '')),
-            ('IMAGETYP', user_data.get('flags', '')),
+            ('IMAGETYP', imagetyp),
+            ('OBSMODE', obstype),
             ('FILTERS', user_data.get('filters', '')),
             ('PROGRM', user_data.get('ID', '')),
             ('PI', user_data.get('PI', ''))
@@ -90,11 +113,11 @@ class ObsMode(object):
             ('TELESCOP', tcs_data.get('tel', 'WHT')),
             ('RA', tcs_data.get('RA', '00:00:00.00')),
             ('DEC', tcs_data.get('DEC', '+00:00:00.0')),
-            ('ALTITUDE', tcs_data.get('alt', -99)),
+            ('ELEVAT', tcs_data.get('alt', -99)),
             ('AZIMUTH', tcs_data.get('az', -99)),
             ('AIRMASS', tcs_data.get('secz', -99)),
-            ('PA', tcs_data.get('pa', -99)),
-            ('FOCUS', tcs_data.get('foc', -99)),
+            ('INSTRPA', tcs_data.get('pa', -99)),
+            ('TELFOCUS', tcs_data.get('foc', -99)),
             ('MOONDIST', tcs_data.get('mdist', -99))
         ])
 
@@ -118,6 +141,8 @@ class ObsMode(object):
             ('CCD5FLOW', hw_data.get('ccd5flow', -99)),
             ('FPSLIDE', hw_data.get('fpslide', -99))
         ])
+        # getting pars from GTC header info and TCS/GUI can insert duplicates
+        # use a dict to remove duplicates
         self.userpars = OrderedDict(userpars)
 
     def setup_acq_task(self, nq=5):
@@ -152,22 +177,33 @@ class ObsMode(object):
         for key in self.detpars:
             setup_string += ' {} {} '.format(key, self.detpars[key])
 
-        # userpars first, because order dictates appearance in FITS header
-        for key in self.userpars:
-            if self.userpars[key] != '':
-                value = self.userpars[key]
-                # add quotes to strings with spaces
-                try:
-                    if ' ' in value:
-                        value = '"' + value + '"'
-                except:
-                    pass
-                setup_string += ' {} {} '.format(key, value)
-
         if self.finite:
             setup_string += ' DET.FRAM2.BREAK {} '.format(self.finite)
 
         return setup_string
+
+    @property
+    def header_commands(self):
+        def chunks(data, SIZE=10):
+            it = iter(data)
+            for i in range(0, len(data), SIZE):
+                yield {k: data[k] for k in islice(it, SIZE)}
+
+        setup_strings = []
+        for chunk in chunks(self.userpars):
+            setup_string = 'setup'
+            for key in chunk:
+                if chunk[key] != '':
+                    value = chunk[key]
+                    # add quotes to strings with spaces
+                    try:
+                        if ' ' in value:
+                            value = '"' + value + '"'
+                    except:
+                        pass
+                    setup_string += ' {} {} '.format(key, value)
+            setup_strings.append(setup_string)
+        return setup_strings
 
 
 class FullFrame(ObsMode):
@@ -200,7 +236,6 @@ class Idle(ObsMode):
         super(Idle, self).__init__(setup_data)
         self.detpars['DET.GPS'] = 'F'
         self.readoutMode = 1  # FF, Slow
-        self.use_gps_hardware = 0
         self.setup_acq_task(nq=5)
 
 

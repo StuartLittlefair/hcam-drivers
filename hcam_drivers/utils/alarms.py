@@ -14,13 +14,13 @@ alarm_file = '/home/observer/alarms/phat_alarm.mp3'
 login = '/usr/bin/ssh observer@192.168.1.1'
 alarm_cmd = '{} {} {}'.format(
     login,
-    '/usr/bin/afplay' if sys.platform == 'darwin' else '/usr/bin/mpg123',
+    '/usr/bin/afplay' if sys.platform == 'darwin' else '/usr/bin/mpg123-portaudio',
     alarm_file
 )
 
 kill_alarm_cmd = '{} {}'.format(
     login,
-    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123'
+    '/usr/bin/killall afplay' if sys.platform == 'darwin' else '/usr/bin/killall mpg123.bin'
 )
 
 

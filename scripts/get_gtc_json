@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+from __future__ import print_function, division, unicode_literals
+
+import argparse
+import os
+from six.moves.urllib.request import urlretrieve
+import json
+
+URL_TEMPLATE = 'http://gtc-phase2.gtc.iac.es/science/Parser/sequences/GTC{id:d}-{semester:s}_{obid:04d}.json'
+FNAME_TEMPLATE = 'GTC{id:d}-{semester:s}_{obid:04d}.json'
+
+
+def download_json(proposal_id, semester, obid):
+    pars = dict(id=proposal_id, semester=semester, obid=obid)
+    dirname = os.path.join(os.path.expanduser('~/.hdriver'), 'apps')
+    fname = os.path.join(dirname, FNAME_TEMPLATE.format(**pars))
+    url = URL_TEMPLATE.format(**pars)
+    urlretrieve(url, fname)
+
+
+def check_download(proposal_id, semester, obid):
+    pars = dict(id=proposal_id, semester=semester, obid=obid)
+    dirname = os.path.join(os.path.expanduser('~/.hdriver'), 'apps')
+    fname = os.path.join(dirname, FNAME_TEMPLATE.format(**pars))
+    try:
+        json.load(open(fname))
+        print('Download complete - load JSON file from hdriver')
+    except:
+        os.unlink(fname)
+        print('No such JSON file, or download failed')
+
+
+if __name__ == "__main__":
+
+    # command-line parameters
+    parser = argparse.ArgumentParser(description='Download GTC JSON files for instrument setup')
+    parser.add_argument('proposal_id', type=int, help='Proposal ID number (e.g 100)')
+    parser.add_argument('semester', type=str, help='Semester (e.g 17B)')
+    parser.add_argument('obid', type=int, help='Observing block id number (e.g 2)')
+    args = parser.parse_args()
+
+    download_json(args.proposal_id, args.semester, args.obid)
+    check_download(args.proposal_id, args.semester, args.obid)

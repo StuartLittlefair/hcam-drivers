@@ -8,6 +8,14 @@ from contextlib import contextmanager
 
 from astropy import units as u
 
+# GUI imports
+from hcam_widgets.widgets import RangedInt
+from hcam_widgets.tkutils import get_root, addStyle
+if not six.PY3:
+    import Tkinter as tk
+else:
+    import tkinter as tk
+
 
 DEFAULT_TIMEOUT = 2
 
@@ -36,7 +44,7 @@ def hex_to_float32(hexstring):
 
 
 def float32_to_hex(f):
-    return format(struct.unpack('<I', struct.pack('<f', f))[0], 'X')
+    return format(struct.unpack(str('<I'), struct.pack(str('<f'), f))[0], 'X')
 
 
 class CRCCalculator(object):
@@ -188,6 +196,10 @@ class MeerstetterTEC1090(object):
         param_no = 1000
         return self.get_param(address, param_no, 1)*u.Celsius
 
+    def get_setpoint(self, address):
+        param_no = 1010
+        return self.get_param(address, param_no, 1)*u.Celsius
+
     def get_heatsink_temp(self, address):
         param_no = 1001
         return self.get_param(address, param_no, 1)*u.Celsius
@@ -204,3 +216,104 @@ class MeerstetterTEC1090(object):
                4: 'bootloader', 5: 'resetting'}
         # return OK/NOK and status
         return status <= 2, lut[status]
+
+
+class CCDTempFrame(tk.LabelFrame):
+    """
+    Self-contained widget to control CCD temps and reset TECS.
+    """
+    def __init__(self, master):
+        tk.LabelFrame.__init__(
+            self, master, text='CCD TECs', padx=10, pady=4
+        )
+        # Top for table of buttons
+        top = tk.Frame(self)
+        g = get_root(self).globals
+
+        self.meerstetters = [
+            MeerstetterTEC1090(ip_addr, 50000) for ip_addr in
+            g.cpars['meerstetter_ip']
+        ]
+        ms1 = self.meerstetters[0]
+        ms2 = self.meerstetters[1]
+        self.ms_mapping = {1: (ms1, 1), 2: (ms1, 2), 3: (ms1, 3),
+                           4: (ms2, 1), 5: (ms2, 2)}
+
+        tk.Label(top, text='CCD1').grid(row=0, column=0)
+        tk.Label(top, text='CCD2').grid(row=0, column=1)
+        tk.Label(top, text='CCD3').grid(row=0, column=2)
+        tk.Label(top, text='CCD4').grid(row=0, column=3)
+        tk.Label(top, text='CCD5').grid(row=0, column=4)
+
+        self.temp_entry_widgets = {}
+        self.setpoint_displays = {}
+        self.reset_buttons = {}
+        width = 8
+        for i in range(1, 6):
+            ms, address = self.ms_mapping[i]
+            try:
+                ival = ms.get_setpoint(address).value
+            except:
+                ival = 5
+            self.temp_entry_widgets[i] = RangedInt(
+                top, ival, -100, 20, None, True, width=width
+            )
+            self.temp_entry_widgets[i].grid(row=1, column=i-1)
+            self.setpoint_displays[i] = tk.Label(top, text='nan', width=width)
+            self.setpoint_displays[i].grid(row=2, column=i-1)
+            self.reset_buttons[i] = tk.Button(
+                top, fg='black', width=width, text='Reset',
+                command=lambda ccd=i: self.reset(ccd))
+            self.reset_buttons[i].grid(row=3, column=i-1)
+
+        # bind enter to set value routine
+        for i in range(1, 6):
+            widget = self.temp_entry_widgets[i]
+            widget.unbind('<Return>')
+            widget.bind('<Return>', lambda event, ccd=i: self.update(ccd))
+
+        top.pack(pady=2)
+        addStyle(self)
+        self.refresh_setpoints()
+
+    def update(self, ccd):
+        g = get_root(self).globals
+        if not g.cpars['ccd_temp_monitoring_on']:
+            g.clog.warn('Temperature monitoring disabled. Will not update CCD{}'.format(ccd))
+            return
+        g.clog.info('Updating CCD{}'.format(ccd))
+        widget = self.temp_entry_widgets[ccd]
+        val = widget.value()
+        g.clog.info('desired setpoint ' + str(val))
+        ms, address = self.ms_mapping[ccd]
+        try:
+            ms.set_ccd_temp(address, int(val))
+            self.after(500, self.refresh_setpoints)
+        except:
+            g.clog.warn('Unable to update setpoint for CCD{}'.format(ccd))
+
+    def reset(self, ccd):
+        g = get_root(self).globals
+        if not g.cpars['ccd_temp_monitoring_on']:
+            g.clog.warn('Temperature monitoring disabled. Will not reset CCD{}'.format(ccd))
+            return
+        g.clog.info('Resetting TEC {}'.format(ccd))
+        ms, address = self.ms_mapping[ccd]
+        try:
+            ms.reset_tec(address)
+        except:
+            g.clog.warn('Unable to reset TEC {}'.format(ccd))
+
+    def refresh_setpoints(self):
+        g = get_root(self).globals
+        if not g.cpars['ccd_temp_monitoring_on']:
+            g.clog.warn('Temperature monitoring disabled. Cannot refresh CCD setpoints')
+            return
+        for i in range(1, 6):
+            widget = self.setpoint_displays[i]
+            ms, address = self.ms_mapping[i]
+            try:
+                setpoint = ms.get_setpoint(address).value
+            except:
+                g.clog.warn('Unable to get setpoint for CCD{}'.format(i))
+            widget.configure(text=str(setpoint))
