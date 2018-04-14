@@ -76,13 +76,17 @@ class ObsMode(object):
         user_data = setup_data.get('user', {})
         imagetyp = user_data.get('flags', '')
 
-        # put OBSTYPE in for GTC
+        # put OBSTYPE in for GTC. Also, correctly set object
         obstype = 'Imaging'
+        obj = user_data.get('target', '')
         if imagetyp == 'bias':
+            obj = 'Bias'
             obstype = 'Bias'
         elif imagetyp == 'dark':
+            obj = 'Dark'
             obstype = 'Dark'
         elif imagetyp == 'flat':
+            obj = 'Skyflat'
             obstype = 'SkyFlat'
 
         userpars = []
@@ -98,7 +102,7 @@ class ObsMode(object):
         # GTC telescope server headers
         userpars.extend([
             ('OBSERVER', user_data.get('Observers', '')),
-            ('OBJECT', user_data.get('target', '')),
+            ('OBJECT', obj),
             ('RUNCOM', user_data.get('comment', '')),
             ('IMAGETYP', imagetyp),
             ('OBSMODE', obstype),
