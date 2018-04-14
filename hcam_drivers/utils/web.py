@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import traceback
 import struct
 import os
+import json
 
 import numpy as np
 import yaml
@@ -10,8 +11,32 @@ from tornado.web import RequestHandler
 from tornado.escape import json_encode
 from astropy.io import fits
 from astropy.utils.decorators import lazyproperty
+from six.moves import urllib
+
 
 MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
+FRAME_NUMBER_URL = 'http://localhost:5000/status/DET.FRAM2.NO'
+
+
+def getLastFrameNumber():
+    """
+    Polls the Hipercam server to find the current frame number
+
+    Raises an exception in cases of failure
+    """
+    response = urllib.request.urlopen(FRAME_NUMBER_URL, timeout=0.5).read()
+    try:
+        data = json.loads(response)
+    except:
+        raise Exception('cannot parse server response')
+    if data['RETCODE'] != 'OK':
+        raise Exception('server response not OK')
+    msg = data['MESSSAGEBUFFER']
+    try:
+        frame_number = int(msg.split()[1])
+    except:
+        raise Exception('getLastFrameNumber error: msg = ' + msg)
+    return frame_number
 
 
 class BaseHandler(RequestHandler):
@@ -60,10 +85,25 @@ class FastFITSPipe:
 
     @property
     def num_frames(self):
-        # cant use integer division because timestamps are buffered and 2800 fits
-        # block size causes trouble.
-        current_size = os.stat(self._fileobj.name).st_size
-        return int(round((current_size - self.header_bytesize) / self.framesize))
+        # first, see if it's in the headers
+        try:
+            num = self.hdr['NAXIS3']
+            if num == 0:
+                raise ValueError('run still in progress')
+        except (KeyError, ValueError) as err:
+            # try and use ESO fileserver if it is running
+            try:
+                num = getLastFrameNumber()
+            except:
+                # last, desperate, chance to try to guess from the filesize
+                current_size = os.stat(self._fileobj.name).st_size
+                # cant use integer division because timestamps are buffered and 2800 fits
+                # block size causes trouble. Also, for some crazy reason the filesize
+                # from os.stat seems to be the header size and multiple of the frame
+                # size *without the timing bytes*. I don't understand this, but still...
+                data_size = current_size - self.header_bytesize
+                num = int(round(data_size / (self.framesize - 36)))
+        return num
 
     @lazyproperty
     def hdr(self):
