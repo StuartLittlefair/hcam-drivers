@@ -31,7 +31,7 @@ def getLastFrameNumber():
         raise Exception('cannot parse server response')
     if data['RETCODE'] != 'OK':
         raise Exception('server response not OK')
-    msg = data['MESSSAGEBUFFER']
+    msg = data['MESSAGEBUFFER']
     try:
         frame_number = int(msg.split()[1])
     except:
