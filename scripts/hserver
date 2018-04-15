@@ -57,6 +57,7 @@ def databaseSummary():
     database_attributes = [
         'system.stateName',
         'system.subStateName',
+        'cldc_0.statusName',
         'exposure.time',  # total exposure time for run
         'exposure.countDown',  # time remaining
         'exposure.expStatusName',
