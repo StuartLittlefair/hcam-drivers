@@ -7,7 +7,7 @@ from six.moves.urllib.request import urlretrieve
 import json
 
 URL_TEMPLATE = 'http://gtc-phase2.gtc.iac.es/science/Parser/sequences/GTC{id:d}-{semester:s}_{obid:04d}.json'
-FNAME_TEMPLATE = 'GTC{id:d}-{semester:s}_{obid:04d}.json'
+FNAME_TEMPLATE = 'GTC{id:02d}-{semester:s}_{obid:04d}.json'
 
 
 def download_json(proposal_id, semester, obid):
