@@ -15,6 +15,7 @@ def download_json(proposal_id, semester, obid):
     dirname = os.path.join(os.path.expanduser('~/.hdriver'), 'apps')
     fname = os.path.join(dirname, FNAME_TEMPLATE.format(**pars))
     url = URL_TEMPLATE.format(**pars)
+    print('downloading json from {} to {}'.format(url, fname))
     urlretrieve(url, fname)
 
 
