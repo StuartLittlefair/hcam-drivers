@@ -10,7 +10,7 @@ from six.moves import queue
 from hcam_widgets.globals import Container
 import hcam_widgets.widgets as w
 from hcam_widgets import hcam
-from hcam_widgets.misc import execCommand, FifoThread
+from hcam_widgets.misc import execCommand, FifoThread, isPoweredOn
 from hcam_widgets.tkutils import addStyle
 
 from hcam_drivers.utils.rtplot import RtplotServer
@@ -246,6 +246,15 @@ class GUI(tk.Tk):
         # update
         self.update()
 
+    def ask_poweroff(self):
+        """
+        Ask user if they want to power off clocks
+        """
+        if not messagebox.askokcancel('Power Off', 'Turn off CCD clocks?'):
+            print('OK - I will not power off clocks')
+        else:
+            execCommand(self.globals, 'poff')
+
     def ask_quit(self):
         """
         Shutdown routine
@@ -253,6 +262,9 @@ class GUI(tk.Tk):
         if not messagebox.askokcancel('Quit', 'Really quit hdriver?'):
             print('OK - I will not quit')
         else:
+            if isPoweredOn(self.globals):
+                self.ask_poweroff()
+
             # save config
             write_config(self.globals)
             dump_app(self.globals)
