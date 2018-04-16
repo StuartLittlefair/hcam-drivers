@@ -246,15 +246,6 @@ class GUI(tk.Tk):
         # update
         self.update()
 
-    def ask_poweroff(self):
-        """
-        Ask user if they want to power off clocks
-        """
-        if not messagebox.askokcancel('Power Off', 'Turn off CCD clocks?'):
-            print('OK - I will not power off clocks')
-        else:
-            execCommand(self.globals, 'poff')
-
     def ask_quit(self):
         """
         Shutdown routine
@@ -262,18 +253,22 @@ class GUI(tk.Tk):
         if not messagebox.askokcancel('Quit', 'Really quit hdriver?'):
             print('OK - I will not quit')
         else:
-            if isPoweredOn(self.globals):
-                self.ask_poweroff()
+            bring_offline = True
+            if (isPoweredOn(self.globals) and
+                    not messagebox.askyesno('Power Off', 'Turn off CCD clocks?')):
+                bring_offline = False
 
             # save config
             write_config(self.globals)
             dump_app(self.globals)
 
-            # attempt to power off server
-            if execCommand(self.globals, 'offline'):
-                self.globals.clog.info('ESO server idle and child processes quit')
-            else:
-                self.globals.clog.warn('Power off failed')
+            if bring_offline:
+                # attempt to power off server
+                if execCommand(self.globals, 'offline'):
+                    self.globals.clog.info('ESO server idle and child processes quit')
+                else:
+                    self.globals.clog.warn('Power off failed')
+
             self.destroy()
 
     def update(self):
