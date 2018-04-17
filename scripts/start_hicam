@@ -98,7 +98,7 @@ fi
 if [ $offset -eq 1 ]
 then
     OF=`ps ax | grep gtc_offsetter | wc -l`
-    if [ $FS -le 1 ]
+    if [ $OF -le 1 ]
     then
         echo "starting GTC_Offsetter"
         $XTERM -title "GTC_Offsetter" -e "gtc_offsetter /insroot/${username}/SYSTEM/DETDATA/" &
