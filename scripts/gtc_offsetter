@@ -148,7 +148,7 @@ class FITSWriteHandler(PatternMatchingEventHandler):
                 # launch thread to wait for telescope to be in place
                 # and send trigger to NGC controller
                 tornado.ioloop.IOLoop.instance().add_callback(
-                    send_trigger_when_ready, 10
+                    send_trigger_when_ready, 40
                 )
 
     def on_created(self, event):
