@@ -97,13 +97,9 @@ class ObsMode(object):
             userpars.extend(
                 [(item, gtc_header_info[item]) for item in gtc_header_info]
             )
-            userpars.extend([
-                ('GTCPRGID', user_data.get('ID', '')),
-                ('GTCOBID', user_data.get('OBID', '1'))
-            ])
 
         # now update with GUI values. Do this after to allow override of
-        # GTC telescope server headers
+        # GTC telescope server headers
         userpars.extend([
             ('OBSERVER', user_data.get('Observers', '')),
             ('OBJECT', obj),
