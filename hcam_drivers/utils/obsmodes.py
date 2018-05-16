@@ -101,9 +101,6 @@ class ObsMode(object):
                 ('GTCPRGID', user_data.get('ID', '')),
                 ('GTCOBID', user_data.get('OBID', '1'))
             ])
-            userpars.extend([('ORIGIN', 'GRANTECAN')])
-        else:
-            userpars.extend([('ORIGIN', 'ING')])
 
         # now update with GUI values. Do this after to allow override of
         # GTC telescope server headers
@@ -131,6 +128,10 @@ class ObsMode(object):
             ('TELFOCUS', tcs_data.get('foc', -99)),
             ('MOONDIST', tcs_data.get('mdist', -99))
         ])
+        if tcs_data.get('tel', 'WHT') == 'GTC':
+            userpars.extend([('ORIGIN', 'GRANTECAN')])
+        else:
+            userpars.extend([('ORIGIN', 'ING')])
 
         # data from h/w monitoring processes
         hw_data = setup_data.get('hardware', {})
