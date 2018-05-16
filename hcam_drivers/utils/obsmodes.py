@@ -101,6 +101,9 @@ class ObsMode(object):
                 ('GTCPRGID', user_data.get('ID', '')),
                 ('GTCOBID', user_data.get('OBID', '1'))
             ])
+            userpars.extend([('ORIGIN', 'GRANTECAN')])
+        else:
+            userpars.extend([('ORIGIN', 'ING')])
 
         # now update with GUI values. Do this after to allow override of
         # GTC telescope server headers
