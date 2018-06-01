@@ -147,6 +147,8 @@ class GUI(tk.Tk):
                                      var=w.Boolean(self, 'require_run_params'))
         settingsMenu.add_checkbutton(label='Confirm target name change',
                                      var=w.Boolean(self, 'confirm_on_change'))
+        settingsMenu.add_checkbutton(label='Rtplot server on',
+                                     var=w.Boolean(self, 'rtplot_server_on'))
         settingsMenu.add_checkbutton(label='Server on',
                                      var=w.Boolean(self, 'hcam_server_on'))
         settingsMenu.add_checkbutton(label='Focal plane slide on',
@@ -212,7 +214,7 @@ class GUI(tk.Tk):
         # check application directories
         check_user_dir(self.globals)
 
-        # TODO: rtplot server?
+        # rtplot server?
         if self.globals.cpars['rtplot_server_on']:
             t = FifoThread('Rtplot', self.startRtplotServer, self.globals.FIFO)
             t.daemon = True
@@ -269,6 +271,8 @@ class GUI(tk.Tk):
                 else:
                     self.globals.clog.warn('Power off failed')
 
+            if self.server is not None:
+                self.server.shutdown()
             self.destroy()
 
     def update(self):
@@ -291,6 +295,10 @@ class GUI(tk.Tk):
             t = FifoThread('Rtplot', self.startRtplotServer, self.globals.FIFO)
             t.daemon = True
             t.start()
+        elif self.server is not None and not self.globals.cpars['rtplot_server_on']:
+            print('shutting down rtplot server')
+            self.server.shutdown()
+            self.server = None
 
         # schedule next check
         self.after(2000, self.update)

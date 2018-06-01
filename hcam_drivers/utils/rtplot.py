@@ -40,23 +40,16 @@ class RtplotServer(socketserver.TCPServer):
             socketserver.TCPServer.__init__(self, ('', port), RtplotHandler)
             self.instpars = instpars
         except socket.error as err:
-            errorcode = err[0]
-            if errorcode == errno.EADDRINUSE:
-                message = str(err) + '. '
-                message += 'Failed to start the rtplot server. '
-                message += 'There may be another instance of usdriver running. '
-                message += 'Suggest that you shut down usdriver, close all other instances,'
-                message += ' and then restart it.'
-            else:
-                message = str(err)
-                message += 'Failed to start the rtplot server'
-
+            message = str(err) + '. '
+            message += 'Failed to start the rtplot server. '
+            message += 'There may be another instance of usdriver running. '
+            message += 'Suggest that you shut down hdriver, close all other instances,'
+            message += ' and then restart it.'
             raise DriverError(message)
         print('rtplot server started')
 
     def run(self, g):
-        while True:
-            try:
-                self.serve_forever()
-            except Exception as e:
-                g.clog.warn('RtplotServer.run', e)
+        try:
+            self.serve_forever()
+        except Exception as e:
+            g.clog.warn('RtplotServer.run', e)
