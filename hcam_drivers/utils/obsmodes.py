@@ -97,9 +97,16 @@ class ObsMode(object):
             userpars.extend(
                 [(item, gtc_header_info[item]) for item in gtc_header_info]
             )
+            gtcprgid = user_data.get('ID', '')
+            gtcobid = user_data.get('OBID', '1')
+            # now force GTCOBID to be 'CALIB' if PRGID is
+            # p.s this is a request from GTC staff
+            if gtcprgid.lower().startswith('calib'):
+                gtcobid = 'CALIB'
+            # add prgid and obid to headers
             userpars.extend([
-                ('GTCPRGID', user_data.get('ID', '')),
-                ('GTCOBID', user_data.get('OBID', '1'))
+                ('GTCPRGID', gtcprgid),
+                ('GTCOBID', gtcobid)
             ])
 
         # now update with GUI values. Do this after to allow override of
