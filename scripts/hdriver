@@ -259,7 +259,8 @@ class GUI(tk.Tk):
             print('OK - I will not quit')
         else:
             bring_offline = True
-            if (isPoweredOn(self.globals) and
+            if (self.globals.cpars['eso_server_online']
+                    and isPoweredOn(self.globals) and
                     not messagebox.askyesno('Power Off', 'Turn off CCD clocks?')):
                 bring_offline = False
 
