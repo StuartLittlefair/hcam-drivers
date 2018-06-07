@@ -16,6 +16,12 @@ from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
 from hcam_widgets.gtc.corba import get_telescope_server
+from hcam_widgets.gtc.headers import create_header_from_telpars
+from hcam_drivers.utils.gtc import calculate_sky_offset
+
+
+class OffsetServerException(HTTPError):
+    pass
 
 
 def send_trigger_when_ready(timeout):
@@ -177,6 +183,35 @@ class BaseHandler(RequestHandler):
         self.finish(json_encode(resp_dict))
 
 
+class PostOffsetHandler(BaseHandler):
+    """
+    Send ra and dec offset to GTC
+    """
+    def post(self):
+        req_json = json_decode(self.request.body.decode())
+        if not req_json or 'xoff' not in req_json or 'yoff' not in req_json:
+            raise OffsetServerException(reason='cannot get offsets from request', status_code=400)
+
+        xoff, yoff = req_json['xoff'], req_json['yoff']
+        try:
+            TEL_SERVER = get_telescope_server()
+            hdr = create_header_from_telpars(TEL_SERVER.getTelescopeParams())
+            sky_pa = float(hdr['INSTRPA'])
+            raoff, decoff = calculate_sky_offset(xoff, yoff, sky_pa)
+        except Exception as err:
+            raise OffsetServerException(reason='cannot convert pixel offsets to sky offsets',
+                                        status_code=400)
+
+        try:
+            print('sending tel offsets {} {}'.format(raoff, decoff))
+            #TEL_SERVER.requestTelescopeOffset(raoff, decoff)
+        except Exception as err:
+            raise OffsetServerException(reason='cannot send offset to telescope',
+                                        status_code=400)
+
+        self.finish({'status': 'OK', 'action': 'offset'})
+
+
 class StartHandler(BaseHandler):
     def get(self):
         print('starting')
@@ -267,7 +302,8 @@ if __name__ == "__main__":
     app = Application([
         url(r'/start', StartHandler, dict(db=db), name='start'),
         url(r'/stop', StopHandler, dict(db=db), name='stop'),
-        url(r'/setup', PostOffsetPatternHandler, dict(db=db), name='setup')
+        url(r'/setup', PostOffsetPatternHandler, dict(db=db), name='setup'),
+        url(r'/offset', PostOffsetHandler, dict(db=db), name='offset')
     ])
     app.listen(5001)
     tornado.ioloop.IOLoop.current().start()
