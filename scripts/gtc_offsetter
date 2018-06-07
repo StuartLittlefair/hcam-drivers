@@ -188,11 +188,15 @@ class PostOffsetHandler(BaseHandler):
     Send ra and dec offset to GTC
     """
     def post(self):
-        req_json = json_decode(self.request.body.decode())
-        if not req_json or 'xoff' not in req_json or 'yoff' not in req_json:
-            raise OffsetServerException(reason='cannot get offsets from request', status_code=400)
 
-        xoff, yoff = req_json['xoff'], req_json['yoff']
+        try:
+            xoff, yoff = self.get_argument('xoff'), self.get_argument('yoff')
+            xoff = float(xoff)
+            yoff = float(yoff)
+        except Exception as err:
+            raise OffsetServerException(reason='cannot extract offsets from request',
+                                        status_code=400)
+
         try:
             TEL_SERVER = get_telescope_server()
             hdr = create_header_from_telpars(TEL_SERVER.getTelescopeParams())
@@ -204,7 +208,7 @@ class PostOffsetHandler(BaseHandler):
 
         try:
             print('sending tel offsets {} {}'.format(raoff, decoff))
-            #TEL_SERVER.requestTelescopeOffset(raoff, decoff)
+            TEL_SERVER.requestTelescopeOffset(raoff, decoff)
         except Exception as err:
             raise OffsetServerException(reason='cannot send offset to telescope',
                                         status_code=400)
