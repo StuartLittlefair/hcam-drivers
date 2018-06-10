@@ -99,6 +99,11 @@ class ObsMode(object):
             )
             gtcprgid = user_data.get('ID', '')
             gtcobid = user_data.get('OBID', '1')
+
+            # force for calibrations
+            if obj in ('Skyflat', 'Bias', 'Dark'):
+                gtcprgid = 'Calib'
+
             # now force GTCOBID to be 'CALIB' if PRGID is
             # p.s this is a request from GTC staff
             if gtcprgid.lower().startswith('calib'):
