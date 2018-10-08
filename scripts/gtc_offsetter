@@ -136,26 +136,28 @@ class FITSWriteHandler(PatternMatchingEventHandler):
             self.last_event = time.time()
         return first_event
 
+    def do_next_offset(self):
+        # get next relative offsets
+        next_ra_offset, next_dec_offset = self.get_relative_offsets(
+            next(self.ra_offsets), next(self.dec_offsets)
+        )
+        # send telescope offset command
+        print('sending tel offsets {} {}'.format(
+            next_ra_offset, next_dec_offset
+        ))
+        self.do_offsets(next_ra_offset, next_dec_offset)
+
+        # launch thread to wait for telescope to be in place
+        # and send trigger to NGC controller
+        tornado.ioloop.IOLoop.instance().add_callback(
+            send_trigger_when_ready, 40
+        )
+
     def on_modified(self, event):
         if self.check_debounce():
             if event.src_path == self.existing_runs[-1]:
                 # latest file has just been written to
-
-                # get next relative offsets
-                next_ra_offset, next_dec_offset = self.get_relative_offsets(
-                    next(self.ra_offsets), next(self.dec_offsets)
-                )
-                # send telescope offset command
-                print('sending tel offsets {} {}'.format(
-                    next_ra_offset, next_dec_offset
-                ))
-                self.do_offsets(next_ra_offset, next_dec_offset)
-
-                # launch thread to wait for telescope to be in place
-                # and send trigger to NGC controller
-                tornado.ioloop.IOLoop.instance().add_callback(
-                    send_trigger_when_ready, 40
-                )
+                self.do_next_offset()
 
     def on_created(self, event):
         self.check_debounce()
@@ -228,6 +230,18 @@ class StartHandler(BaseHandler):
                                             self.db['dec_offs'])
         db['observer'].start()
         self.finish({'status': 'OK', 'action': 'start'})
+
+
+class ForceOffsetHandler(BaseHandler):
+    def get(self):
+        print('forcing an offset')
+        if self.db.get('observer'):
+            try:
+                self.db['observer'].do_next_offset()
+            except Exception as err:
+                raise HTTPError(reason='Failed to force offset.\n' + str(err),
+                                status_code=500)
+        self.finish({'status': 'OK', 'action': 'force'})
 
 
 class StopHandler(BaseHandler):
@@ -306,6 +320,7 @@ if __name__ == "__main__":
     app = Application([
         url(r'/start', StartHandler, dict(db=db), name='start'),
         url(r'/stop', StopHandler, dict(db=db), name='stop'),
+        url(r'/force', ForceOffsetHandler, dict(db=db), name='force'),
         url(r'/setup', PostOffsetPatternHandler, dict(db=db), name='setup'),
         url(r'/offset', PostOffsetHandler, dict(db=db), name='offset')
     ])
