@@ -33,12 +33,9 @@ def load_config(g):
                                                       'data/configspec.ini')
     # try and load config file.
     # look in the following locations in order
-    # - HCAM_DRIVERS_CONF environment variable
     # - ~/.hdriver directory
     # - package resources
     paths = []
-    if "HCAM_DRIVERS_CONF" in os.environ:
-        paths.append(os.environ["HCAM_DRIVERS_CONF"])
     paths.append(os.path.expanduser('~/.hdriver/'))
     resource_dir = pkg_resources.resource_filename('hcam_drivers', 'data')
     paths.append(resource_dir)
