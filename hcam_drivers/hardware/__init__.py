@@ -383,11 +383,16 @@ class CCDInfoWidget(tk.Toplevel):
         self.ccd_flow_rates = []
         self.vacuums = []
         if g.cpars['telins_name'].lower() == 'wht':
-            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller, update_interval, 5, 15)
+            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller,
+                                              update_interval, g.cpars['chiller_temp_lower'],
+                                              g.cpars['chiller_temp_upper'])
         else:
-            self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval, 15, 25)
+            self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval,
+                                                 g.cpars['rack_temp_lower'],
+                                                 g.cpars['rack_temp_upper'])
+
         self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
-                                            0.5, 10)
+                                            g.cpars['ngc_flow_lower'], g.cpars['ngc_flow_upper'])
 
         ms1 = self.meerstetters[0]
         ms2 = self.meerstetters[1]
@@ -404,15 +409,21 @@ class CCDInfoWidget(tk.Toplevel):
             )
             self.ccd_temps.append(
                 MeerstetterWidget(self.temp_frm, ms, address, name,
-                                  'temperature', update_interval, -105, -75)
+                                  'temperature', update_interval,
+                                  g.cpars['ccd_temp_lower'],
+                                  g.cpars['ccd_temp_upper'])
             )
             self.heatsink_temps.append(
                 MeerstetterWidget(self.heatsink_frm, ms, address, name,
-                                  'heatsink temperature', update_interval, 0, 40)
+                                  'heatsink temperature', update_interval,
+                                  g.cpars['ccd_sink_temp_lower'],
+                                  g.cpars['ccd_sink_temp_upper'])
             )
             self.peltier_powers.append(
                 MeerstetterWidget(self.peltier_frm, ms, address, name,
-                                  'peltier power', update_interval, -5, 90)
+                                  'peltier power', update_interval,
+                                  g.cpars['ccd_peltier_lower'],
+                                  g.cpars['ccd_peltier_upper'])
             )
 
             # grid

@@ -45,6 +45,34 @@ font_size = 10
 
 # ===========================================
 #
+# Alarm limits for hardware monitoring
+# Don't change unless you know what you are doing
+#
+# ===========================================
+# Thermal enclosure for Rack, GTC only
+rack_temp_lower = 15
+rack_temp_upper = 25
+# Chiller; only used on WHT
+chiller_temp_lower = 5
+chiller_temp_upper = 15
+# NGC flow rate
+ngc_flow_lower = 0.5
+ngc_flow_upper = 10.0
+# CCD flow rates
+ccd_flow_lower = 0.75
+ccd_flow_upper = 10.0
+# CCD temperatures
+ccd_temp_lower = -105
+ccd_temp_upper = -75
+# CCD heatsink temperatures
+ccd_sink_temp_lower = 0
+ccd_sink_temp_upper = 40
+# CCD peltier powers
+ccd_peltier_lower = -5
+ccd_peltier_upper = 90
+
+# ===========================================
+#
 #  Things you may occasionally want to change
 #
 # ===========================================
