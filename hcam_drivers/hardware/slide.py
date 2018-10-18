@@ -475,7 +475,6 @@ class FocalPlaneSlide(tk.LabelFrame):
             self.log.warn('Slide command already running, aborted')
             return
 
-        g = get_root(self).globals
         self.thread = FifoThread('Slide', command, self.errQueue)
         self.running = 1
         self.thread.start()
@@ -589,4 +588,3 @@ class FocalPlaneSlide(tk.LabelFrame):
 
         self.where = comm[0]
         self.startSlideCommand(command)
-
