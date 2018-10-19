@@ -333,7 +333,7 @@ class Drift(ObsMode):
         self.detpars.update(win1)
         self.nrows = 520  # number of rows in storage area
         self.readoutMode = 4
-        self.setup_acq_task(nq=5)
+        self.setup_acq_task(nq=200)
 
     @property
     def num_stacked(self):
