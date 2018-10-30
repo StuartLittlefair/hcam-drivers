@@ -357,7 +357,9 @@ class Slide(object):
         (ms,mm,px)
         """
         (pos_ms, pos_mm, pos_px), msg = self.return_position()
-        return 'Current position = {0:6.1f} pixels'.format(pos_px)
+        return 'Current position = {0:6.1f} pixels ({1:.1f} mm, {2:d} ms)'.format(
+            pos_px, pos_mm, pos_ms
+        )
 
 
 class FocalPlaneSlide(tk.LabelFrame):
