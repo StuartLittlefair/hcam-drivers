@@ -49,8 +49,9 @@ def action(command, estimated_time, args=()):
     t.start()
     try:
         while t.is_alive():
-            t.join(timeout=tstep)
             pbar.update(1)
+            t.join(timeout=tstep)
+
     except KeyboardInterrupt:
         raise  # re-raise so calling thread can stop slide
 
