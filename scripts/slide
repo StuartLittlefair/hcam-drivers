@@ -2,7 +2,7 @@
 from __future__ import print_function, division, unicode_literals
 import tqdm
 
-from six.moves.queue import Queue
+from six.moves import queue
 from hcam_widgets.misc import FifoThread
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
@@ -40,7 +40,7 @@ def action(command, estimated_time, args=()):
     """
     Run a long running slide command, stopping on <Ctrl-C>
     """
-    errq = Queue()
+    errq = queue.Queue()
     tstep = 0.1
     pbar = tqdm.tqdm(total=int(estimated_time/tstep),
                      ncols=40, leave=False,
@@ -57,7 +57,7 @@ def action(command, estimated_time, args=()):
     # handle exceptions raised in thread
     try:
         exc = errq.get(block=False)
-    except Queue.Empty:
+    except queue.Empty:
         pass
     else:
         name, error, tback = exc
