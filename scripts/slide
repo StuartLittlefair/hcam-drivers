@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     elif comm == 'position':
         def command():
-            print(sl.report_position())
+            print('\n\n'+sl.report_position())
 
     elif comm == 'reset':
         def command():
