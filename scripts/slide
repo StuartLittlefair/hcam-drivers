@@ -99,14 +99,14 @@ if __name__ == "__main__":
 
         def command():
             value, msg = sl.home(timeout)
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm == 'park':
         timeout, msg = sl.time_absolute(slide.UNBLOCK_POS, 'px')
 
         def command():
             value, msg = sl.move_absolute(slide.UNBLOCK_POS, 'px', timeout)
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm == 'position':
         def command():
@@ -115,22 +115,22 @@ if __name__ == "__main__":
     elif comm == 'reset':
         def command():
             bytearr, msg = sl.reset()
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm == 'stop':
         def command():
             val, msg = sl.stop()
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm == 'enable':
         def command():
             bytearr, msg = sl.enable()
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm == 'disable':
         def command():
             bytearr, msg = sl.disable()
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm.startswith('+'):
         try:
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
         def command():
             _, msg = sl.move_relative(offset, unit, timeout)
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm.startswith('-'):
         try:
@@ -154,7 +154,7 @@ if __name__ == "__main__":
 
         def command():
             _, msg = sl.move_relative(-offset, unit, timeout)
-            print(msg)
+            print('\n\n'+msg)
 
     elif comm.startswith('pos='):
         try:
@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
         def command():
             _, msg = sl.move_absolute(position, unit, timeout)
-            print(msg)
+            print('\n\n'+msg)
 
     else:
         print('Command not recognised!')
@@ -176,4 +176,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         # handle keyboardinterrupt
         _, msg = sl.stop()
-        print(msg)
+        print('\n\n'+msg)
