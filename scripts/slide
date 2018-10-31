@@ -2,7 +2,7 @@
 from __future__ import print_function, division, unicode_literals
 import tqdm
 
-from six.moves.queue import Queue
+from six.moves import queue
 from hcam_widgets.misc import FifoThread
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
@@ -33,12 +33,14 @@ with the following possible forms:
     Hitting <Ctrl-C> will terminate a move that has already started.
 """
 
+MIN_TIMEOUT = 2  # seconds
+
 
 def action(command, estimated_time, args=()):
     """
     Run a long running slide command, stopping on <Ctrl-C>
     """
-    errq = Queue()
+    errq = queue.Queue()
     tstep = 0.1
     pbar = tqdm.tqdm(total=int(estimated_time/tstep),
                      ncols=40, leave=False,
@@ -47,18 +49,19 @@ def action(command, estimated_time, args=()):
     t.start()
     try:
         while t.is_alive():
-            t.join(timeout=tstep)
             pbar.update(1)
+            t.join(timeout=tstep)
+
     except KeyboardInterrupt:
         raise  # re-raise so calling thread can stop slide
 
     # handle exceptions raised in thread
     try:
         exc = errq.get(block=False)
-    except Queue.Empty:
+    except queue.Empty:
         pass
     else:
-        error, tback = exc
+        name, error, tback = exc
         print('\n\nError in slide thread: {}'.format(error))
         print(tback)
 
@@ -85,88 +88,92 @@ if __name__ == "__main__":
     import sys
     try:
         comm = sys.argv[1]
-    except:
+    except IndexError:
         print(usage)
         sys.exit(-1)
 
-    in_background = False
-    args = ()
+    timeout = MIN_TIMEOUT
+
     if comm == 'home':
-        in_background = True
-        timeout = sl.time_home()
-        command = sl.home
-        args = (timeout,)
+        timeout, msg = sl.time_home()
+
+        def command():
+            value, msg = sl.home(timeout)
+            print('\n\n'+msg)
 
     elif comm == 'park':
-        in_background = True
-        timeout = sl.time_absolute(slide.UNBLOCK_POS, 'px')
-        command = sl.move_absolute
-        args = (slide.UNBLOCK_POS, 'px', timeout)
+        timeout, msg = sl.time_absolute(slide.UNBLOCK_POS, 'px')
+
+        def command():
+            value, msg = sl.move_absolute(slide.UNBLOCK_POS, 'px', timeout)
+            print('\n\n'+msg)
 
     elif comm == 'position':
-        def show_position():
-            pos_ms, pos_mm, pos_px = sl.return_position()
-            print('{} microsteps, {} mm, {} pixels'.format(
-                pos_ms, pos_mm, pos_px
-            ))
-        command = show_position
+        def command():
+            print('\n\n'+sl.report_position())
 
     elif comm == 'reset':
-        in_background = True
-        command = sl.reset
+        def command():
+            bytearr, msg = sl.reset()
+            print('\n\n'+msg)
 
     elif comm == 'stop':
-        command = sl.stop
+        def command():
+            val, msg = sl.stop()
+            print('\n\n'+msg)
 
     elif comm == 'enable':
-        command = sl.enable
+        def command():
+            bytearr, msg = sl.enable()
+            print('\n\n'+msg)
 
     elif comm == 'disable':
-        command = sl.disable
+        def command():
+            bytearr, msg = sl.disable()
+            print('\n\n'+msg)
 
     elif comm.startswith('+'):
         try:
             offset, unit = parse_move(comm[1:])
-        except:
+        except ValueError:
             raise ValueError('offset {} not understood'.format(comm))
-        in_background = True
         nstep = sl._convert_to_microstep(offset, unit)
-        timeout = sl.compute_timeout(nstep)
-        command = sl.move_relative
-        args = (offset, unit, timeout)
+        timeout, msg = sl.compute_timeout(nstep)
+
+        def command():
+            _, msg = sl.move_relative(offset, unit, timeout)
+            print('\n\n'+msg)
 
     elif comm.startswith('-'):
         try:
             offset, unit = parse_move(comm[1:])
-        except:
+        except ValueError:
             raise ValueError('offset {} not understood'.format(comm))
-        in_background = True
         nstep = sl._convert_to_microstep(offset, unit)
-        timeout = sl.compute_timeout(nstep)
-        command = sl.move_relative
-        args = (-offset, unit, timeout)
+        timeout, msg = sl.compute_timeout(nstep)
+
+        def command():
+            _, msg = sl.move_relative(-offset, unit, timeout)
+            print('\n\n'+msg)
 
     elif comm.startswith('pos='):
         try:
             position, unit = parse_position(comm[1:])
-        except:
+        except ValueError:
             raise ValueError('position {} not understood'.format(comm))
-        in_background = True
         timeout = sl.time_absolute(position, unit)
-        command = sl.move_absolute
-        args = (position, unit, timeout)
+
+        def command():
+            _, msg = sl.move_absolute(position, unit, timeout)
+            print('\n\n'+msg)
 
     else:
         print('Command not recognised!')
         print(usage)
 
-    if in_background:
-        try:
-            action(command, timeout, args)
-        except:
-            # handle keyboardinterrupt
-            sl.stop()
-    else:
-        result = command(*args)
-        if result is not None:
-            print(result)
+    try:
+        action(command, timeout)
+    except KeyboardInterrupt:
+        # handle keyboardinterrupt
+        _, msg = sl.stop()
+        print('\n\n'+msg)

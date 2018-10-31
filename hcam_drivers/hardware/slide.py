@@ -8,9 +8,9 @@ Written by Stu.
 from __future__ import (print_function, division, absolute_import)
 import struct
 import six
+from six.moves import queue
 
 # internal imports
-from hcam_widgets.logs import Logger
 from hcam_widgets.widgets import GuiLogger, IntegerEntry
 from hcam_widgets.misc import FifoThread
 from hcam_widgets.tkutils import get_root
@@ -97,18 +97,13 @@ class Slide(object):
         """
         Creates a Slide. Arguments::
 
-         log  : a logger to display results (a default one will be
-                provided log=None)
+         log  : not used, argument still in API for backwards compatibility
          port : port device representing the slide
 
         """
         self.port = port
         self.host = host
         self.default_timeout = MIN_TIMEOUT
-        if log is None:
-            self.log = Logger('SLD')
-        else:
-            self.log = log
 
     def _sendRecv(self, byteArr, timeout):
         with netdevice(self.host, self.port) as dev:
@@ -239,7 +234,7 @@ class Slide(object):
         Have to separate this from because of threading issues.
         """
         start_pos = self._getPosition()
-        return self.compute_timeout(nstep-start_pos)
+        return self.compute_timeout(nstep-start_pos), None
 
     def time_home(self):
         """
@@ -249,10 +244,9 @@ class Slide(object):
         if self._hasBeenHomed():
             # if this throws an exception, then something is bad, so don't catch
             start_pos = self._getPosition()
-            return self.compute_timeout(start_pos)
+            return self.compute_timeout(start_pos), None
         else:
-            self.log.info('position undefined: setting max timeout for home')
-            return MAX_TIMEOUT
+            return MAX_TIMEOUT, 'position undefined: setting max timeout for home'
 
     def home(self, timeout=None):
         """
@@ -266,8 +260,7 @@ class Slide(object):
         byteArr = self._sendRecv(byteArr, self.default_timeout)
         if byteArr[1] == ERROR:
             raise SlideError('Error occurred setting to the home position')
-        self.log.info('Slide returned to home position ' +
-                      '(click "position" to confirm)')
+        return None, 'Slide returned to home position (click "position" to confirm)'
 
     def reset(self):
         """
@@ -277,7 +270,7 @@ class Slide(object):
         """
         byteArr = self._encodeByteArr([UNIT, RESET, NULL, NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        return byteArr
+        return byteArr, 'reset completed'
 
     def restore(self):
         """
@@ -287,8 +280,7 @@ class Slide(object):
         byteArr = self._encodeByteArr([UNIT, RESTORE, PERIPHERAL_ID,
                                        NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        self.log.info('finished restore')
-        return byteArr
+        return byteArr, 'finished restore'
 
     def disable(self):
         """
@@ -298,8 +290,7 @@ class Slide(object):
         byteArr = self._encodeByteArr([UNIT, SET_MODE, POTENTIOM_OFF,
                                        NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        self.log.info('manual adjustment disabled')
-        return byteArr
+        return byteArr, 'manual adjustment disabled'
 
     def enable(self):
         """
@@ -309,8 +300,7 @@ class Slide(object):
         byteArr = self._encodeByteArr([UNIT, SET_MODE, POTENTIOM_ON,
                                        NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        self.log.info('manual adjustment enabled')
-        return byteArr
+        return byteArr, 'manual adjustment enabled'
 
     def stop(self):
         """stop the slide"""
@@ -318,9 +308,8 @@ class Slide(object):
         byteArr = self._sendRecv(byteArr, self.default_timeout)
         if byteArr[1] == ERROR:
             raise SlideError('Error stopping the slide')
-        else:
-            self.log.info('slide stopped')
-            self.report_position()
+
+        return None, 'slide stopped at {}'.format(self.report_position())
 
     def move_relative(self, amount, units, timeout=None):
         """
@@ -331,11 +320,12 @@ class Slide(object):
         PX - pixels
         MM - millimeters
         """
-
         nstep = self._convert_to_microstep(amount, units)
         self._move_relative(nstep, timeout)
-        self.log.info('moved slide by ' + str(amount) + ' ' + units +
-                      ' (click "position" to confirm)')
+        msg = 'Moving slide by {} {} (click "position" to confirm")'.format(
+            str(amount), units
+        )
+        return None, msg
 
     def move_absolute(self, amount, units, timeout=None):
         '''move the slide to an absolute position.
@@ -344,11 +334,12 @@ class Slide(object):
         PX - pixels
         MM - millimeters
         '''
-
         nstep = self._convert_to_microstep(amount, units)
         self._move_absolute(nstep, timeout)
-        self.log.info('Moved slide to ' + str(amount) + ' ' + units +
-                      ' (click "position" to confirm)')
+        msg = 'Moving slide to {} {} (click "position" to confirm")'.format(
+            str(amount), units
+        )
+        return None, msg
 
     def return_position(self):
         """
@@ -358,15 +349,17 @@ class Slide(object):
         pos_ms = self._getPosition()
         pos_mm = MIN_MM + (MAX_MM-MIN_MM)*(pos_ms-MIN_MS)/(MAX_MS-MIN_MS)
         pos_px = MIN_PX + (MAX_PX-MIN_PX)*(pos_ms-MIN_MS)/(MAX_MS-MIN_MS)
-        return (pos_ms, pos_mm, pos_px)
+        return (pos_ms, pos_mm, pos_px), None
 
     def report_position(self):
         """
         Reports position in microsteps, mm and pixels. Returns
         (ms,mm,px)
         """
-        pos_ms, pos_mm, pos_px = self.return_position()
-        self.log.info('Current position = {0:6.1f} pixels'.format(pos_px))
+        (pos_ms, pos_mm, pos_px), msg = self.return_position()
+        return 'Current position = {0:6.1f} pixels ({1:.1f} mm, {2:d} ms)'.format(
+            pos_px, pos_mm, pos_ms
+        )
 
 
 class FocalPlaneSlide(tk.LabelFrame):
@@ -432,9 +425,20 @@ class FocalPlaneSlide(tk.LabelFrame):
 
         top.pack(pady=2)
 
+        # show progress
+        self.progressText = tk.StringVar()
+        self.progress = tk.Label(self, textvariable=self.progressText)
+        self.progress.pack(pady=2)
+
         # region to log slide command results
         self.log = GuiLogger('SLD', self, 5, 53)
         self.log.pack(pady=2)
+
+        # Queue for slide messages
+        self.msgQueue = queue.Queue()
+        self.errQueue = queue.Queue()
+        self.running = 0
+        self.thread = None
 
         # Finish off
         g = get_root(self).globals
@@ -465,90 +469,124 @@ class FocalPlaneSlide(tk.LabelFrame):
             self.reset.grid(row=3, column=0)
             self.restore.grid(row=3, column=1)
 
+    def startSlideCommand(self, command):
+        """
+        Start running a slide command in the background
+        """
+        if self.running:
+            self.log.warn('Slide command already running, aborted')
+            return
+
+        self.thread = FifoThread('Slide', command, self.errQueue)
+        self.running = 1
+        self.thread.start()
+        self.after(100, self.checkSlideCommand)
+
+    def checkSlideCommand(self):
+        try:
+            msg = self.msgQueue.get(block=False)
+            # slide command completed
+            self.log.info(msg)
+            self.running = 0
+            # good idea?
+            self.thread.join(timeout=1)
+        except queue.Empty:
+            # slide command not completed or errored
+            pass
+
+        try:
+            # now check error queue
+            exc = self.errQueue.get(block=False)
+            name, error, tback = exc
+            self.log.warn('Error in Slide thread: {}'.format(error))
+            self.log.warn('You may want to try again; the slide is unreliable\n' +
+                          'in its error reporting. Try "position" for example')
+            self.log.debug(tback)
+            self.running = 0
+            # good idea?
+            self.thread.join(timeout=1)
+        except queue.Empty:
+            # slide command not completed or errored
+            pass
+
+        # only check if slide command currently running
+        if self.running:
+            self.after(100, self.checkSlideCommand)
+
     def action(self, *comm):
         """
         Send a command to the focal plane slide
         """
         g = get_root(self).globals
-        if g.cpars['focal_plane_slide_on']:
-
-            self.log.info('Executing command: ' +
-                          ' '.join([str(it) for it in comm]))
-
-            try:
-                inback = False
-                if comm[0] == 'home':
-                    timeout = self.slide.time_home()
-                    if timeout > 3:
-                        inback = True
-                        t = FifoThread('Slide', self.slide.home, g.FIFO,
-                                       args=(timeout,))
-                    else:
-                        self.slide.home(timeout)
-
-                elif comm[0] == 'unblock':
-                    timeout = self.slide.time_absolute(UNBLOCK_POS, 'px')
-                    if timeout > 3:
-                        inback = True
-                        t = FifoThread('Slide', self.slide.move_absolute, g.FIFO,
-                                       args=(UNBLOCK_POS, 'px', timeout))
-                    else:
-                        self.slide.move_absolute(1100, 'px', timeout)
-
-                elif comm[0] == 'block':
-                    timeout = self.slide.time_absolute(BLOCK_POS, 'px')
-                    if timeout > 3:
-                        inback = True
-                        t = FifoThread('Slide', self.slide.move_absolute, g.FIFO,
-                                       args=(BLOCK_POS, 'px', timeout))
-                    else:
-                        self.slide.move_absolute(BLOCK_POS, 'px', timeout)
-
-                elif comm[0] == 'position':
-                    self.slide.report_position()
-
-                elif comm[0] == 'reset':
-                    inback = True
-                    t = FifoThread('Slide', self.slide.reset, g.FIFO)
-
-                elif comm[0] == 'restore':
-                    inback = True
-                    t = FifoThread('Slide', self.slide.restore, g.FIFO)
-
-                elif comm[0] == 'enable':
-                    self.slide.enable()
-
-                elif comm[0] == 'disable':
-                    self.slide.disable()
-
-                elif comm[0] == 'stop':
-                    self.slide.stop()
-
-                elif comm[0] == 'goto':
-                    if comm[1] is not None:
-                        timeout = self.slide.time_absolute(comm[1], 'px')
-                        if timeout > 3:
-                            inback = True
-                            t = FifoThread('Slide',
-                                           self.slide.move_absolute, g.FIFO,
-                                           args=(comm[1], 'px', timeout))
-                        else:
-                            self.slide.move_absolute(comm[1], 'px', timeout)
-                    else:
-                        self.log.warn('You must enter an integer pixel position' +
-                                      ' for the mask first')
-                else:
-                    self.log.warn('Command = ' + str(comm) +
-                                  ' not implemented yet.')
-
-                self.where = comm[0]
-                if inback:
-                    t.daemon = True
-                    t.start()
-
-            except Exception as err:
-                self.log.warn('Error: ' + str(err))
-                self.log.warn('You may want to try again; the slide is unreliable\n' +
-                              'in its error reporting. Try "position" for example')
-        else:
+        if not g.cpars['focal_plane_slide_on']:
             self.log.warn('Focal plane slide access is OFF; see settings.')
+            return
+
+        self.log.info('Executing command: ' +
+                      ' '.join([str(it) for it in comm]))
+
+        if comm[0] == 'home':
+            def command():
+                timeout, msg = self.slide.time_home()
+                value, msg = self.slide.home(timeout)
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'unblock':
+            def command():
+                timeout, msg = self.slide.time_absolute(UNBLOCK_POS, 'px')
+                value, msg = self.slide.move_absolute(UNBLOCK_POS, 'px', timeout)
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'block':
+            def command():
+                timeout, msg = self.slide.time_absolute(BLOCK_POS, 'px')
+                value, msg = self.slide.move_absolute(BLOCK_POS, 'px', timeout)
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'position':
+            def command():
+                msg = self.slide.report_position()
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'reset':
+            def command():
+                bytearr, msg = self.slide.reset()
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'restore':
+            def command():
+                bytearr, msg = self.slide.restore()
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'enable':
+            def command():
+                bytearr, msg = self.slide.enable()
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'disable':
+            def command():
+                bytearr, msg = self.slide.disable()
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'stop':
+            def command():
+                val, msg = self.slide.stop()
+                self.msgQueue.put(msg)
+
+        elif comm[0] == 'goto':
+            if comm[1] is not None:
+                def command():
+                    timeout, msg = self.slide.time_absolute(comm[1], 'px')
+                    val, msg = self.slide.move_absolute(comm[1], 'px', timeout)
+                    self.msgQueue.put(msg)
+            else:
+                def command():
+                    self.msgQueue.put('command aborted')
+                self.log.warn('You must enter an integer pixel position' +
+                              ' for the mask first')
+        else:
+            self.log.warn('Command = ' + str(comm) +
+                          ' not implemented yet.')
+
+        self.where = comm[0]
+        self.startSlideCommand(command)
