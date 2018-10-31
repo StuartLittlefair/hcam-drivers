@@ -225,19 +225,22 @@ class StartHandler(BaseHandler):
             raise HTTPError(reason='No offsets define. Post a setup first',
                             status_code=500)
 
-        self.db['observer'] = make_observer(self.db['path'],
-                                            self.db['ra_offs'],
-                                            self.db['dec_offs'])
-        db['observer'].start()
+        observer, handler = make_observer(self.db['path'],
+                                          self.db['ra_offs'],
+                                          self.db['dec_offs'])
+                                   
+        self.db['observer'] = observer
+        self.db['handler'] = handler       
+        self.db['observer'].start()
         self.finish({'status': 'OK', 'action': 'start'})
 
 
 class ForceOffsetHandler(BaseHandler):
     def get(self):
         print('forcing an offset')
-        if self.db.get('observer'):
+        if self.db.get('handler'):
             try:
-                self.db['observer'].do_next_offset()
+                self.db['handler'].do_next_offset()
             except Exception as err:
                 raise HTTPError(reason='Failed to force offset.\n' + str(err),
                                 status_code=500)
@@ -310,7 +313,7 @@ def make_observer(path, ra_offs, dec_offs):
     handler = FITSWriteHandler(path, ra_offs, dec_offs)
     observer.schedule(handler, path=path, recursive=False)
     observer.daemon = True
-    return observer
+    return observer, handler
 
 
 if __name__ == "__main__":
