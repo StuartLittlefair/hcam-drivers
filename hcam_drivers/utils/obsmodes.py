@@ -100,6 +100,14 @@ class ObsMode(object):
             gtcprgid = user_data.get('ID', '')
             gtcobid = user_data.get('OBID', '1')
 
+            # force 4 digit formatting
+            try:
+                gtcobid = '{:04d}'.format(int(gtcobid))
+            except ValueError:
+                # not an integer
+                pass
+
+            try:
             # force for calibrations
             if obj in ('Skyflat', 'Bias', 'Dark'):
                 gtcprgid = 'Calib'
