@@ -10,7 +10,7 @@ from six.moves import queue
 from hcam_widgets.globals import Container
 import hcam_widgets.widgets as w
 from hcam_widgets import hcam
-from hcam_widgets.misc import execCommand, FifoThread, isPoweredOn
+from hcam_widgets.misc import execCommand, FifoThread, isPoweredOn, isOnline
 from hcam_widgets.tkutils import addStyle
 
 from hcam_drivers.utils.rtplot import RtplotServer
@@ -49,8 +49,8 @@ class GUI(tk.Tk):
         self.globals.cpars = dict()
         load_config(self.globals)
         # add one extra that there is no point getting from a file as
-        # it should always be set False on starting the GUI
-        self.globals.cpars['eso_server_online'] = False
+        # it should always be checked on starting the GUI
+        self.globals.cpars['eso_server_online'] = isOnline(self.globals)
 
         if self.globals.cpars['debug']:
             logging.basicConfig(level=logging.DEBUG)
