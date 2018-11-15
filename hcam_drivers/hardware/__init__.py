@@ -249,7 +249,7 @@ class MeerstetterWidget(HardwareDisplayWidget):
             elif self.kind == 'heatsink temperature':
                 return self.ms.get_heatsink_temp(self.address).value
             elif self.kind == 'peltier power':
-                return 100 * self.ms.get_power(self.address) / self.ms.tec_power_limit
+                return 100 * self.ms.get_current(self.address) / self.ms.tec_current_limit
             else:
                 raise ValueError('unknown kind: {}'.format(self.kind))
         else:
