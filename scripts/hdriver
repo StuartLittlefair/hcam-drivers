@@ -49,8 +49,8 @@ class GUI(tk.Tk):
         self.globals.cpars = dict()
         load_config(self.globals)
         # add one extra that there is no point getting from a file as
-        # it should always be checked on starting the GUI
-        self.globals.cpars['eso_server_online'] = isOnline(self.globals)
+        # it should always be False on starting the GUI
+        self.globals.cpars['eso_server_online'] = False
 
         if self.globals.cpars['debug']:
             logging.basicConfig(level=logging.DEBUG)
@@ -259,8 +259,8 @@ class GUI(tk.Tk):
             print('OK - I will not quit')
         else:
             bring_offline = True
-            if (self.globals.cpars['eso_server_online']
-                    and isPoweredOn(self.globals) and
+            # explicity check online, since cpars is false on start
+            if (isOnline(self.globals) and isPoweredOn(self.globals) and
                     not messagebox.askyesno('Power Off', 'Turn off CCD clocks?')):
                 bring_offline = False
 
