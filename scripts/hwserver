@@ -4,6 +4,8 @@ from tornado.escape import json_encode, json_decode
 import tornado.ioloop
 from tornado.web import RequestHandler, Application, url, HTTPError
 from tornado.gen import coroutine
+from tornado.concurrent import run_on_executor
+from concurrent.futures import ThreadPoolExecutor
 import yaml
 import traceback
 from contextlib import contextmanager
@@ -47,6 +49,8 @@ class HWServerException(HTTPError):
 
 
 class HWHandler(BaseHandler):
+    executor = ThreadPoolExecutor(max_workers=10)
+
     def get(self, device, prop):
         dev = lookup_hardware(self.db, device, prop)
         meth, args = lookup_get_method(device, prop)
@@ -72,6 +76,13 @@ class HWHandler(BaseHandler):
             value = value.value
         self.write({'value': value})
 
+    @run_on_executor
+    def background_task(self, meth, args):
+        if args is not None:
+            return meth(*args)
+        else:
+            return meth()
+
     @coroutine
     def post(self, device, prop):
         req_json = json_decode(self.request.body.decode())
@@ -85,11 +96,7 @@ class HWHandler(BaseHandler):
             raise HWServerException(reason='method lookup on device has failed', status_code=500)
 
         try:
-            if args is not None:
-                result = yield tornado.ioloop.IOLoop.current().run_in_executor(None, meth, *args)
-            else:
-                result = yield tornado.ioloop.IOLoop.current().run_in_executor(None, meth)
-
+            result = yield self.background_task(meth, args)
         except Exception as err:
             raise HWServerException(reason='command failed - '+str(err), status_code=500)
         print(result)
