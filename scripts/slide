@@ -3,7 +3,8 @@ from __future__ import print_function, division, unicode_literals
 import tqdm
 
 from six.moves import queue
-from hcam_widgets.misc import FifoThread
+from hcam_widgets.misc import (FifoThread, get_hardware_value,
+                               set_hardware_value)
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
 from hcam_drivers.hardware import slide
@@ -20,15 +21,9 @@ with the following possible forms:
     stop         -- stop the device during a move
     enable       -- enable potentiometer on back of slide
     disable      -- disable potentiometer on back of slide
-    +<off>mm     -- add 'off' millimetres to current position
-    +<off>ms     -- add 'off' microsteps to current position
-    +<off>px     -- add 'off' pixels to current position
-    -<off>mm     -- subtract 'off' millimetres from current position
-    -<off>ms     -- subtract 'off' microsteps from current position
-    -<off>px     -- subtract 'off' pixels from current position
-    pos=<pos>mm  -- go to absolute position of 'pos' millimetres
-    pos=<pos>ms  -- go to absolute position of 'pos' microsteps
-    pos=<pos>px  -- go to absolute position of 'pos' pixels
+    +<off>       -- add 'off' pixels to current position
+    -<off>       -- subtract 'off' pixels from current position
+    pos=<pos>    -- go to absolute position of 'pos' pixels
 
     Hitting <Ctrl-C> will terminate a move that has already started.
 """
@@ -63,15 +58,11 @@ def action(command, estimated_time, args=()):
     else:
         name, error, tback = exc
         print('\n\nError in slide thread: {}'.format(error))
-        print(tback)
-
-
-def parse_move(move_str):
-    return int(move_str[:-2]), move_str[-2:]
+        # print(tback)
 
 
 def parse_position(pos_str):
-    return parse_move(pos_str.split('=')[1])
+    return float(pos_str.split('=')[1].split()[0])
 
 
 if __name__ == "__main__":
@@ -81,9 +72,6 @@ if __name__ == "__main__":
     g.cpars = dict()
     load_config(g)
     cpars = g.cpars
-
-    ip, port = cpars['termserver_ip'], cpars['slide_port']
-    sl = slide.Slide(None, ip, port)
 
     import sys
     try:
@@ -95,76 +83,71 @@ if __name__ == "__main__":
     timeout = MIN_TIMEOUT
 
     if comm == 'home':
-        timeout, msg = sl.time_home()
-
         def command():
-            value, msg = sl.home(timeout)
+            value, msg = set_hardware_value(cpars, 'slide', 'home')
             print('\n\n'+msg)
 
     elif comm == 'park':
-        timeout, msg = sl.time_absolute(slide.UNBLOCK_POS, 'px')
-
         def command():
-            value, msg = sl.move_absolute(slide.UNBLOCK_POS, 'px', timeout)
+            value, msg = set_hardware_value(cpars, 'slide', 'position', slide.UNBLOCK_POS)
             print('\n\n'+msg)
 
     elif comm == 'position':
         def command():
-            print('\n\n'+sl.report_position())
+            print('\n\n'+get_hardware_value(cpars, 'slide', 'position'))
 
     elif comm == 'reset':
         def command():
-            bytearr, msg = sl.reset()
+            msg = set_hardware_value(cpars, 'slide', 'reset')
             print('\n\n'+msg)
 
     elif comm == 'stop':
         def command():
-            val, msg = sl.stop()
+            val, msg = set_hardware_value(cpars, 'slide', 'stop')
             print('\n\n'+msg)
 
     elif comm == 'enable':
         def command():
-            bytearr, msg = sl.enable()
+            msg = set_hardware_value(cpars, 'slide', 'enable')
             print('\n\n'+msg)
 
     elif comm == 'disable':
         def command():
-            bytearr, msg = sl.disable()
+            msg = set_hardware_value(cpars, 'slide', 'disable')
             print('\n\n'+msg)
 
     elif comm.startswith('+'):
         try:
-            offset, unit = parse_move(comm[1:])
+            offset = int(comm[1:])
         except ValueError:
             raise ValueError('offset {} not understood'.format(comm))
-        nstep = sl._convert_to_microstep(offset, unit)
-        timeout, msg = sl.compute_timeout(nstep)
 
         def command():
-            _, msg = sl.move_relative(offset, unit, timeout)
+            current_position = parse_position(get_hardware_value(cpars, 'slide', 'position'))
+            new_position = current_position + offset
+            value, msg = set_hardware_value(cpars, 'slide', 'position', new_position)
             print('\n\n'+msg)
 
     elif comm.startswith('-'):
         try:
-            offset, unit = parse_move(comm[1:])
+            offset = int(comm[1:])
         except ValueError:
             raise ValueError('offset {} not understood'.format(comm))
-        nstep = sl._convert_to_microstep(offset, unit)
-        timeout, msg = sl.compute_timeout(nstep)
 
         def command():
-            _, msg = sl.move_relative(-offset, unit, timeout)
+            current_position = parse_position(get_hardware_value(cpars, 'slide', 'position'))
+            new_position = current_position - offset
+            value, msg = set_hardware_value(cpars, 'slide', 'position', new_position)
             print('\n\n'+msg)
 
     elif comm.startswith('pos='):
         try:
-            position, unit = parse_position(comm[1:])
+            position = int(comm.split('=')[1])
         except ValueError:
             raise ValueError('position {} not understood'.format(comm))
-        timeout = sl.time_absolute(position, unit)
 
         def command():
-            _, msg = sl.move_absolute(position, unit, timeout)
+            value, msg = set_hardware_value(cpars, 'slide', 'position', position)
             print('\n\n'+msg)
 
     else:
@@ -175,5 +158,5 @@ if __name__ == "__main__":
         action(command, timeout)
     except KeyboardInterrupt:
         # handle keyboardinterrupt
-        _, msg = sl.stop()
+        msg = set_hardware_value(cpars, 'slide', 'stop')
         print('\n\n'+msg)

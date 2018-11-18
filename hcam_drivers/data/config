@@ -80,6 +80,8 @@ ccd_peltier_upper = 90
 hipercam_server = http://localhost:5000/
 # The URL of the GTC offset server
 gtc_offset_server = http://localhost:5001/
+# The URL of the hardware server
+hw_server = http://localhost:5002
 # The URL of the termserver for serial connections
 termserver_ip = 192.168.1.3
 slide_port = 10001

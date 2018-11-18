@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
-from hcam_drivers.hardware import meerstetter, vacuum
+from hcam_widgets.misc import get_hardware_value
 from astropy.time import Time
 from astropy import units as u
 
@@ -17,9 +17,6 @@ if __name__ == "__main__":
     g.cpars = dict()
     load_config(g)
     cpars = g.cpars
-
-    gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
-    ms = [meerstetter.MeerstetterTEC1090(ip, 50000) for ip in cpars['meerstetter_ip']]
 
     plt.style.use('seaborn-colorblind')
     plt.ion()
@@ -33,15 +30,10 @@ if __name__ == "__main__":
 
     xp = []
     pressures = OrderedDict()
+    ccd_temps = OrderedDict()
     for ccd in ('1', '2', '3', '4', '5'):
         pressures[ccd] = []
-
-    ccd_temps = OrderedDict()
-    ccd_temps['1'] = (1, [])
-    ccd_temps['2'] = (2, [])
-    ccd_temps['3'] = (3, [])
-    ccd_temps['4'] = (1, [])
-    ccd_temps['5'] = (2, [])
+        ccd_temps[ccd] = []
 
     for ccd in pressures:
         y = pressures[ccd]
@@ -70,8 +62,8 @@ if __name__ == "__main__":
             for ccd in pressures:
                 iccd = int(ccd) - 1
                 try:
-                    pressure = 1000*gauges[iccd].pressure.value
-                except:
+                    pressure = 1000*get_hardware_value(cpars, 'ccd{}'.format(ccd), 'pressure')
+                except Exception:
                     print('warning: failed to log pressure for ccd {}'.format(ccd))
                     pressure = np.nan
                 pressures[ccd].append(pressure)
@@ -81,14 +73,10 @@ if __name__ == "__main__":
 
             for ccd in ccd_temps:
                 iccd = int(ccd) - 1
-                address, temp_array = ccd_temps[ccd]
-                if iccd < 3:
-                    meer = ms[0]
-                else:
-                    meer = ms[1]
+                temp_array = ccd_temps[ccd]
                 try:
-                    temp = meer.get_ccd_temp(address).value
-                except:
+                    temp = get_hardware_value(cpars, 'ccd{}'.format(ccd), 'temperature')
+                except Exception:
                     print('warning: failed to log temp for ccd {}'.format(ccd))
                     temp = np.nan
                 temp_array.append(temp)

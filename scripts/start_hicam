@@ -83,6 +83,16 @@ else
     echo "HServer already running ($HS)"
 fi
 
+# launch server for Hardware communication
+HWS=`ps ax | grep hwserver | wc -l`
+if [ $HWS -le 1 ]
+then
+    echo "starting HWServer"
+    $XTERM -title "HWServer" -e "hwserver" &
+else
+    echo "HWServer already running ($HWS)"
+fi
+
 # launch server for File Transfer
 username=`whoami`
 FS=`ps ax | grep fileserver | wc -l`

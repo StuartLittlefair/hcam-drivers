@@ -1,13 +1,12 @@
 # Utility to communicate with MKS PDR900 Vacuum Guage via RS232
 from __future__ import absolute_import, unicode_literals, print_function, division
 import re
+import socket
 
 from astropy.utils.decorators import lazyproperty
 from astropy.time import Time, TimeDelta
 from astropy.io import ascii
 from astropy import units as u
-
-from .termserver import netdevice
 
 DEFAULT_TIMEOUT = 5  # seconds
 
@@ -39,6 +38,16 @@ class PDR900(object):
         self.port = port
         self.host = host
         self.logging_start_time = None
+        self.sock = None
+
+    def connect(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self.host, self.port))
+        self.sock = s
+
+    def close(self):
+        if self.sock is not None:
+            self.sock.close()
 
     def _parse_response(self, response):
         pattern = '@(.*)ACK(.*);FF'
@@ -55,10 +64,12 @@ class PDR900(object):
 
     def _send_recv(self, message, data):
         msg = message.format(**data).encode()
-        with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
-            dev.send(msg)
-            dev.settimeout(DEFAULT_TIMEOUT)
-            response = dev.recv(1024).decode().rstrip('\r\n')
+        if self.sock is None:
+            raise VacuumGaugeError('not connected')
+
+        self.sock.send(msg)
+        self.sock.settimeout(DEFAULT_TIMEOUT)
+        response = self.sock.recv(1024).decode().rstrip('\r\n')
         addr, retval = self._parse_response(response)
         return addr, retval
 

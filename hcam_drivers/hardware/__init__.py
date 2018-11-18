@@ -15,7 +15,7 @@ import time
 
 from hcam_widgets import widgets as w
 from hcam_widgets.tkutils import get_root, addStyle
-from . import honeywell, meerstetter, unichiller, vacuum, rack
+from hcam_widgets.misc import get_hardware_value
 from ..utils.alarms import AlarmDialog
 
 if not six.PY3:
@@ -229,10 +229,9 @@ class MeerstetterWidget(HardwareDisplayWidget):
     """
     Get CCD info from Meerstetters
     """
-    def __init__(self, parent, ms, address, name, kind, update_interval, lower_limit, upper_limit):
+    def __init__(self, parent, name, kind, update_interval, lower_limit, upper_limit):
         HardwareDisplayWidget.__init__(self, parent, kind, name, update_interval, lower_limit, upper_limit)
-        self.ms = ms
-        self.address = address
+        self.devname = name.replace(' ', '').lower()
         if kind == 'peltier power':
             self.fmt = '{:.0f}'
         elif kind == 'status':
@@ -242,14 +241,14 @@ class MeerstetterWidget(HardwareDisplayWidget):
         g = get_root(self.parent).globals
         if g.cpars['ccd_temp_monitoring_on']:
             if self.kind == 'status':
-                ok, code = self.ms.get_status(self.address)
+                ok, code = get_hardware_value(g.cpars, self.devname, 'peltier_status')
                 return int(ok)
             if self.kind == 'temperature':
-                return self.ms.get_ccd_temp(self.address).value
+                return get_hardware_value(g.cpars, self.devname, 'temperature')
             elif self.kind == 'heatsink temperature':
-                return self.ms.get_heatsink_temp(self.address).value
+                return get_hardware_value(g.cpars, self.devname, 'heatsink')
             elif self.kind == 'peltier power':
-                return 100 * self.ms.get_current(self.address) / self.ms.tec_current_limit
+                return 100 * get_hardware_value(g.cpars, self.devname, 'current') / 10.7
             else:
                 raise ValueError('unknown kind: {}'.format(self.kind))
         else:
@@ -260,15 +259,14 @@ class ChillerWidget(HardwareDisplayWidget):
     """
     Get Temperature from Chiller
     """
-    def __init__(self, parent, chiller, update_interval, lower_limit, upper_limit):
+    def __init__(self, parent, update_interval, lower_limit, upper_limit):
         HardwareDisplayWidget.__init__(self, parent, 'temperature', 'CHILLER',
                                        update_interval, lower_limit, upper_limit)
-        self.chiller = chiller
 
     def update_function(self):
         g = get_root(self.parent).globals
         if g.cpars['chiller_temp_monitoring_on']:
-            return self.chiller.temperature
+            return get_hardware_value(g.cpars, 'chiller', 'temperature')
         else:
             return np.nan
 
@@ -277,15 +275,14 @@ class RackSensorWidget(HardwareDisplayWidget):
     """
     Get Temperature and Humidity from Rack Sensor
     """
-    def __init__(self, parent, rack_sensor, update_interval, lower_limit, upper_limit):
+    def __init__(self, parent, update_interval, lower_limit, upper_limit):
         HardwareDisplayWidget.__init__(self, parent, 'temperature', 'RACK',
                                        update_interval, lower_limit, upper_limit)
-        self.rack_sensor = rack_sensor
 
     def update_function(self):
         g = get_root(self.parent).globals
         if g.cpars['chiller_temp_monitoring_on']:
-            return self.rack_sensor.temperature
+            return get_hardware_value(g.cpars, 'rack', 'temperature')
         else:
             return np.nan
 
@@ -294,17 +291,16 @@ class FlowRateWidget(HardwareDisplayWidget):
     """
     Flow rates from honeywell
     """
-    def __init__(self, parent, honey_ip, pen_address, name, update_interval, lower_limit, upper_limit):
+    def __init__(self, parent, name, update_interval, lower_limit, upper_limit):
         HardwareDisplayWidget.__init__(self, parent, 'flow rate', name, update_interval,
                                        lower_limit, upper_limit)
-        self.honey = honeywell.Honeywell(honey_ip, 502)
-        self.pen_address = pen_address
         self.fmt = '{:.2f}'
+        self.devname = name.replace(' ', '').lower()
 
     def update_function(self):
         g = get_root(self.parent).globals
         if g.cpars['flow_monitoring_on']:
-            return self.honey.read_pen(self.pen_address)
+            return get_hardware_value(g.cpars, self.devname, 'flow')
         else:
             return np.nan
 
@@ -313,16 +309,16 @@ class VacuumWidget(HardwareDisplayWidget):
     """
     Vacuum pressure from gauge
     """
-    def __init__(self, parent, gauge, name, update_interval, lower_limit, upper_limit):
+    def __init__(self, parent, name, update_interval, lower_limit, upper_limit):
         HardwareDisplayWidget.__init__(self, parent, 'pressure', name, update_interval,
                                        lower_limit, upper_limit)
-        self.gauge = gauge
         self.fmt = '{:.2E}'
+        self.devname = name.replace(' ', '').lower()
 
     def update_function(self):
         g = get_root(self.parent).globals
         if g.cpars['ccd_vac_monitoring_on']:
-            return 1000*self.gauge.pressure.value
+            return 1000*get_hardware_value(g.cpars, self.devname, 'pressure')
         else:
             return np.nan
 
@@ -350,21 +346,7 @@ class CCDInfoWidget(tk.Toplevel):
         # dont destroy when we click the close button
         self.protocol('WM_DELETE_WINDOW', self.withdraw)
 
-        # create hardware references
         g = get_root(self.parent).globals
-        honey_ip = g.cpars['honeywell_ip']
-        self.meerstetters = [
-            meerstetter.MeerstetterTEC1090(ip_addr, 50000) for ip_addr in
-            g.cpars['meerstetter_ip']]
-        self.vacuum_gauges = [
-            vacuum.PDR900(g.cpars['termserver_ip'], port) for port in
-            g.cpars['vacuum_ports']
-        ]
-        if g.cpars['telins_name'].lower() == 'wht':
-            self.chiller = unichiller.UnichillerMPC(g.cpars['termserver_ip'],
-                                                    g.cpars['chiller_port'])
-        else:
-            self.chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
 
         # create label frames
         self.status_frm = tk.LabelFrame(self, text='Meerstetter status', padx=4, pady=4)
@@ -383,44 +365,39 @@ class CCDInfoWidget(tk.Toplevel):
         self.ccd_flow_rates = []
         self.vacuums = []
         if g.cpars['telins_name'].lower() == 'wht':
-            self.chiller_temp = ChillerWidget(self.temp_frm, self.chiller,
+            self.chiller_temp = ChillerWidget(self.temp_frm,
                                               update_interval, g.cpars['chiller_temp_lower'],
                                               g.cpars['chiller_temp_upper'])
         else:
-            self.chiller_temp = RackSensorWidget(self.temp_frm, self.chiller, update_interval,
+            self.chiller_temp = RackSensorWidget(self.temp_frm, update_interval,
                                                  g.cpars['rack_temp_lower'],
                                                  g.cpars['rack_temp_upper'])
 
-        self.ngc_flow_rate = FlowRateWidget(self.flow_frm, honey_ip, 'ngc', 'NGC', update_interval,
+        self.ngc_flow_rate = FlowRateWidget(self.flow_frm, 'NGC', update_interval,
                                             g.cpars['ngc_flow_lower'], g.cpars['ngc_flow_upper'])
 
-        ms1 = self.meerstetters[0]
-        ms2 = self.meerstetters[1]
-        mapping = {1: (ms1, 1), 2: (ms1, 2), 3: (ms1, 3),
-                   4: (ms2, 1), 5: (ms2, 2)}
         # populate CCD frames
         for iccd in range(5):
-            ms, address = mapping[iccd+1]
             name = 'CCD {}'.format(iccd+1)
             # meerstetter widgets
             self.ms_status.append(
-                MeerstetterWidget(self.status_frm, ms, address, name,
+                MeerstetterWidget(self.status_frm, name,
                                   'status', update_interval, 0.5, 1.5)  # ok is 1, which is between 0.5 and 1.5
             )
             self.ccd_temps.append(
-                MeerstetterWidget(self.temp_frm, ms, address, name,
+                MeerstetterWidget(self.temp_frm, name,
                                   'temperature', update_interval,
                                   g.cpars['ccd_temp_lower'],
                                   g.cpars['ccd_temp_upper'])
             )
             self.heatsink_temps.append(
-                MeerstetterWidget(self.heatsink_frm, ms, address, name,
+                MeerstetterWidget(self.heatsink_frm, name,
                                   'heatsink temperature', update_interval,
                                   g.cpars['ccd_sink_temp_lower'],
                                   g.cpars['ccd_sink_temp_upper'])
             )
             self.peltier_powers.append(
-                MeerstetterWidget(self.peltier_frm, ms, address, name,
+                MeerstetterWidget(self.peltier_frm, name,
                                   'peltier power', update_interval,
                                   g.cpars['ccd_peltier_lower'],
                                   g.cpars['ccd_peltier_upper'])
@@ -440,9 +417,6 @@ class CCDInfoWidget(tk.Toplevel):
                 row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W
             )
 
-            # flow rates
-            pen_address = 'ccd{}'.format(iccd+1)
-
             self.ccd_flow_rates.append(
                 FlowRateWidget(self.flow_frm, honey_ip, pen_address, name, update_interval,
                                g.cpars['ccd_flow_lower'], g.cpars['ccd_flow_upper'])
@@ -452,10 +426,10 @@ class CCDInfoWidget(tk.Toplevel):
             )
 
         # vacuum gauges
-        for iccd, gauge in enumerate(self.vacuum_gauges):
+        for iccd in range(5):
             name = 'CCD {}'.format(iccd+1)
             self.vacuums.append(
-                VacuumWidget(self.vac_frm, gauge, name, update_interval, -1e6, 5e-3)
+                VacuumWidget(self.vac_frm, name, update_interval, -1e6, 5e-3)
             )
             self.vacuums[-1].grid(
                     row=int(iccd/3), column=iccd % 3, padx=5, sticky=tk.W

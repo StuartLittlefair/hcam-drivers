@@ -9,12 +9,12 @@ from __future__ import (print_function, division, absolute_import)
 import struct
 import six
 from six.moves import queue
+import socket
 
 # internal imports
 from hcam_widgets.widgets import GuiLogger, IntegerEntry
-from hcam_widgets.misc import FifoThread
+from hcam_widgets.misc import FifoThread, get_hardware_value, set_hardware_value
 from hcam_widgets.tkutils import get_root
-from .termserver import netdevice
 
 if not six.PY3:
     import Tkinter as tk
@@ -104,16 +104,27 @@ class Slide(object):
         self.port = port
         self.host = host
         self.default_timeout = MIN_TIMEOUT
+        self.sock = None
+
+    def connect(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self.host, self.port))
+        self.sock = s
+
+    def close(self):
+        if self.sock is not None:
+            self.sock.close()
 
     def _sendRecv(self, byteArr, timeout):
-        with netdevice(self.host, self.port) as dev:
-            try:
-                dev.settimeout(self.default_timeout)
-                dev.send(byteArr)
-            except Exception as e:
-                raise SlideError('failed to send bytes to slide' + str(e))
-            dev.settimeout(timeout)
-            msg = dev.recv(6)
+        if self.sock is None:
+            raise SlideError('not connected')
+        try:
+            self.sock.settimeout(self.default_timeout)
+            self.sock.send(byteArr)
+        except Exception as e:
+            raise SlideError('failed to send bytes to slide' + str(e))
+        self.sock.settimeout(timeout)
+        msg = self.sock.recv(6)
         return bytearray(msg)
 
     def _decodeCommandData(self, byteArr):
@@ -178,7 +189,7 @@ class Slide(object):
             raise SlideError("Attempting to set position = %d ms," +
                              " which is out of range %d to %d" % (nstep, MIN_MS, MAX_MS))
         if not timeout:
-            timeout = self.time_absolute(nstep)
+            timeout, _ = self.time_absolute(nstep)
 
         # encode command bytes into bytearray
         byteArr = self._encodeCommandData(nstep)
@@ -192,7 +203,6 @@ class Slide(object):
         """
         move by nstep microsteps relative to the current position
         """
-
         # if this raises an error, so be it
         start_pos = self._getPosition()
         attempt_pos = start_pos+nstep
@@ -228,13 +238,14 @@ class Slide(object):
                                  (amount-MIN_MM) / (MAX_MM-MIN_MM) + 0.5)
         return nstep
 
-    def time_absolute(self, nstep, units):
+    def time_absolute(self, nstep, units='ms'):
         """
         Returns estimate of time to carry out a move to absolute value nstep
         Have to separate this from because of threading issues.
         """
         start_pos = self._getPosition()
-        return self.compute_timeout(nstep-start_pos), None
+        end = self._convert_to_microstep(nstep, units)
+        return self.compute_timeout(end-start_pos), None
 
     def time_home(self):
         """
@@ -270,7 +281,7 @@ class Slide(object):
         """
         byteArr = self._encodeByteArr([UNIT, RESET, NULL, NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        return byteArr, 'reset completed'
+        return 'reset completed'
 
     def restore(self):
         """
@@ -280,7 +291,7 @@ class Slide(object):
         byteArr = self._encodeByteArr([UNIT, RESTORE, PERIPHERAL_ID,
                                        NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        return byteArr, 'finished restore'
+        return 'finished restore'
 
     def disable(self):
         """
@@ -290,7 +301,7 @@ class Slide(object):
         byteArr = self._encodeByteArr([UNIT, SET_MODE, POTENTIOM_OFF,
                                        NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        return byteArr, 'manual adjustment disabled'
+        return 'manual adjustment disabled'
 
     def enable(self):
         """
@@ -300,7 +311,7 @@ class Slide(object):
         byteArr = self._encodeByteArr([UNIT, SET_MODE, POTENTIOM_ON,
                                        NULL, NULL, NULL])
         byteArr = self._sendRecv(byteArr, self.default_timeout)
-        return byteArr, 'manual adjustment enabled'
+        return 'manual adjustment enabled'
 
     def stop(self):
         """stop the slide"""
@@ -425,11 +436,6 @@ class FocalPlaneSlide(tk.LabelFrame):
 
         top.pack(pady=2)
 
-        # show progress
-        self.progressText = tk.StringVar()
-        self.progress = tk.Label(self, textvariable=self.progressText)
-        self.progress.pack(pady=2)
-
         # region to log slide command results
         self.log = GuiLogger('SLD', self, 5, 53)
         self.log.pack(pady=2)
@@ -441,11 +447,7 @@ class FocalPlaneSlide(tk.LabelFrame):
         self.thread = None
 
         # Finish off
-        g = get_root(self).globals
-        ip = g.cpars['termserver_ip']
-        port = g.cpars['slide_port']
         self.where = 'UNDEF'
-        self.slide = Slide(self.log, ip, port)
 
     def setExpertLevel(self):
         """
@@ -527,57 +529,57 @@ class FocalPlaneSlide(tk.LabelFrame):
 
         if comm[0] == 'home':
             def command():
-                timeout, msg = self.slide.time_home()
-                value, msg = self.slide.home(timeout)
+                value, msg = set_hardware_value(g.cpars, 'slide', 'home')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'unblock':
             def command():
-                timeout, msg = self.slide.time_absolute(UNBLOCK_POS, 'px')
-                value, msg = self.slide.move_absolute(UNBLOCK_POS, 'px', timeout)
+                value, msg = set_hardware_value(g.cpars, 'slide', 'position',
+                                                UNBLOCK_POS)
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'block':
             def command():
-                timeout, msg = self.slide.time_absolute(BLOCK_POS, 'px')
-                value, msg = self.slide.move_absolute(BLOCK_POS, 'px', timeout)
+                value, msg = set_hardware_value(g.cpars, 'slide', 'position',
+                                                BLOCK_POS)
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'position':
             def command():
-                msg = self.slide.report_position()
+                msg = get_hardware_value(g.cpars, 'slide', 'position')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'reset':
             def command():
-                bytearr, msg = self.slide.reset()
+                msg = set_hardware_value(g.cpars, 'slide', 'reset')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'restore':
             def command():
-                bytearr, msg = self.slide.restore()
+                msg = set_hardware_value(g.cpars, 'slide', 'restore')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'enable':
             def command():
-                bytearr, msg = self.slide.enable()
+                msg = set_hardware_value(g.cpars, 'slide', 'enable')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'disable':
             def command():
-                bytearr, msg = self.slide.disable()
+                msg = set_hardware_value(g.cpars, 'slide', 'disable')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'stop':
             def command():
-                val, msg = self.slide.stop()
+                val, msg = set_hardware_value(g.cpars, 'slide', 'stop')
                 self.msgQueue.put(msg)
 
         elif comm[0] == 'goto':
             if comm[1] is not None:
                 def command():
-                    timeout, msg = self.slide.time_absolute(comm[1], 'px')
-                    val, msg = self.slide.move_absolute(comm[1], 'px', timeout)
+                    val, msg = set_hardware_value(
+                        g.cpars, 'slide', 'position', comm[1]
+                    )
                     self.msgQueue.put(msg)
             else:
                 def command():
