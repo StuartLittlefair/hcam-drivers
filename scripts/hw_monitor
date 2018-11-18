@@ -39,7 +39,7 @@ if __name__ == "__main__":
         y = pressures[ccd]
         pressure_ax.plot(xp, y, label='CCD{}'.format(ccd))
     for ccd in ccd_temps:
-        y = ccd_temps[ccd][1]
+        y = ccd_temps[ccd]
         temp_ax.plot(xp, y, label='CCD{}'.format(ccd))
 
     pressure_ax.set_xlabel('Time (hours)')
@@ -63,7 +63,8 @@ if __name__ == "__main__":
                 iccd = int(ccd) - 1
                 try:
                     pressure = 1000*get_hardware_value(cpars, 'ccd{}'.format(ccd), 'pressure')
-                except Exception:
+                except Exception as err:
+                    print(str(err))
                     print('warning: failed to log pressure for ccd {}'.format(ccd))
                     pressure = np.nan
                 pressures[ccd].append(pressure)
