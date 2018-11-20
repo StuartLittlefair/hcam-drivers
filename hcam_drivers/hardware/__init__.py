@@ -12,6 +12,7 @@ import six
 import numpy as np
 import threading
 import time
+import re
 
 from hcam_widgets import widgets as w
 from hcam_widgets.tkutils import get_root, addStyle
@@ -468,7 +469,9 @@ class CCDInfoWidget(tk.Toplevel):
             data['ccd{}flow'.format(ccd)] = self._getVal(self.ccd_flow_rates[i])
         if g.cpars['focal_plane_slide_on']:
             try:
-                (pos_ms, pos_mm, pos_px), msg = g.fpslide.slide.return_position()
+                pos_str = get_hardware_value(g.cpars, 'slide', 'position')
+                expr = ".* =\s+([-+]?\d*\.\d*) pixels \((\d*\.\d*) mm, (\d*) ms\)"
+                pos_ms, pos_mm, pos_px = re.match(expr, pos_str).groups()
                 data['fpslide'] = pos_px
             except Exception as err:
                 g.clog.warn('Slide error: ' + str(err))
