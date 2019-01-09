@@ -328,4 +328,6 @@ if __name__ == "__main__":
         url(r'/offset', PostOffsetHandler, dict(db=db), name='offset')
     ])
     app.listen(5001)
+    # periodically poll IOLoop to wake
+    tornado.ioloop.PeriodicCallback(lambda: None, 500).start()
     tornado.ioloop.IOLoop.current().start()
