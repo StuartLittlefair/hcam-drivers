@@ -10,6 +10,7 @@ import struct
 import six
 from six.moves import queue
 import socket
+import threading
 
 # internal imports
 from hcam_widgets.widgets import GuiLogger, IntegerEntry
@@ -105,6 +106,8 @@ class Slide(object):
         self.host = host
         self.default_timeout = MIN_TIMEOUT
         self.sock = None
+        # thread lock for threadsafe operations
+        self._lock = threading.Lock()
 
     def connect(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -118,13 +121,16 @@ class Slide(object):
     def _sendRecv(self, byteArr, timeout):
         if self.sock is None:
             raise SlideError('not connected')
-        try:
-            self.sock.settimeout(self.default_timeout)
-            self.sock.send(byteArr)
-        except Exception as e:
-            raise SlideError('failed to send bytes to slide' + str(e))
-        self.sock.settimeout(timeout)
-        msg = self.sock.recv(6)
+            
+        # only one thread at a time talks to the slide
+        with self.lock:
+            try:    
+                self.sock.settimeout(self.default_timeout)
+                self.sock.send(byteArr)
+            except Exception as e:
+                raise SlideError('failed to send bytes to slide' + str(e))
+            self.sock.settimeout(timeout)
+            msg = self.sock.recv(6)
         return bytearray(msg)
 
     def _decodeCommandData(self, byteArr):
