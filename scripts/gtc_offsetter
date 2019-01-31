@@ -90,7 +90,7 @@ class FITSWriteHandler(PatternMatchingEventHandler):
         self.ra_offsets = ra_offsets
         self.dec_offsets = dec_offsets
         try:
-            pattern = os.path.join(self.path, self.patterns[0])
+            pattern = os.path.abspath(os.path.join(self.path, self.patterns[0]))
             self.existing_runs = glob.glob(pattern)
         except:
             self.existing_runs = []
@@ -149,7 +149,7 @@ class FITSWriteHandler(PatternMatchingEventHandler):
 
         # launch thread to wait for telescope to be in place
         # and send trigger to NGC controller
-        
+
         # this is thread-safe *apart from a signal_handler
         # should we be calling add_callback_from_signal
         # instead
@@ -159,14 +159,14 @@ class FITSWriteHandler(PatternMatchingEventHandler):
 
     def on_modified(self, event):
         if self.check_debounce():
-            if event.src_path == self.existing_runs[-1]:
+            if os.path.abspath(event.src_path) == self.existing_runs[-1]:
                 # latest file has just been written to
                 self.do_next_offset()
 
     def on_created(self, event):
         self.check_debounce()
         # if we don't know about this, it's a new run.
-        if event.src_path not in self.existing_runs:
+        if os.path.abspath(event.src_path) not in self.existing_runs:
             self.existing_runs.append(event.src_path)
 
 
@@ -232,9 +232,9 @@ class StartHandler(BaseHandler):
         observer, handler = make_observer(self.db['path'],
                                           self.db['ra_offs'],
                                           self.db['dec_offs'])
-                                   
+
         self.db['observer'] = observer
-        self.db['handler'] = handler       
+        self.db['handler'] = handler
         self.db['observer'].start()
         self.finish({'status': 'OK', 'action': 'start'})
 
