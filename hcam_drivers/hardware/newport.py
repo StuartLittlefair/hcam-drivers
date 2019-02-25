@@ -57,11 +57,11 @@ class NewportError(Exception):
     def __str__(self):
         msg = 'newport error code {}'.format(self.code)
         if self.axis is not None:
-            msg += ' on axis ' + self.axis
+            msg += ' on axis {}'.format(self.axis)
         return '{} ({})'.format(msg, self.message)
 
 
-class AxisProperty:
+class AxisProperty(object):
     """
     A descriptor for access to a property of a NewportESP301Axis
 
@@ -72,8 +72,8 @@ class AxisProperty:
 
     This is a perfect use of a Python descriptor
     """
-    def __init__(self, code, units=u.dimensionless_unscaled,
-                 relative_units=True, errcheck=True):
+    def __init__(self, code, units=u.dimensionless_unscaled, 
+                 relative_units=True, errcheck=True, readonly=False):
         """
         Parameters
         ----------
@@ -92,11 +92,14 @@ class AxisProperty:
             property.
         errcheck : bool
             check for errors on get/set
+        readonly : bool
+	    read only property
         """
         self.code = code
         self.units = units
         self.relative_units = relative_units
         self.errcheck = errcheck
+        self.readonly = readonly
 
     def __get__(self, instance, cls):
         if instance is None:
@@ -104,7 +107,7 @@ class AxisProperty:
             return self
         else:
             # called from class instance
-            val = instance._cmd(self.code + '?', errcheck=self.errcheck)
+            val = float(instance._cmd(self.code + '?', errcheck=self.errcheck))
             if self.relative_units:
                 units = instance.units * self.units
             else:
@@ -112,12 +115,15 @@ class AxisProperty:
             return val * units
 
     def __set__(self, instance, value):
+        if self.readonly:
+            raise AttributeError("can't set attribute")
+
         # if we are passed a float or int, assume correct units and create quantity
         if not isinstance(value, u.Quantity):
             value = value * self.units * instance.units if self.relative_units else value * self.units
 
         # get value in correct units
-        value = value.to_value(self.units * instance.units if self.relative_units else self.units)
+        value = value.to(self.units * instance.units if self.relative_units else self.units).value
 
         # set value
         instance._cmd(self.code, params=(value,), errcheck=self.errcheck)
@@ -127,11 +133,11 @@ class IntegerAxisProperty(AxisProperty):
     """
     An axis property that must be integer.
     """
-    def __init__(self, code, errcheck=True):
+    def __init__(self, code, errcheck=True, readonly=False):
         super(IntegerAxisProperty, self).__init__(code,
                                                   units=u.dimensionless_unscaled,
                                                   relative_units=False,
-                                                  errcheck=errcheck)
+                                                  errcheck=errcheck, readonly=readonly)
 
     def __get__(self, instance, cls):
         value = super(IntegerAxisProperty, self).__get__(instance, cls)
@@ -165,11 +171,17 @@ class NewportESP301:
             baud rate for serial port
         """
         self.lock = threading.Lock()
-        self.dev = serial.Serial(port=port, baudrate=baudrate, bytesize=8, timeout=1,
+        self.ser = serial.Serial(port=port, baudrate=baudrate, bytesize=8, timeout=1,
                                  parity='N', rtscts=1)
         self._execute_immediately = True  # either collect commands into a list, or send one-by-one
         self._command_list = []  # list of commands to send together
-        self.axis = [NewportESP301Axis(self, i) for i in range(3)]
+        self.axis = [None, None, None]
+        for i in range(3):
+            try:
+                self.axis[i] = NewportESP301Axis(self, i+1)
+            except NewportError:
+                # this will fail if axis is not enabled in controller
+                self.axis[i] = None
 
     def __del__(self):
         self.ser.close()
@@ -224,7 +236,6 @@ class NewportESP301:
             cmd=cmd.upper(),
             params=",".join(map(str, params))
         )
-
         response = None
         if self._execute_immediately:
             response = self._execute(raw_cmd, errcheck)
@@ -253,7 +264,7 @@ class NewportESP301:
 
     @property
     def version(self):
-        return self.cmd('VE?')
+        return self._cmd('VE?')
 
     @contextmanager
     def define_program(self, program_id):
@@ -362,8 +373,8 @@ class NewportESP301Axis:
     jog_high_velocity = AxisProperty('JH', units=1/u.s)
     jog_low_velocity = AxisProperty('JL', units=1/u.s)
     homing_velocity = AxisProperty('OH', units=1/u.s)
-    position = AxisProperty('TP')
-    desired_position = AxisProperty('DP')
+    position = AxisProperty('TP', readonly=True)
+    desired_position = AxisProperty('DP', readonly=True)
     desired_velocity = AxisProperty('DV', units=1/u.s)
     home_position = AxisProperty('DH')
     left_limit = AxisProperty('SL')
@@ -391,9 +402,10 @@ class NewportESP301Axis:
 
         self.controller = controller
         self.axis_idx = axis_idx
-        self._units = NewportESP301Axis._unit_dict[self._get_units()]
         # make a copy of the controller command function, with this axis index hard-wired
-        self._cmd = partial(self._controller._cmd, target=self.axis_idx)
+        self._cmd = partial(self.controller._cmd, target=self.axis_idx)
+        self._units = NewportESP301Axis._unit_dict[self._get_units()]
+
 
     @property
     def motion_complete(self):
@@ -430,11 +442,13 @@ class NewportESP301Axis:
 
     @units.setter
     def units(self, newval):
+        raise AttributeError('for unknown reasons, setting units does not work')
         if isinstance(newval, int):
             self._units = NewportError._unit_dict[newval]
         elif isinstance(newval, u.Quantity):
             self._units = newval
             newval = self._get_unit_num(newval)
+            self._set_units(newval)
         self._set_units(newval)
 
     def home(self, search_mode=1, errcheck=True):
@@ -474,7 +488,7 @@ class NewportESP301Axis:
         """
         if not isinstance(position, u.Quantity):
             position = position * self.units
-        position = position.to_value(self.units)
+        position = position.to(self.units).value
 
         cmd = 'PA' if absolute else 'PR'
         self._cmd(cmd, params=[position])
@@ -503,7 +517,7 @@ class NewportESP301Axis:
         """
         if not isinstance(position, u.Quantity):
             position = position * self.units
-        position = position.to_value(self.units)
+        position = position.to(self.units).value
         self._cmd('WP', params=[position])
 
     def wait_for_stop(self):
