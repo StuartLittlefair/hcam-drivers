@@ -81,4 +81,3 @@ def dump_app(g):
     """
     json_string = createJSON(g, full=False)
     saveJSON(g, json_string, backup=True)
-

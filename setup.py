@@ -18,6 +18,7 @@ requirements = [
     'tornado',
     'pyaml',
     'configobj',
+    'Pyro4',
     'tqdm',
     'hcam_widgets'
 ]

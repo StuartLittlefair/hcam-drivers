@@ -1,64 +1,156 @@
 #!/usr/bin/env python
 from __future__ import print_function, division, unicode_literals
-from tornado.escape import json_encode, json_decode
-import tornado.ioloop
-from tornado.web import RequestHandler, Application, url, HTTPError
-from tornado.gen import coroutine
-from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
-import yaml
-import traceback
-from contextlib import contextmanager
-
+import Pyro4
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
-from hcam_drivers.hardware import (meerstetter, vacuum, unichiller,
-                                   rack, honeywell, slide)
+from hcam_drivers.hardware import (vacuum, meerstetter, unichiller, rack,
+                                   slide, honeywell)
 
 
-MSG_TEMPLATE = "MESSAGEBUFFER: {}\nRETCODE: {}"
+# TODO: modify hardware behaviour so they connect on first instance and are
+# threadsafe
 
-
-# This script provides a "thin client" that runs on the rack PC.
-# The thin client acts as a bridge between client software on
-# another machine and the auxillary hardware
-# (chiller, rack enclosure, peltier powers etc)
-
-class BaseHandler(RequestHandler):
+@Pyro4.behavior(instance_mode='single')
+class HardwareProxy:
     """
-    Abstract class for request handling
+    A class to manage access to hardware running on HiPERCAM
+
+    Only one instance of this class is ever created. It in turn has delegates
+    of all the hardware on HiPERCAM, so there is only one instance on the
+    whole system for any single piece of hardware. As long as the hardware code
+    is threadsafe, this should all be fine...
     """
-    def initialize(self, db):
-        self.db = db
-        self.settings['serve_traceback'] = True
+    def __init__(self):
+        print('creating Hardware proxy (should only happen once)')
+        g = Container()
+        g.cpars = dict()
+        load_config(g)
+        cpars = g.cpars
 
-    def write_error(self, status_code, **kwargs):
-        self.set_header('Content-Type', 'application/json')
-        resp = MSG_TEMPLATE.format(self._reason, 'NOK')
-        resp_dict = yaml.load(resp)
-        if self.settings.get("serve_traceback") and "exc_info" in kwargs:
-            lines = []
-            for line in traceback.format_exception(*kwargs["exc_info"]):
-                lines.append(line)
-            resp_dict['traceback'] = lines
-        self.finish(json_encode(resp_dict))
+        # make objects for talking to hardware
+        self.gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
+        self.ms = [meerstetter.MeerstetterTEC1090(ip, 50000) for ip in cpars['meerstetter_ip']]
+        if cpars['telins_name'].lower() == 'wht':
+            self.chiller = unichiller.UnichillerMPC(cpars['termserver_ip'],
+                                                    cpars['chiller_port'])
+        else:
+            self.chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
+        self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
+        ip, port = cpars['termserver_ip'], cpars['slide_port']
+        self.focal_plane_slide = slide.Slide(None, ip, port)
 
-
-class HWServerException(HTTPError):
-    pass
-
-
-class HWHandler(BaseHandler):
-    executor = ThreadPoolExecutor(max_workers=10)
-
-    def get(self, device, prop):
-        dev = lookup_hardware(self.db, device, prop)
-        meth, args = lookup_get_method(device, prop)
-
+    def lookup_hw(self, device, prop):
+        """
+        Parses device requested from server and matches to Python object
+        """
         try:
-            meth = getattr(dev, meth)
+            device = device.lower()
+            if device.startswith('ccd'):
+                ccdnum = int(device[-1])
+                if prop == 'flow':
+                    return self.honey
+                elif prop == 'pressure':
+                    return self.gauges[ccdnum-1]
+                else:
+                    ms1, ms2 = self.ms
+                    mapping = {1: ms1, 2: ms1, 3: ms1, 4: ms2, 5: ms2}
+                    return mapping[ccdnum]
+
+            elif device in ['rack', 'chiller']:
+                return self.chiller
+
+            elif device.startswith('ngc'):
+                return self.honey
+
+            elif device.startswith('slide'):
+                return self.focal_plane_slide
+            else:
+                raise KeyError('no such device')
+        except Exception as err:
+            raise ValueError('hardware lookup failed: ' + str(err))
+
+    def lookup_get_method(self, device, prop):
+        """
+        Looks up appropriate method to call to FIND a property from device
+        """
+        # lookup table of method, args
+        device = device.lower()
+        if device.startswith('ngc'):
+            if prop != 'flow':
+                raise KeyError('no such property')
+            else:
+                return ('read_pen', ('ngc',))
+
+        if device in ['rack', 'chiller']:
+            if prop == 'temperature':
+                return 'temperature', None
+            else:
+                raise KeyError('no such property')
+
+        if device.startswith('ccd'):
+            ccdnum = int(device[-1])
+            meerstetter_address = 1 + ((ccdnum-1) % 3)
+            if prop == 'flow':
+                return ('read_pen', ('ccd{:d}'.format(ccdnum),))
+            elif prop == 'pressure':
+                return 'pressure', None
+            elif prop == 'current':
+                return 'get_current', (meerstetter_address,)
+            elif prop == 'temperature':
+                return 'get_ccd_temp', (meerstetter_address,)
+            elif prop == 'heatsink':
+                return 'get_heatsink_temp', (meerstetter_address,)
+            elif prop == 'peltier_status':
+                return 'get_status', (meerstetter_address,)
+            elif prop == 'setpoint':
+                return 'get_setpoint', (meerstetter_address,)
+            else:
+                raise KeyError('no such property')
+
+        if device.startswith('slide'):
+            if prop == 'position':
+                return 'report_position', None
+            else:
+                raise KeyError('no such property')
+
+    def lookup_set_method(self, device, prop, value):
+        """
+        Looks up method to SET a property, or send command to a device
+        """
+        device = device.lower()
+        if device.startswith('ngc'):
+            raise ValueError('no settable properties on this device')
+
+        elif device.startswith('slide'):
+            if prop == 'position':
+                if value is None:
+                    raise ValueError('must supply a position for slide')
+                return 'move_absolute', (value, 'px')
+            if prop in ('home', 'enable', 'disable',
+                        'stop', 'reset', 'restore'):
+                return prop, None
+
+        elif device.startswith('ccd'):
+            ccdnum = int(device[-1])
+            meerstetter_address = 1 + ((ccdnum-1) % 3)
+            if prop == 'tecreset':
+                return 'reset_tec', (meerstetter_address,)
+            elif prop == 'setpoint':
+                return 'set_ccd_temp', (meerstetter_address, value)
+            else:
+                raise ValueError('not a settable property')
+
+        else:
+            raise KeyError('no settable properties on this device')
+
+    @Pyro4.expose
+    def get_value(self, name, prop):
+        hw = self.lookup_hw(name, prop)
+        meth, args = self.lookup_get_method(name, prop)
+        try:
+            meth = getattr(hw, meth)
         except Exception:
-            raise HWServerException(reason='method lookup on device has failed', status_code=500)
+            raise ValueError('method lookup on device has failed')
 
         try:
             if callable(meth):
@@ -69,188 +161,32 @@ class HWHandler(BaseHandler):
             else:
                 value = meth
         except Exception as err:
-            raise HWServerException(reason='command failed - '+str(err), status_code=500)
+            raise RuntimeError('command execution failed: ' + str(err))
 
-        # extract value from astropy objects
-        if hasattr(value, 'value'):
-            value = value.value
-        self.write({'value': value})
+        return value
 
-    @run_on_executor
-    def background_task(self, meth, args):
-        if args is not None:
-            return meth(*args)
-        else:
-            return meth()
-
-    @coroutine
-    def post(self, device, prop):
-        req_json = json_decode(self.request.body.decode())
-        dev = lookup_hardware(self.db, device, prop)
-
-        value = req_json.get('value', None)
-        meth, args = lookup_post_method(device, prop, value)
+    @Pyro4.expose
+    def send_command(self, name, prop, value=None):
+        hw = self.lookup_hw(name, prop)
+        meth, args = self.lookup_set_method(name, prop, value)
         try:
-            meth = getattr(dev, meth)
+            meth = getattr(hw, meth)
         except Exception:
-            raise HWServerException(reason='method lookup on device has failed', status_code=500)
+            raise ValueError('method lookup on device has failed')
 
         try:
-            result = yield self.background_task(meth, args)
-        except Exception as err:
-            raise HWServerException(reason='command failed - '+str(err), status_code=500)
-        print(result)
-        self.write({'value': result})
-
-
-def lookup_post_method(device, prop, value):
-    """
-    Looks up method to SET a property, or send command to a device
-    """
-    device = device.lower()
-    if device.startswith('ngc'):
-        raise HWServerException(reason='no settable properties on this device', status_code=500)
-
-    elif device.startswith('slide'):
-        if prop == 'position':
-            if value is None:
-                raise HWServerException(reason='must supply a value', status_code=500)
-            return 'move_absolute', (value, 'px')
-        if prop in ('home', 'enable', 'disable',
-                    'stop', 'reset', 'restore'):
-            return prop, None
-
-    elif device.startswith('ccd'):
-        ccdnum = int(device[-1])
-        meerstetter_address = 1 + ((ccdnum-1) % 3)
-        if prop == 'tecreset':
-            return 'reset_tec', (meerstetter_address,)
-        elif prop == 'setpoint':
-            return 'set_ccd_temp', (meerstetter_address, value)
-        else:
-            raise HWServerException(reason='not a settable property', status_code=500)
-
-    else:
-        raise HWServerException(reason='no settable properties on this device', status_code=500)
-
-
-def lookup_get_method(device, prop):
-    """
-    Looks up appropriate method to call to FIND a property from device
-    """
-    # lookup table of method, args
-    device = device.lower()
-    if device.startswith('ngc'):
-        if prop != 'flow':
-            raise HWServerException(reason='no such property', status_code=404)
-        else:
-            return ('read_pen', ('ngc',))
-
-    if device in ['rack', 'chiller']:
-        if prop == 'temperature':
-            return 'temperature', None
-        else:
-            raise HWServerException(reason='no such property', status_code=404)
-
-    if device.startswith('ccd'):
-        ccdnum = int(device[-1])
-        meerstetter_address = 1 + ((ccdnum-1) % 3)
-        if prop == 'flow':
-            return ('read_pen', ('ccd{:d}'.format(ccdnum),))
-        elif prop == 'pressure':
-            return 'pressure', None
-        elif prop == 'current':
-            return 'get_current', (meerstetter_address,)
-        elif prop == 'temperature':
-            return 'get_ccd_temp', (meerstetter_address,)
-        elif prop == 'heatsink':
-            return 'get_heatsink_temp', (meerstetter_address,)
-        elif prop == 'peltier_status':
-            return 'get_status', (meerstetter_address,)
-        elif prop == 'setpoint':
-            return 'get_setpoint', (meerstetter_address,)
-        else:
-            raise HWServerException(reason='no such property', status_code=404)
-
-    if device.startswith('slide'):
-        if prop == 'position':
-            return 'report_position', None
-        else:
-            raise HWServerException(reason='no such property', status_code=404)
-
-
-def lookup_hardware(db, device, prop):
-    """
-    Parses device passed to server and matches to Python object
-    """
-    try:
-        device = device.lower()
-        if device.startswith('ccd'):
-            ccdnum = int(device[-1])
-            if prop == 'flow':
-                return db['honey']
-            elif prop == 'pressure':
-                return db['gauges'][ccdnum-1]
+            if args is not None:
+                value = meth(*args)
             else:
-                ms1, ms2 = db['meerstetters']
-                mapping = {1: ms1, 2: ms1, 3: ms1, 4: ms2, 5: ms2}
-                return mapping[ccdnum]
-
-        elif device in ['rack', 'chiller']:
-            return db['chiller']
-
-        elif device.startswith('ngc'):
-            return db['honey']
-
-        elif device.startswith('slide'):
-            return db['slide']
-        else:
-            raise HWServerException(reason='no such device', status_code=404)
-    except Exception as err:
-        raise HWServerException(reason=str(err), status_code=500)
+                value = meth()
+        except Exception as err:
+            raise RuntimeError('command execution failed:' + str(err))
+        return value
 
 
-@contextmanager
-def open_hardware(db):
-    """
-    Context manager to make sure we open and close hardware on startup
-    """
-    db['slide'].connect()
-    for gauge in db['gauges']:
-        gauge.connect()
-    yield db
-    db['slide'].close()
-    for gauge in db['gauges']:
-        gauge.close()
-
-
-if __name__ == '__main__':
-
-    g = Container()
-    g.cpars = dict()
-    load_config(g)
-    cpars = g.cpars
-
-    # make objects for talking to hardware
-    gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
-    ms = [meerstetter.MeerstetterTEC1090(ip, 50000) for ip in cpars['meerstetter_ip']]
-    if cpars['telins_name'].lower() == 'wht':
-        chiller = unichiller.UnichillerMPC(cpars['termserver_ip'],
-                                           cpars['chiller_port'])
-    else:
-        chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
-    honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
-    ip, port = cpars['termserver_ip'], cpars['slide_port']
-    sl = slide.Slide(None, ip, port)
-
-    db = dict(
-        meerstetters=ms, gauges=gauges, chiller=chiller, honey=honey, slide=sl
-    )
-
-    with open_hardware(db) as ohw:
-        app = Application([
-            url(r'/(?P<device>[^\/]+)/?(?P<prop>[^\/]+)?',
-                HWHandler, dict(db=db), name="start")
-        ])
-        app.listen(5002)
-        tornado.ioloop.IOLoop.current().start()
+if __name__ == "__main__":
+    daemon = Pyro4.Daemon(port=5002)
+    uri = daemon.register(HardwareProxy, objectId='hwserver')
+    print('HWServer daemon running')
+    print('Access hardware at {}'.format(uri))
+    daemon.requestLoop()

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function, division, unicode_literals
 import tqdm
+import time
 
-from six.moves import queue
-from hcam_widgets.misc import (FifoThread, get_hardware_value,
+from hcam_widgets.misc import (get_hardware_value,
                                set_hardware_value)
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
@@ -35,30 +35,19 @@ def action(command, estimated_time, args=()):
     """
     Run a long running slide command, stopping on <Ctrl-C>
     """
-    errq = queue.Queue()
     tstep = 0.1
     pbar = tqdm.tqdm(total=int(estimated_time/tstep),
                      ncols=40, leave=False,
                      bar_format='{l_bar}{bar} | {remaining}')
-    t = FifoThread('Slide', command, errq, args=args)
-    t.start()
+    future_result = command() if args is None else command(*args)
     try:
-        while t.is_alive():
+        while not future_result.ready:
             pbar.update(1)
-            t.join(timeout=tstep)
-
+            time.sleep(tstep)
     except KeyboardInterrupt:
         raise  # re-raise so calling thread can stop slide
-
-    # handle exceptions raised in thread
-    try:
-        exc = errq.get(block=False)
-    except queue.Empty:
-        pass
-    else:
-        name, error, tback = exc
-        print('\n\nError in slide thread: {}'.format(error))
-        # print(tback)
+    value, msg = future_result.value
+    print('\n\n' + msg)
 
 
 def parse_position(pos_str):
@@ -82,15 +71,19 @@ if __name__ == "__main__":
 
     timeout = MIN_TIMEOUT
 
+    long_running = False
     if comm == 'home':
         def command():
-            value, msg = set_hardware_value(cpars, 'slide', 'home')
-            print('\n\n'+msg)
+            result = set_hardware_value(cpars, 'slide', 'home', background=True)
+            return result
+        long_running = True
 
     elif comm == 'park':
         def command():
-            value, msg = set_hardware_value(cpars, 'slide', 'position', slide.UNBLOCK_POS)
-            print('\n\n'+msg)
+            result = set_hardware_value(cpars, 'slide', 'position',
+                                        slide.UNBLOCK_POS, background=True)
+            return result
+        long_running = True
 
     elif comm == 'position':
         def command():
@@ -122,13 +115,16 @@ if __name__ == "__main__":
         except ValueError:
             raise ValueError('offset {} not understood'.format(comm))
 
+        long_running = True
+
         def command():
             current_position = parse_position(get_hardware_value(cpars, 'slide', 'position'))
             new_position = current_position + offset
-            value, msg = set_hardware_value(cpars, 'slide', 'position', new_position)
-            print('\n\n'+msg)
+            result = set_hardware_value(cpars, 'slide', 'position', new_position, background=True)
+            return result
 
     elif comm.startswith('-'):
+        long_running = True
         try:
             offset = int(comm[1:])
         except ValueError:
@@ -137,25 +133,29 @@ if __name__ == "__main__":
         def command():
             current_position = parse_position(get_hardware_value(cpars, 'slide', 'position'))
             new_position = current_position - offset
-            value, msg = set_hardware_value(cpars, 'slide', 'position', new_position)
-            print('\n\n'+msg)
+            result = set_hardware_value(cpars, 'slide', 'position', new_position, background=True)
+            return result
 
     elif comm.startswith('pos='):
+        long_running = True
         try:
             position = int(comm.split('=')[1])
         except ValueError:
             raise ValueError('position {} not understood'.format(comm))
 
         def command():
-            value, msg = set_hardware_value(cpars, 'slide', 'position', position)
-            print('\n\n'+msg)
+            result = set_hardware_value(cpars, 'slide', 'position', position, background=True)
+            return result
 
     else:
         print('Command not recognised!')
         print(usage)
 
     try:
-        action(command, timeout)
+        if long_running:
+            action(command, timeout)
+        else:
+            command()
     except KeyboardInterrupt:
         # handle keyboardinterrupt
         msg = set_hardware_value(cpars, 'slide', 'stop')

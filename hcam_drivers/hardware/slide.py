@@ -8,13 +8,12 @@ Written by Stu.
 from __future__ import (print_function, division, absolute_import)
 import struct
 import six
-from six.moves import queue
 import socket
 import threading
 
 # internal imports
 from hcam_widgets.widgets import GuiLogger, IntegerEntry
-from hcam_widgets.misc import FifoThread, get_hardware_value, set_hardware_value
+from hcam_widgets.misc import get_hardware_value, set_hardware_value
 from hcam_widgets.tkutils import get_root
 
 if not six.PY3:
@@ -121,10 +120,10 @@ class Slide(object):
     def _sendRecv(self, byteArr, timeout):
         if self.sock is None:
             raise SlideError('not connected')
-            
+
         # only one thread at a time talks to the slide
         with self.lock:
-            try:    
+            try:
                 self.sock.settimeout(self.default_timeout)
                 self.sock.send(byteArr)
             except Exception as e:
@@ -447,9 +446,7 @@ class FocalPlaneSlide(tk.LabelFrame):
         self.log.pack(pady=2)
 
         # Queue for slide messages
-        self.msgQueue = queue.Queue()
-        self.errQueue = queue.Queue()
-        self.running = 0
+        self.running_future = None
         self.thread = None
 
         # Finish off
@@ -481,45 +478,30 @@ class FocalPlaneSlide(tk.LabelFrame):
         """
         Start running a slide command in the background
         """
-        if self.running:
+        if self.running_future is not None:
             self.log.warn('Slide command already running, aborted')
             return
 
-        self.thread = FifoThread('Slide', command, self.errQueue)
-        self.running = 1
-        self.thread.start()
+        self.running_future = command()
         self.after(100, self.checkSlideCommand)
 
     def checkSlideCommand(self):
-        try:
-            msg = self.msgQueue.get(block=False)
-            # slide command completed
-            self.log.info(msg)
-            self.running = 0
-            # good idea?
-            self.thread.join(timeout=1)
-        except queue.Empty:
-            # slide command not completed or errored
-            pass
+        if self.running_future and not self.running_future.ready:
+            self.after(100, self.checkSlideCommand)
+            return
 
         try:
-            # now check error queue
-            exc = self.errQueue.get(block=False)
-            name, error, tback = exc
+            value, msg = self.running_future.value
+        except TypeError:
+            msg = self.running_future.value
+        except Exception as error:
             self.log.warn('Error in Slide thread: {}'.format(error))
             self.log.warn('You may want to try again; the slide is unreliable\n' +
                           'in its error reporting. Try "position" for example')
-            self.log.debug(tback)
-            self.running = 0
-            # good idea?
-            self.thread.join(timeout=1)
-        except queue.Empty:
-            # slide command not completed or errored
-            pass
+        else:
+            self.log.info(msg)
 
-        # only check if slide command currently running
-        if self.running:
-            self.after(100, self.checkSlideCommand)
+        self.running_future = None
 
     def action(self, *comm):
         """
@@ -535,66 +517,66 @@ class FocalPlaneSlide(tk.LabelFrame):
 
         if comm[0] == 'home':
             def command():
-                value, msg = set_hardware_value(g.cpars, 'slide', 'home')
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'home', background=True)
+                return result
 
         elif comm[0] == 'unblock':
             def command():
-                value, msg = set_hardware_value(g.cpars, 'slide', 'position',
-                                                UNBLOCK_POS)
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'position',
+                                            UNBLOCK_POS, background=True)
+                return result
 
         elif comm[0] == 'block':
             def command():
-                value, msg = set_hardware_value(g.cpars, 'slide', 'position',
-                                                BLOCK_POS)
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'position',
+                                            BLOCK_POS, background=True)
+                return result
 
         elif comm[0] == 'position':
             def command():
-                msg = get_hardware_value(g.cpars, 'slide', 'position')
-                self.msgQueue.put(msg)
+                result = get_hardware_value(g.cpars, 'slide', 'position', background=True)
+                return result
 
         elif comm[0] == 'reset':
             def command():
-                msg = set_hardware_value(g.cpars, 'slide', 'reset')
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'reset', background=True)
+                return result
 
         elif comm[0] == 'restore':
             def command():
-                msg = set_hardware_value(g.cpars, 'slide', 'restore')
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'restore', background=True)
+                return result
 
         elif comm[0] == 'enable':
             def command():
-                msg = set_hardware_value(g.cpars, 'slide', 'enable')
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'enable', background=True)
+                return result
 
         elif comm[0] == 'disable':
             def command():
-                msg = set_hardware_value(g.cpars, 'slide', 'disable')
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'disable', background=True)
+                return result
 
         elif comm[0] == 'stop':
             def command():
-                val, msg = set_hardware_value(g.cpars, 'slide', 'stop')
-                self.msgQueue.put(msg)
+                result = set_hardware_value(g.cpars, 'slide', 'stop', background=True)
+                return result
 
         elif comm[0] == 'goto':
             if comm[1] is not None:
                 def command():
-                    val, msg = set_hardware_value(
-                        g.cpars, 'slide', 'position', comm[1]
+                    result = set_hardware_value(
+                        g.cpars, 'slide', 'position', comm[1], background=True
                     )
-                    self.msgQueue.put(msg)
+                    return result
             else:
-                def command():
-                    self.msgQueue.put('command aborted')
                 self.log.warn('You must enter an integer pixel position' +
                               ' for the mask first')
+                return
         else:
             self.log.warn('Command = ' + str(comm) +
                           ' not implemented yet.')
+            return
 
         self.where = comm[0]
         self.startSlideCommand(command)
