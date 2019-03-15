@@ -104,9 +104,17 @@ class Slide(object):
         self.port = port
         self.host = host
         self.default_timeout = MIN_TIMEOUT
-        self.sock = None
         # thread lock for threadsafe operations
         self._lock = threading.Lock()
+        # open connection on object creation
+        try:
+            self.connect()
+        except ConnectionRefusedError:
+            self.sock = None
+
+    def __del__(self):
+        # must close connection on object deletion
+        self.close()
 
     def connect(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,10 +124,14 @@ class Slide(object):
     def close(self):
         if self.sock is not None:
             self.sock.close()
+        self.sock = None
 
     def _sendRecv(self, byteArr, timeout):
         if self.sock is None:
-            raise SlideError('not connected')
+            try:
+                self.connect()
+            except ConnectionRefusedError:
+                raise SlideError('not connected')
 
         # only one thread at a time talks to the slide
         with self.lock:

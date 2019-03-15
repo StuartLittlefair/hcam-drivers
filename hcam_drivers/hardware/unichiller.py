@@ -1,8 +1,8 @@
 # Utility to query and set temp, and start circulation on Huber Unichiller 025-MPC+
 from __future__ import absolute_import, unicode_literals, print_function, division
 import time
-
-from .termserver import netdevice
+import socket
+import threading
 
 QUERY_DEV = '[M01V07'
 QUERY_STATUS = '[M01G0D******'
@@ -33,6 +33,10 @@ def float_to_hex(float):
     return '{:0>4X}'.format(intval)[-4:]
 
 
+class UnichillerException(Exception):
+    pass
+
+
 class UnichillerMPC(object):
     """
     Class to use serial-over-ethernet to communicate with a 025-MPC
@@ -43,6 +47,29 @@ class UnichillerMPC(object):
     def __init__(self, host, port):
         self.host = host
         self.port = port
+
+        # thread lock for threadsafe operations
+        self._lock = threading.Lock()
+        # open connection on object creation
+        try:
+            self.connect()
+        except ConnectionRefusedError:
+            self.sock = None
+
+    def __del__(self):
+        # must close connection on object deletion
+        self.close()
+
+    def connect(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self.host, self.port))
+        s.settimeout(5)
+        self.sock = s
+
+    def close(self):
+        if self.sock is not None:
+            self.sock.close()
+        self.sock = None
 
     def _checksum(self, msg):
         """
@@ -59,10 +86,17 @@ class UnichillerMPC(object):
         return '{:>02X}'.format(sum(bytearray(msg, 'ascii')))[-2:]
 
     def _send_recv(self, msg):
+        # try and connect if we are not already
+        if self.sock is None:
+            try:
+                self.connect()
+            except ConnectionRefusedError:
+                raise UnichillerException('not connected')
+
         msg += self._checksum(msg) + '\r'
-        with netdevice(self.host, self.port, DEFAULT_TIMEOUT) as dev:
-            dev.send(msg.encode())
-            response = dev.recv(1024).decode().rstrip('\r')
+        with self._lock:
+            self.sock.send(msg.encode())
+            response = self.sock.recv(1024).decode().rstrip('\r')
         self._check_response(msg, response)
         return response
 
@@ -113,8 +147,6 @@ class UnichillerMPC(object):
         time.sleep(2)
         msg = STATE_CONTROL.format('I')
         self._send_recv(msg)
-
-
 
     def pump_off(self):
         msg = STATE_CONTROL.format('O')

@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals, print_function, division
 import re
 import socket
+import threading
 
 from astropy.utils.decorators import lazyproperty
 from astropy.time import Time, TimeDelta
@@ -38,16 +39,25 @@ class PDR900(object):
         self.port = port
         self.host = host
         self.logging_start_time = None
-        self.sock = None
+        try:
+            self.connect()
+        except ConnectionRefusedError:
+            self.sock = None
+        self._lock = threading.Lock()
+
+    def __del__(self):
+        self.close()
 
     def connect(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.host, self.port))
+        s.settimeout(5)
         self.sock = s
 
     def close(self):
         if self.sock is not None:
             self.sock.close()
+        self.sock = None
 
     def _parse_response(self, response):
         pattern = '@(.*)ACK(.*);FF'
@@ -63,9 +73,13 @@ class PDR900(object):
         return result.groups()
 
     def _send_recv(self, message, data):
+        # try and connect if we are not already
         msg = message.format(**data).encode()
         if self.sock is None:
-            raise VacuumGaugeError('not connected')
+            try:
+                self.connect()
+            except ConnectionRefusedError:
+                raise VacuumGaugeError('not connected')
 
         self.sock.send(msg)
         self.sock.settimeout(DEFAULT_TIMEOUT)

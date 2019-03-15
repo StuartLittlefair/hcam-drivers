@@ -7,9 +7,6 @@ from hcam_drivers.hardware import (vacuum, meerstetter, unichiller, rack,
                                    slide, honeywell)
 
 
-# TODO: modify hardware behaviour so they connect on first instance and are
-# threadsafe
-
 @Pyro4.behavior(instance_mode='single')
 class HardwareProxy:
     """

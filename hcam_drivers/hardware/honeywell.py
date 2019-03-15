@@ -1,6 +1,7 @@
 # talk to honeywell temperature monitor
 from __future__ import absolute_import, unicode_literals, print_function, division
 from hcam_widgets import DriverError
+import threading
 import six
 if not six.PY3:
     from pymodbus.constants import Endian
@@ -26,6 +27,8 @@ class Honeywell:
             ngc=0x18D2    # pen 10
             )
         self.unit_id = 0x01  # allows us to address different units on the same network
+        # thread safe access
+        self._lock = threading.Lock()
 
     def connect(self):
         success = self.client.connect()
@@ -41,15 +44,16 @@ class Honeywell:
         DriverError
             When reading fails
         """
-        try:
-            self.connect()
-            address = self.pen_addresses[pen_name]
-            value = self.get_pen(address)
-        except Exception as err:
-            raise DriverError(str(err))
-        finally:
-            self.client.close()
-        return value
+        with self._lock:
+            try:
+                self.connect()
+                address = self.pen_addresses[pen_name]
+                value = self.get_pen(address)
+            except Exception as err:
+                raise DriverError(str(err))
+            finally:
+                self.client.close()
+                return value
 
     def get_pen(self, address):
         result = self.client.read_input_registers(address, 2, unit=self.unit_id)

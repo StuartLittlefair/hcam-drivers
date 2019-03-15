@@ -5,6 +5,7 @@ import random
 import six
 import struct
 from contextlib import contextmanager
+import threading
 
 from astropy import units as u
 
@@ -101,10 +102,10 @@ class MeerstetterTEC1090(object):
     def __init__(self, address, port):
         self.address = address
         self.port = port
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.seq_no = random.randint(1, 1000)
         self.crc_calc = CRCCalculator()
         self.tec_current_limit = 10.7 * u.A
+        self._lock = threading.Lock()
 
     def _assemble_frame(self, address, payload):
         """
@@ -129,7 +130,8 @@ class MeerstetterTEC1090(object):
         return msg + self.crc_calc(msg) + eof
 
     def _send_frame(self, frame_msg):
-        with socketcontext(self.address, self.port) as s:
+        # threadsafe and error-safe opening of socket
+        with socketcontext(self.address, self.port) as s, self._lock:
             welcome = s.recv(1024)
             if 'Welcome' not in welcome.decode():
                 raise IOError('did not receive welcome message from meerstetter')
