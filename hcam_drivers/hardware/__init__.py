@@ -494,7 +494,7 @@ class CCDInfoWidget(tk.Toplevel):
             data['ccd{}flow'.format(ccd)] = self._getVal(self.ccd_flow_rates[i])
         if g.cpars['focal_plane_slide_on']:
             try:
-                pos_ms, pos_mm, pos_px = g.fpslide.slide.return_position()
+                (pos_ms, pos_mm, pos_px), msg = g.fpslide.slide.return_position()
                 data['fpslide'] = pos_px
             except Exception as err:
                 g.clog.warn('Slide error: ' + str(err))
