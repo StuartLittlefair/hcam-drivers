@@ -142,11 +142,15 @@ class FITSWriteHandler(PatternMatchingEventHandler):
             next(self.ra_offsets), next(self.dec_offsets)
         )
         # send telescope offset command
-        print('sending tel offsets {} {}'.format(
-            next_ra_offset, next_dec_offset
+        msg = "Offsetting telescope by {}, {} arcsecs from previous position."
+        print(msg.format(
+            next_ra_offset, next_dec_offset,
         ))
         self.do_offsets(next_ra_offset, next_dec_offset)
-
+        msg = "Offset sent. Absolute offset is {}, {} arcseconds"
+        print(msg.format(
+            self.cumulative_ra_offset, self.cumulative_dec_offset
+        ))
         # launch thread to wait for telescope to be in place
         # and send trigger to NGC controller
 
