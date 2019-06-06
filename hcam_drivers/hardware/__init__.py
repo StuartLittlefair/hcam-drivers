@@ -364,7 +364,7 @@ class CCDInfoWidget(tk.Toplevel):
             self.chiller = unichiller.UnichillerMPC(g.cpars['termserver_ip'],
                                                     g.cpars['chiller_port'])
         else:
-            self.chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
+            self.chiller = rack.GTCRackSensor()
 
         # create label frames
         self.status_frm = tk.LabelFrame(self, text='Meerstetter status', padx=4, pady=4)
