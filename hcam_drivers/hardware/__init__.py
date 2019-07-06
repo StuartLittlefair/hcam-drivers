@@ -419,7 +419,7 @@ class CCDInfoWidget(tk.Toplevel):
             )
 
             self.ccd_flow_rates.append(
-                FlowRateWidget(self.flow_frm, honey_ip, pen_address, name, update_interval,
+                FlowRateWidget(self.flow_frm, name, update_interval,
                                g.cpars['ccd_flow_lower'], g.cpars['ccd_flow_upper'])
             )
             self.ccd_flow_rates[-1].grid(
