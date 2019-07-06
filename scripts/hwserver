@@ -31,7 +31,7 @@ class HardwareProxy:
             self.chiller = unichiller.UnichillerMPC(cpars['termserver_ip'],
                                                     cpars['chiller_port'])
         else:
-            self.chiller = rack.GTCRackSensor(g.cpars['rack_sensor_ip'])
+            self.chiller = rack.GTCRackSensor()
         self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
         ip, port = cpars['termserver_ip'], cpars['slide_port']
         self.focal_plane_slide = slide.Slide(None, ip, port)
