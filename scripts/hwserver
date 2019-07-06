@@ -7,6 +7,15 @@ from hcam_drivers.hardware import (vacuum, meerstetter, unichiller, rack,
                                    slide, honeywell)
 
 
+"""
+Use the multiplex server type. This only allows one connection at any one time.
+
+This is non-optimal from a performance point of view, but means we don't have to
+worry about making everything thread-safe just yet.
+"""
+Pyro4.config.SERVERTYPE = "multiplex"
+
+
 @Pyro4.behavior(instance_mode='single')
 class HardwareProxy:
     """
@@ -36,6 +45,7 @@ class HardwareProxy:
         ip, port = cpars['termserver_ip'], cpars['slide_port']
         self.focal_plane_slide = slide.Slide(None, ip, port)
 
+    @Pyro4.expose
     def lookup_hw(self, device, prop):
         """
         Parses device requested from server and matches to Python object
@@ -66,6 +76,7 @@ class HardwareProxy:
         except Exception as err:
             raise ValueError('hardware lookup failed: ' + str(err))
 
+    @Pyro4.expose
     def lookup_get_method(self, device, prop):
         """
         Looks up appropriate method to call to FIND a property from device
@@ -110,6 +121,7 @@ class HardwareProxy:
             else:
                 raise KeyError('no such property')
 
+    @Pyro4.expose
     def lookup_set_method(self, device, prop, value):
         """
         Looks up method to SET a property, or send command to a device
