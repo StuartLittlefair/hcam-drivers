@@ -471,7 +471,7 @@ class CCDInfoWidget(tk.Toplevel):
             try:
                 pos_str = get_hardware_value(g.cpars, 'slide', 'position')
                 expr = ".* =\s+([-+]?\d*\.\d*) pixels \((\d*\.\d*) mm, (\d*) ms\)"
-                pos_ms, pos_mm, pos_px = re.match(expr, pos_str).groups()
+                pos_px, pos_mm, pos_ms = re.match(expr, pos_str).groups()
                 data['fpslide'] = pos_px
             except Exception as err:
                 g.clog.warn('Slide error: ' + str(err))
