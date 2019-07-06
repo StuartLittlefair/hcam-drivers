@@ -54,7 +54,7 @@ class ObsMode(object):
             'DET.BINX1': app_data['xbin'],
             'DET.BINY1': app_data['ybin'],
             'DET.CLRCCD': 'T' if app_data['clear'] else 'F',
-            'DET.NCLRS': 5,
+            'DET.NCLRS': 10 if nodpattern else 5,
             'DET.DUMMY': dummy,
             'DET.FASTCLK': fastclk,
             'DET.EXPLED': 'T' if app_data['led_flsh'] else 'F',
