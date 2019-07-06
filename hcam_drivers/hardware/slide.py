@@ -134,7 +134,7 @@ class Slide(object):
                 raise SlideError('not connected')
 
         # only one thread at a time talks to the slide
-        with self.lock:
+        with self._lock:
             try:
                 self.sock.settimeout(self.default_timeout)
                 self.sock.send(byteArr)
