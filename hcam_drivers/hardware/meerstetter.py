@@ -319,6 +319,7 @@ class CCDTempFrame(tk.LabelFrame):
             ms, address = self.ms_mapping[i]
             try:
                 setpoint = ms.get_setpoint(address).value
+                widget.configure(text=str(setpoint))
             except:
                 g.clog.warn('Unable to get setpoint for CCD{}'.format(i))
-            widget.configure(text=str(setpoint))
+
