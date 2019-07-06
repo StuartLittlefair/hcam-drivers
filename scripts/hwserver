@@ -146,7 +146,7 @@ class HardwareProxy:
         meth, args = self.lookup_get_method(name, prop)
         try:
             meth = getattr(hw, meth)
-        except Exception:
+        except Exception as err:
             raise ValueError('method lookup on device has failed')
 
         try:
