@@ -104,7 +104,7 @@ class MeerstetterTEC1090(object):
         self.port = port
         self.seq_no = random.randint(1, 1000)
         self.crc_calc = CRCCalculator()
-        self.tec_current_limit = 10.7 * u.A
+        self.tec_current_limit = 10.7
         self._lock = threading.Lock()
 
     def _assemble_frame(self, address, payload):
@@ -196,23 +196,23 @@ class MeerstetterTEC1090(object):
 
     def get_ccd_temp(self, address):
         param_no = 1000
-        return self.get_param(address, param_no, 1)*u.Celsius
+        return self.get_param(address, param_no, 1)
 
     def get_setpoint(self, address):
         param_no = 1010
-        return self.get_param(address, param_no, 1)*u.Celsius
+        return self.get_param(address, param_no, 1)
 
     def get_heatsink_temp(self, address):
         param_no = 1001
-        return self.get_param(address, param_no, 1)*u.Celsius
+        return self.get_param(address, param_no, 1)
 
     def get_power(self, address):
         current = self.get_param(address, 1020, 1)
         voltage = self.get_param(address, 1021, 1)
-        return current*voltage*u.W
+        return current*voltage
 
     def get_current(self, address):
-        return self.get_param(address, 1020, 1) * u.A
+        return self.get_param(address, 1020, 1)
 
     def get_status(self, address):
         param_no = 104
