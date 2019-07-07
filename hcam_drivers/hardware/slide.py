@@ -507,10 +507,11 @@ class FocalPlaneSlide(tk.LabelFrame):
         except ValueError:
             msg = self.running_future.value
         except Exception as error:
+            msg = ''
             self.log.warn('Error in Slide thread: {}'.format(error))
             self.log.warn('You may want to try again; the slide is unreliable\n' +
                           'in its error reporting. Try "position" for example')
-        else:
+        finally:
             self.log.info(msg)
 
         self.running_future = None
