@@ -77,8 +77,9 @@ if __name__ == "__main__":
                 temp_array = ccd_temps[ccd]
                 try:
                     temp = get_hardware_value(cpars, 'ccd{}'.format(ccd), 'temperature')
-                except Exception:
+                except Exception as err:
                     print('warning: failed to log temp for ccd {}'.format(ccd))
+                    print(str(err))
                     temp = np.nan
                 temp_array.append(temp)
                 log.write('{}, '.format(temp))
