@@ -131,7 +131,7 @@ class MeerstetterTEC1090(object):
 
     def _send_frame(self, frame_msg):
         # threadsafe and error-safe opening of socket
-        with socketcontext(self.address, self.port) as s, self._lock:
+        with self._lock, socketcontext(self.address, self.port) as s:
             welcome = s.recv(1024)
             if 'Welcome' not in welcome.decode():
                 raise IOError('did not receive welcome message from meerstetter')
