@@ -7,11 +7,10 @@ import struct
 from contextlib import contextmanager
 import threading
 
-from astropy import units as u
-
 # GUI imports
-from hcam_widgets.widgets import RangedInt
+from hcam_widgets.widgets import RangedFloat
 from hcam_widgets.tkutils import get_root, addStyle
+from hcam_widgets.misc import set_hardware_value, get_hardware_value
 if not six.PY3:
     import Tkinter as tk
 else:
@@ -235,15 +234,6 @@ class CCDTempFrame(tk.LabelFrame):
         top = tk.Frame(self)
         g = get_root(self).globals
 
-        self.meerstetters = [
-            MeerstetterTEC1090(ip_addr, 50000) for ip_addr in
-            g.cpars['meerstetter_ip']
-        ]
-        ms1 = self.meerstetters[0]
-        ms2 = self.meerstetters[1]
-        self.ms_mapping = {1: (ms1, 1), 2: (ms1, 2), 3: (ms1, 3),
-                           4: (ms2, 1), 5: (ms2, 2)}
-
         tk.Label(top, text='CCD1').grid(row=0, column=0)
         tk.Label(top, text='CCD2').grid(row=0, column=1)
         tk.Label(top, text='CCD3').grid(row=0, column=2)
@@ -257,11 +247,11 @@ class CCDTempFrame(tk.LabelFrame):
         for i in range(1, 6):
             ms, address = self.ms_mapping[i]
             try:
-                ival = ms.get_setpoint(address).value
-            except:
+                ival = get_hardware_value(g.cpars, 'ccd' + str(i), 'temperature')
+            except RuntimeError:
                 ival = 5
-            self.temp_entry_widgets[i] = RangedInt(
-                top, ival, -100, 20, None, True, width=width
+            self.temp_entry_widgets[i] = RangedFloat(
+                top, ival, -100, 20, None, True, True, width=width, nplaces=1
             )
             self.temp_entry_widgets[i].grid(row=1, column=i-1)
             self.setpoint_displays[i] = tk.Label(top, text='nan', width=width)
@@ -290,12 +280,11 @@ class CCDTempFrame(tk.LabelFrame):
         widget = self.temp_entry_widgets[ccd]
         val = widget.value()
         g.clog.info('desired setpoint ' + str(val))
-        ms, address = self.ms_mapping[ccd]
         try:
-            ms.set_ccd_temp(address, int(val))
+            set_hardware_value(g.cpars, 'ccd'+str(ccd), 'setpoint', val, True)
             self.after(500, self.refresh_setpoints)
-        except:
-            g.clog.warn('Unable to update setpoint for CCD{}'.format(ccd))
+        except Exception as err:
+            g.clog.warn('Unable to update setpoint for CCD{}\n{}'.format(ccd, str(err)))
 
     def reset(self, ccd):
         g = get_root(self).globals
@@ -303,11 +292,10 @@ class CCDTempFrame(tk.LabelFrame):
             g.clog.warn('Temperature monitoring disabled. Will not reset CCD{}'.format(ccd))
             return
         g.clog.info('Resetting TEC {}'.format(ccd))
-        ms, address = self.ms_mapping[ccd]
         try:
-            ms.reset_tec(address)
-        except:
-            g.clog.warn('Unable to reset TEC {}'.format(ccd))
+            set_hardware_value(g.cpars, 'ccd'+str(ccd), 'tecreset', background=True)
+        except Exception as err:
+            g.clog.warn('Unable to reset TEC {}\n{}'.format(ccd, str(err)))
 
     def refresh_setpoints(self):
         g = get_root(self).globals
@@ -316,10 +304,8 @@ class CCDTempFrame(tk.LabelFrame):
             return
         for i in range(1, 6):
             widget = self.setpoint_displays[i]
-            ms, address = self.ms_mapping[i]
             try:
-                setpoint = ms.get_setpoint(address).value
+                setpoint = get_hardware_value(g.cpars, 'ccd'+str(i), 'setpoint')
                 widget.configure(text=str(setpoint))
-            except:
-                g.clog.warn('Unable to get setpoint for CCD{}'.format(i))
-
+            except Exception as err:
+                g.clog.warn('Unable to get setpoint for CCD{}\n{}'.format(i, str(err)))
