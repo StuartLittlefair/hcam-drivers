@@ -6,8 +6,8 @@ import os
 from six.moves.urllib.request import urlretrieve
 import json
 
-URL_TEMPLATE = 'http://gtc-phase2.gtc.iac.es/science/Parser/sequences/GTC{id:d}-{semester:s}_{obid:04d}.json'
-FNAME_TEMPLATE = 'GTC{id:02d}-{semester:s}_{obid:04d}.json'
+URL_TEMPLATE = 'http://gtc-phase2.gtc.iac.es/science/Parser/sequences/GTC{id:s}-{semester:s}_{obid:04d}.json'
+FNAME_TEMPLATE = 'GTC{id:s}-{semester:s}_{obid:04d}.json'
 
 
 def download_json(proposal_id, semester, obid):
@@ -29,6 +29,16 @@ def check_download(proposal_id, semester, obid):
     except:
         os.unlink(fname)
         print('No such JSON file, or download failed')
+
+    with open(fname) as json_file:
+        data = json.load(json_file)
+    try:
+        print('ID = ' + data["user"]["ID"])
+        print('PI = ' + data["user"]["PI"])
+        print('OB = ' + data["user"]["OB"])
+    except:
+        os.unlink(fname)
+        print('WARNING: No ID/PI/OB headers present in JSON file')
 
 
 if __name__ == "__main__":
