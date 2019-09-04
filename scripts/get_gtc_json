@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # command-line parameters
     parser = argparse.ArgumentParser(description='Download GTC JSON files for instrument setup')
-    parser.add_argument('proposal_id', type=int, help='Proposal ID number (e.g 100)')
+    parser.add_argument('proposal_id', type=str, help='Proposal ID number (e.g 100)')
     parser.add_argument('semester', type=str, help='Semester (e.g 17B)')
     parser.add_argument('obid', type=int, help='Observing block id number (e.g 2)')
     args = parser.parse_args()
