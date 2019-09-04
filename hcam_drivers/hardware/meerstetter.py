@@ -305,6 +305,6 @@ class CCDTempFrame(tk.LabelFrame):
             widget = self.setpoint_displays[i]
             try:
                 setpoint = get_hardware_value(g.cpars, 'ccd'+str(i), 'setpoint')
-                widget.configure(text=str(setpoint))
+                widget.configure(text='{:.1f}'.format(setpoint))
             except Exception as err:
                 g.clog.warn('Unable to get setpoint for CCD{}\n{}'.format(i, str(err)))
