@@ -245,7 +245,6 @@ class CCDTempFrame(tk.LabelFrame):
         self.reset_buttons = {}
         width = 8
         for i in range(1, 6):
-            ms, address = self.ms_mapping[i]
             try:
                 ival = get_hardware_value(g.cpars, 'ccd' + str(i), 'temperature')
             except RuntimeError:
