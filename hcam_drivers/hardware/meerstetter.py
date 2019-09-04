@@ -36,10 +36,13 @@ def hex_to_int(hexstring):
 
 
 def hex_to_float32(hexstring):
-    if six.PY2:
-        byteval = hexstring.decode('hex')
-    else:
-        byteval = bytes.fromhex(hexstring)
+    try:
+        if six.PY2:
+            byteval = hexstring.strip().decode('hex')
+        else:
+            byteval = bytes.fromhex(hexstring.strip())
+    except Exception as err:
+        raise RuntimeError('cannot decode string {}!\n{}'.format(hexstring, err))
     return struct.unpack(str('!f'), byteval)[0]
 
 
