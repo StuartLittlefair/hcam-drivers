@@ -106,7 +106,7 @@ class MeerstetterTEC1090(object):
         self.logger = logging.getLogger('meerstetter.{}'.format(address))
         self.logger.setLevel(logging.DEBUG)
         fh = logging.FileHandler('meerstetter.log')
-        fh.setlevel(logging.DEBUG)
+        fh.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(threadName)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
