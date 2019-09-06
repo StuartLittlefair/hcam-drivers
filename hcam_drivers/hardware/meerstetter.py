@@ -103,7 +103,7 @@ class MeerstetterTEC1090(object):
     5136 for details.
     """
     def __init__(self, address, port):
-        '''
+
         self.logger = logging.getLogger('meerstetter.{}'.format(address))
         self.logger.setLevel(logging.DEBUG)
         fh = logging.FileHandler('meerstetter.log')
@@ -111,7 +111,7 @@ class MeerstetterTEC1090(object):
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(threadName)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
-        '''
+
         self.address = address
         self.port = port
         self.seq_no = random.randint(1, 1000)
