@@ -147,11 +147,11 @@ class MeerstetterTEC1090(object):
             welcome = s.recv(1024)
             if 'Welcome' not in welcome.decode():
                 raise IOError('did not receive welcome message from meerstetter')
-            self.logger.debug('sending frame_msg = {}'.format(frame_msg))
+            self.logger.info('sending frame_msg = {}'.format(frame_msg))
             s.send(frame_msg.encode())
             ret_msg = s.recv(1024)
         ret_msg = ret_msg.decode().strip()
-        self.logger.debug('got ret_msg = {}'.format(ret_msg))
+        self.logger.info('got ret_msg = {}'.format(ret_msg))
         self._check_response(frame_msg, ret_msg)
         return self._strip_response(ret_msg)
 
@@ -177,7 +177,7 @@ class MeerstetterTEC1090(object):
         payload = '?VR{param_no:0>4X}{instance:0>2X}'.format(
             param_no=param_no, instance=instance
         )
-        self.logger.debug('payload = {}'.format(payload))
+        self.logger.info('payload = {}'.format(payload))
         frame_msg = self._assemble_frame(address, payload)
         encoded_param_val = self._send_frame(frame_msg)
         if encoded_param_val == '+05':
@@ -210,6 +210,7 @@ class MeerstetterTEC1090(object):
                 raise IOError('unknown error code {}'.format(ret_msg))
 
     def get_ccd_temp(self, address):
+        self.logger.info('getting CCD{} temp'.format(address))
         param_no = 1000
         return self.get_param(address, param_no, 1)
 
