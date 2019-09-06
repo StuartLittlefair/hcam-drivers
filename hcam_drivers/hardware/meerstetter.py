@@ -6,6 +6,7 @@ import six
 import struct
 from contextlib import contextmanager
 import threading
+import logging
 
 # GUI imports
 from hcam_widgets.widgets import RangedFloat
@@ -17,7 +18,7 @@ else:
     import tkinter as tk
 
 
-DEFAULT_TIMEOUT = 2
+DEFAULT_TIMEOUT = 5
 
 error_codes = {
     '+01': 'Command not available',
@@ -102,6 +103,14 @@ class MeerstetterTEC1090(object):
     5136 for details.
     """
     def __init__(self, address, port):
+        self.logger = logging.getLogger('meerstetter.{}'.format(address))
+        self.logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler('meerstetter.log')
+        fh.setlevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(threadName)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+
         self.address = address
         self.port = port
         self.seq_no = random.randint(1, 1000)
@@ -137,9 +146,11 @@ class MeerstetterTEC1090(object):
             welcome = s.recv(1024)
             if 'Welcome' not in welcome.decode():
                 raise IOError('did not receive welcome message from meerstetter')
+            self.logger.debug('sending frame_msg = {}'.format(frame_msg))
             s.send(frame_msg.encode())
             ret_msg = s.recv(1024)
         ret_msg = ret_msg.decode().strip()
+        self.logger.debug('got ret_msg = {}'.format(ret_msg))
         self._check_response(frame_msg, ret_msg)
         return self._strip_response(ret_msg)
 
@@ -165,6 +176,7 @@ class MeerstetterTEC1090(object):
         payload = '?VR{param_no:0>4X}{instance:0>2X}'.format(
             param_no=param_no, instance=instance
         )
+        self.logger.debug('payload = {}'.format(payload))
         frame_msg = self._assemble_frame(address, payload)
         encoded_param_val = self._send_frame(frame_msg)
         if encoded_param_val == '+05':
