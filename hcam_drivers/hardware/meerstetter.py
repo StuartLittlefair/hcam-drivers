@@ -183,6 +183,11 @@ class MeerstetterTEC1090(object):
         if encoded_param_val == '+05':
             raise IOError('param {} not available'.format(param_no))
 
+        if encoded_param_val in error_codes:
+            raise IOError(
+                'failed to get param {}\n{}'.format(param_no, error_codes[encoded_param_val])
+            )
+
         if param_type == 'float':
             return hex_to_float32(encoded_param_val)
         else:
