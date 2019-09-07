@@ -5,7 +5,7 @@ from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
 from hcam_drivers.hardware import (vacuum, meerstetter, unichiller, rack,
                                    slide, honeywell)
-
+from threading import Lock
 
 """
 Use the multiplex server type. This only allows one connection at any one time.
@@ -28,22 +28,28 @@ class HardwareProxy:
     """
     def __init__(self):
         print('creating Hardware proxy (should only happen once)')
+        self._lock = Lock()
+        self._init_hw()
+        self.errored = False
+
+    def _init_hw(self):
+        print('initialising devices')
         g = Container()
         g.cpars = dict()
         load_config(g)
         cpars = g.cpars
-
-        # make objects for talking to hardware
-        self.gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
-        self.ms = [meerstetter.MeerstetterTEC1090(ip, 50000) for ip in cpars['meerstetter_ip']]
-        if cpars['telins_name'].lower() == 'wht':
-            self.chiller = unichiller.UnichillerMPC(cpars['termserver_ip'],
-                                                    cpars['chiller_port'])
-        else:
-            self.chiller = rack.GTCRackSensor()
-        self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
-        ip, port = cpars['termserver_ip'], cpars['slide_port']
-        self.focal_plane_slide = slide.Slide(None, ip, port)
+        with self._lock:
+            # make objects for talking to hardware
+            self.gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
+            self.ms = [meerstetter.MeerstetterTEC1090(ip, 50000) for ip in cpars['meerstetter_ip']]
+            if cpars['telins_name'].lower() == 'wht':
+                self.chiller = unichiller.UnichillerMPC(cpars['termserver_ip'],
+                                                        cpars['chiller_port'])
+            else:
+                self.chiller = rack.GTCRackSensor()
+            self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
+            ip, port = cpars['termserver_ip'], cpars['slide_port']
+            self.focal_plane_slide = slide.Slide(None, ip, port)
 
     @Pyro4.expose
     def lookup_hw(self, device, prop):
@@ -170,6 +176,8 @@ class HardwareProxy:
             else:
                 value = meth
         except Exception as err:
+            # This really shouldn't happen. Give HW a kick
+            self._init_hw()
             raise RuntimeError('command execution failed: ' + str(err))
 
         return value
@@ -189,6 +197,8 @@ class HardwareProxy:
             else:
                 value = meth()
         except Exception as err:
+            # This really shouldn't happen. Give HW a kick
+            self._init_hw()
             raise RuntimeError('command execution failed:' + str(err))
         return value
 
