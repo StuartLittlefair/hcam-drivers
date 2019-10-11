@@ -3,9 +3,13 @@ from __future__ import print_function, division, unicode_literals
 import Pyro4
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
-from hcam_drivers.hardware import (vacuum, meerstetter, unichiller, rack,
+from hcam_drivers.hardware import (vacuum, meerstetter, unichiller,
                                    slide, honeywell)
 from threading import Lock
+try:
+    from hcam_drivers.hardware import rack
+except ImportError:
+    rack = None
 
 """
 Use the multiplex server type. This only allows one connection at any one time.
@@ -14,6 +18,33 @@ This is non-optimal from a performance point of view, but means we don't have to
 worry about making everything thread-safe just yet.
 """
 Pyro4.config.SERVERTYPE = "multiplex"
+
+
+class HardwareWrapper:
+    """
+    A basic wrapper class to keep track of hardware connection and track state
+    """
+    def __init__(self, hw_cls, args, kw_args=None):
+
+        if kw_args is None:
+            kw_args = {}
+
+        self.hw_cls = hw_cls
+        self.args = args
+        self.kw_args = kw_args
+        try:
+            self.instance = hw_cls(*args, **kw_args)
+            self.ok = True
+        except Exception:
+            self.ok = False
+
+    def reboot(self):
+        try:
+            self.instance = self.hw_cls(*self.args, **self.kw_args)
+            self.ok = True
+        except Exception:
+            self.ok = False
+
 
 
 @Pyro4.behavior(instance_mode='single')
@@ -40,16 +71,22 @@ class HardwareProxy:
         cpars = g.cpars
         with self._lock:
             # make objects for talking to hardware
-            self.gauges = [vacuum.PDR900(cpars['termserver_ip'], port) for port in cpars['vacuum_ports']]
-            self.ms = [meerstetter.MeerstetterTEC1090(ip, 50000) for ip in cpars['meerstetter_ip']]
+            self.gauges = [
+                HardwareWrapper(vacuum.PDR900, (cpars['termserver_ip'], port)) for port in cpars['vacuum_ports']
+            ]
+            self.ms = [
+                HardwareWrapper(meerstetter.MeerstetterTEC1090, (ip, 50000))
+                for ip in cpars['meerstetter_ip']
+            ]
             if cpars['telins_name'].lower() == 'wht':
-                self.chiller = unichiller.UnichillerMPC(cpars['termserver_ip'],
-                                                        cpars['chiller_port'])
+                self.chiller = HardwareWrapper(unichiller.UnichillerMPC,
+                                               (cpars['termserver_ip'], cpars['chiller_port']))
             else:
-                self.chiller = rack.GTCRackSensor()
-            self.honey = honeywell.Honeywell(g.cpars['honeywell_ip'], 502)
+                self.chiller = HardwareWrapper(rack.GTCRackSensor, ())
+
+            self.honey = HardwareWrapper(honeywell.Honeywell, (g.cpars['honeywell_ip'], 502))
             ip, port = cpars['termserver_ip'], cpars['slide_port']
-            self.focal_plane_slide = slide.Slide(None, ip, port)
+            self.focal_plane_slide = HardwareWrapper(slide.Slide, (None, ip, port))
 
     @Pyro4.expose
     def lookup_hw(self, device, prop):
@@ -163,11 +200,15 @@ class HardwareProxy:
         hw = self.lookup_hw(name, prop)
         meth, args = self.lookup_get_method(name, prop)
         try:
-            meth = getattr(hw, meth)
-        except Exception as err:
+            meth = getattr(hw.instance, meth)
+        except Exception:
             raise ValueError('method lookup on device has failed')
 
         try:
+            # if there's an issue, turn it off and back on again
+            if not hw.ok:
+                hw.reboot()
+
             if callable(meth):
                 if args is not None:
                     value = meth(*args)
@@ -177,7 +218,7 @@ class HardwareProxy:
                 value = meth
         except Exception as err:
             # This really shouldn't happen. Give HW a kick
-            self._init_hw()
+            hw.ok = False
             raise RuntimeError('command execution failed: ' + str(err))
 
         return value
@@ -192,13 +233,17 @@ class HardwareProxy:
             raise ValueError('method lookup on device has failed')
 
         try:
+            # if there's an issue, turn it off and back on again
+            if not hw.ok:
+                hw.reboot()
+
             if args is not None:
                 value = meth(*args)
             else:
                 value = meth()
         except Exception as err:
             # This really shouldn't happen. Give HW a kick
-            self._init_hw()
+            hw.ok = False
             raise RuntimeError('command execution failed:' + str(err))
         return value
 
