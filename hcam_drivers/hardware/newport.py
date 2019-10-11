@@ -72,7 +72,7 @@ class AxisProperty(object):
 
     This is a perfect use of a Python descriptor
     """
-    def __init__(self, code, units=u.dimensionless_unscaled, 
+    def __init__(self, code, units=u.dimensionless_unscaled,
                  relative_units=True, errcheck=True, readonly=False):
         """
         Parameters
@@ -93,7 +93,7 @@ class AxisProperty(object):
         errcheck : bool
             check for errors on get/set
         readonly : bool
-	    read only property
+        read only property
         """
         self.code = code
         self.units = units
@@ -405,7 +405,6 @@ class NewportESP301Axis:
         # make a copy of the controller command function, with this axis index hard-wired
         self._cmd = partial(self.controller._cmd, target=self.axis_idx)
         self._units = NewportESP301Axis._unit_dict[self._get_units()]
-
 
     @property
     def motion_complete(self):
