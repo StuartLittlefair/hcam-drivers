@@ -46,7 +46,6 @@ class HardwareWrapper:
             self.ok = False
 
 
-
 @Pyro4.behavior(instance_mode='single')
 class HardwareProxy:
     """

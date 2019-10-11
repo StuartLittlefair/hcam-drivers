@@ -21,6 +21,10 @@ if not six.PY3:
 else:
     import tkinter as tk
 
+# rename socket.error
+if six.PY2:
+    ConnectionRefusedError = socket.error
+
 
 class SlideError(Exception):
     pass

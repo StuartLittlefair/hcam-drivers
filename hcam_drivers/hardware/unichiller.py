@@ -3,12 +3,18 @@ from __future__ import absolute_import, unicode_literals, print_function, divisi
 import time
 import socket
 import threading
+import six
+
 
 QUERY_DEV = '[M01V07'
 QUERY_STATUS = '[M01G0D******'
 STATE_CONTROL = '[M01G0D{}*****'
 TEMP_SET = '[M01G0D**{}'
 DEFAULT_TIMEOUT = 2
+
+# rename socket.error
+if six.PY2:
+    ConnectionRefusedError = socket.error
 
 
 def hex_to_float(hexstring):

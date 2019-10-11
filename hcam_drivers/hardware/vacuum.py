@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals, print_function, divisi
 import re
 import socket
 import threading
+import six
 
 from astropy.utils.decorators import lazyproperty
 from astropy.time import Time, TimeDelta
@@ -19,6 +20,10 @@ ADDRESS = '@{addr:03d}ADC{comm};FF'
 DLOG_CTRL = '@{addr:03d}DLC{comm};FF'
 DLOG_TIME = '@{addr:03d}DLT{comm};FF'
 PRESSURE = '@{addr:03d}PR1{comm};FF'
+
+# rename socket.error
+if six.PY2:
+    ConnectionRefusedError = socket.error
 
 
 class VacuumGaugeError(Exception):
