@@ -134,6 +134,8 @@ class HardwareProxy:
         if device in ['rack', 'chiller']:
             if prop == 'temperature':
                 return 'temperature', None
+            elif prop == 'humidity':
+                return 'humidity', None
             else:
                 raise KeyError('no such property')
 
