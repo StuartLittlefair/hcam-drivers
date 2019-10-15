@@ -1,0 +1,11 @@
+Name, Type
+CCD1, ccd_head
+CCD2, ccd_head
+CCD3, ccd_head
+CCD4, ccd_head
+CCD5, ccd_head
+Chiller, chiller
+COMPO, compo
+Focal Plane Slide, linear_stage
+GTC Rack, electronics_rack
+NGC, ngc_controller

@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 from __future__ import print_function, division, unicode_literals
 import Pyro4
+import time
 from hcam_widgets.globals import Container
 from hcam_drivers.config import load_config
 from hcam_drivers.hardware import (vacuum, meerstetter, unichiller,
                                    slide, honeywell)
-from threading import Lock
+from hcam_drivers.hardware.thingsboard.utils import (ALLOWED_PROPERTIES,
+                                                     upload_telemetry)
+from threading import Lock, Thread
 try:
     from hcam_drivers.hardware import rack
 except ImportError:
@@ -18,6 +21,9 @@ This is non-optimal from a performance point of view, but means we don't have to
 worry about making everything thread-safe just yet.
 """
 Pyro4.config.SERVERTYPE = "multiplex"
+
+# pause between telemetry readings
+WAIT_INTERVAL = 1
 
 
 class HardwareWrapper:
@@ -60,6 +66,8 @@ class HardwareProxy:
         print('creating Hardware proxy (should only happen once)')
         self._lock = Lock()
         self._init_hw()
+        self.telemetry_thread = Thread(target=self.send_telemetry)
+        self.telemetry_thread.start()
         self.errored = False
 
     def _init_hw(self):
@@ -86,6 +94,20 @@ class HardwareProxy:
             self.honey = HardwareWrapper(honeywell.Honeywell, (g.cpars['honeywell_ip'], 502))
             ip, port = cpars['termserver_ip'], cpars['slide_port']
             self.focal_plane_slide = HardwareWrapper(slide.Slide, (None, ip, port))
+
+    def send_telemetry(self):
+        try:
+            while True:
+                for dev in ALLOWED_PROPERTIES:
+                    props = [prop.replace('.', '_') for prop in ALLOWED_PROPERTIES[dev]]
+                    data = {prop.replace('_', '.'): self.get_value(dev, prop)
+                            for prop in props}
+                    upload_telemetry(dev, data)
+                time.sleep(WAIT_INTERVAL)
+        except KeyboardInterrupt:
+            pass
+        except Exception as err:
+            print('Error sending telemetry to Thingsboard\n' + str(err))
 
     @Pyro4.expose
     def lookup_hw(self, device, prop):
@@ -134,7 +156,7 @@ class HardwareProxy:
         if device in ['rack', 'chiller']:
             if prop == 'temperature':
                 return 'temperature', None
-            elif prop == 'humidity':
+            elif prop == 'humidity' and device == 'rack':
                 return 'humidity', None
             else:
                 raise KeyError('no such property')
