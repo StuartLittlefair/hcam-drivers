@@ -93,7 +93,7 @@ class AxisProperty(object):
         errcheck : bool
             check for errors on get/set
         readonly : bool
-        read only property
+            read only property
         """
         self.code = code
         self.units = units
