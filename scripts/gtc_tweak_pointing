@@ -6,21 +6,18 @@
 from __future__ import print_function, absolute_import, unicode_literals, division
 import sys
 
-from hcam_widgets.gtc.corba import get_telescope_server
-from hcam_widgets.gtc.headers import create_header_from_telpars
+from hcam_devices.wamp.utils import call
 from hcam_drivers.utils.gtc import calculate_sky_offset
 
 
 if __name__ == "__main__":
 
     carry_on = True
-    s = get_telescope_server()
     try:
-        s.getTelescopeParams()
+        hdr = call('hipercam.gtc.rpc.get_telescope_pars')
     except Exception as err:
-        print('Cannot communicate with telescope - is GTC telescope server running?')
-        print(str(err))
-        sys.exit(1)
+        print('failed to get telescope params from GTC server: ' + str(err))
+        sys.exit(-1)
 
     msg = 'Send pointing offsets to GTC:\n'
     msg += '(+ve offset moves stars right and up)'
@@ -28,11 +25,9 @@ if __name__ == "__main__":
         try:
             xoff, yoff = input('> Enter desired x and y offset ')
             xoff, yoff = float(xoff), float(yoff)
-
-            hdr = create_header_from_telpars(s.getTelescopeParams())
             sky_pa = float(hdr['INSTRPA'])
             raoff, decoff = calculate_sky_offset(xoff, yoff, sky_pa)
 
-            s.requestTelescopeOffset(raoff, decoff)
+            call('hipercam.gtc.rpc.gtc.do_offset', raoff=raoff, decoff=decoff)
         except KeyboardInterrupt:
             carry_on = False

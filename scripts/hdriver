@@ -4,20 +4,32 @@ from __future__ import print_function, division, unicode_literals
 import argparse
 import os
 import logging
+import txaio
 import six
 from six.moves import queue
+
+from autobahn.twisted.component import Component, run
+from autobahn.twisted.wamp import ApplicationSession
+from autobahn.wamp.exception import SerializationError
+
+from twisted.internet import reactor, tksupport
+from twisted.internet.defer import inlineCallbacks
 
 from hcam_widgets.globals import Container
 import hcam_widgets.widgets as w
 from hcam_widgets import hcam
 from hcam_widgets.misc import execCommand, FifoThread, isPoweredOn, isOnline
 from hcam_widgets.tkutils import addStyle
+from hcam_widgets.hardware.slide import SlideFrame
+from hcam_widgets.hardware.ccds import CCDTempFrame
+from hcam_widgets.hardware import CCDInfoWidget
+from hcam_widgets.compo.widgets import COMPOControlWidget
 
 from hcam_drivers.utils.rtplot import RtplotServer
 from hcam_drivers.config import (load_config, write_config,
                                  check_user_dir, dump_app)
-from hcam_drivers.hardware import slide, CCDInfoWidget, meerstetter
 
+txaio.use_twisted()
 if not six.PY3:
     import Tkinter as tk
     import tkFileDialog as filedialog
@@ -54,11 +66,11 @@ class GUI(tk.Tk):
 
         if self.globals.cpars['debug']:
             logging.basicConfig(level=logging.DEBUG)
-            # over-ride debug logging for pymodbus
-            pymodbus_log = logging.getLogger('pymodbus')
-            pymodbus_log.setLevel(logging.INFO)
         else:
             logging.basicConfig(level=logging.INFO)
+
+        # initialise WAMP session
+        self.session = None
 
         # style
         addStyle(self)
@@ -88,8 +100,8 @@ class GUI(tk.Tk):
 
         # container frame for switch options (observe, fps and setup)
         topLhsFrame = tk.Frame(lhs)
-        self.globals.fpslide = slide.FocalPlaneSlide(topLhsFrame)
-        self.globals.tecs = meerstetter.CCDTempFrame(topLhsFrame)
+        self.globals.fpslide = SlideFrame(topLhsFrame, show_mimic=False)
+        self.globals.tecs = CCDTempFrame(topLhsFrame)
         self.globals.setup = w.InstSetup(topLhsFrame)
         self.globals.observe = hcam.Observe(topLhsFrame)
 
@@ -101,6 +113,9 @@ class GUI(tk.Tk):
 
         # CCD temp monitoring
         self.globals.ccd_hw = CCDInfoWidget(self)
+
+        # COMPO control widget
+        self.globals.compo_hw = COMPOControlWidget(self)
 
         # add switcher
         switch = w.Switch(topLhsFrame)
@@ -210,6 +225,7 @@ class GUI(tk.Tk):
         # configure
         self.title('hdriver')
         self.protocol("WM_DELETE_WINDOW", self.ask_quit)
+        self.createcommand("::tk::mac::Quit", self.ask_quit)
 
         # run checks
         self.globals.ipars.check()
@@ -230,7 +246,7 @@ class GUI(tk.Tk):
             # bizarrely, file dialog does not close on OS X
             # the updating of the root Tk object
             # fixes this.
-            self.update()
+            self.check()
             # self.withdraw()  # hide main window
             self.globals.logfile = filedialog.asksaveasfilename(
                 initialdir=self.globals.cpars['log_file_directory'],
@@ -249,7 +265,7 @@ class GUI(tk.Tk):
             self.globals.clog.warn('Logging to a file is disabled')
 
         # update
-        self.update()
+        self.check()
 
     def ask_quit(self):
         """
@@ -270,22 +286,48 @@ class GUI(tk.Tk):
 
             if bring_offline:
                 # attempt to power off server
-                if execCommand(self.globals, 'offline'):
+                if execCommand(self.globals, 'ngc_server.offline'):
                     self.globals.clog.info('ESO server idle and child processes quit')
                 else:
                     self.globals.clog.warn('Power off failed')
 
             if self.server is not None:
                 self.server.shutdown()
+
+            self.after_cancel(self._after_id)
+            self.quit()
             self.destroy()
 
-    def update(self):
+            reactor.stop()
+            tksupport.uninstall()
+
+            # be nice on exit
+            print('\nThank you for using hdriver')
+
+    @inlineCallbacks
+    def on_wamp_session(self, session):
+        """
+        called when joining a WAMP session
+        """
+        self.globals.clog.info('joined WAMP session')
+        self.session = session
+
+        # subscribe to ALL THE TELEMETRY TOPICS HERE
+        yield session.subscribe(self.globals.fpslide.on_telemetry, "hipercam.slide.telemetry")
+        yield session.subscribe(self.globals.compo_hw.on_telemetry, "hipercam.compo.telemetry")
+        subscription_needed = [self.globals.tecs, self.globals.info, self.globals.setup,
+                               self.globals.ccd_hw, self.globals.observe]
+
+        for widget in subscription_needed:
+            for topic, callback in widget.telemetry_topics:
+                yield session.subscribe(callback, topic)
+
+    def check(self):
         """
         Run regular checks of FIFO queue which stores exceptions raised in threads
 
         Also check to see if we should start rtplot server
         """
-        tk.Tk.update(self)
         try:
             exc = self.globals.FIFO.get(block=False)
         except queue.Empty:
@@ -305,7 +347,7 @@ class GUI(tk.Tk):
             self.server = None
 
         # schedule next check
-        self.after(2000, self.update)
+        self._after_id = self.after(2000, self.check)
 
     def startRtplotServer(self):
         """
@@ -318,6 +360,12 @@ class GUI(tk.Tk):
         self.server.run(self.globals)
 
 
+class WampComponent(ApplicationSession):
+    def onJoin(self, details):
+        gui = self.config.extra['gui']
+        gui.on_wamp_session(self)
+
+
 if __name__ == "__main__":
 
     # command-line parameters
@@ -325,7 +373,8 @@ if __name__ == "__main__":
 
     # The main window.
     gui = GUI()
-    gui.mainloop()
-
-    # be nice on exit
-    print('\nThank you for using hdriver')
+    tksupport.install(gui)
+    component = Component(transports='ws://localhost:8080/ws',
+                          realm='realm1', session_factory=WampComponent,
+                          extra={'gui': gui})
+    run([component])

@@ -26,9 +26,10 @@ def check_download(proposal_id, semester, obid):
     try:
         json.load(open(fname))
         print('Download complete - load JSON file from hdriver')
-    except:
+    except Exception as err:
         os.unlink(fname)
         print('No such JSON file, or download failed')
+        print(str(err))
 
 
 if __name__ == "__main__":

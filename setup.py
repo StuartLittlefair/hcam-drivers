@@ -45,8 +45,7 @@ setup(
     download_url='https://github.com/HiPERCAM/hcam-drivers/archive/v0.5.0.tar.gz',
     packages=[
         'hcam_drivers',
-        'hcam_drivers.utils',
-        'hcam_drivers.hardware'
+        'hcam_drivers.utils'
     ],
     package_dir={'hcam_drivers':
                  'hcam_drivers'},

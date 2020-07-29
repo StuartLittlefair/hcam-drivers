@@ -27,14 +27,14 @@ def getLastFrameNumber():
     response = urllib.request.urlopen(FRAME_NUMBER_URL, timeout=0.5).read()
     try:
         data = json.loads(response)
-    except:
+    except Exception:
         raise Exception('cannot parse server response')
     if data['RETCODE'] != 'OK':
         raise Exception('server response not OK')
     msg = data['MESSAGEBUFFER']
     try:
         frame_number = int(msg.split()[1])
-    except:
+    except Exception:
         raise Exception('getLastFrameNumber error: msg = ' + msg)
     return frame_number
 
@@ -78,7 +78,7 @@ class FastFITSPipe:
         # assume fileobj is string
         try:
             self._fileobj = open(fileobj, 'rb')
-        except:
+        except Exception:
             self._fileobj = fileobj
         self._header_bytesize = None
         self.dtype = np.dtype('int16')
@@ -94,7 +94,7 @@ class FastFITSPipe:
             # try and use ESO fileserver if it is running
             try:
                 num = getLastFrameNumber()
-            except:
+            except Exception:
                 # last, desperate, chance to try to guess from the filesize
                 current_size = os.stat(self._fileobj.name).st_size
                 # cant use integer division because timestamps are buffered and 2800 fits
