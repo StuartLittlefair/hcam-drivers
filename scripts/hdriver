@@ -10,7 +10,6 @@ from six.moves import queue
 
 from autobahn.twisted.component import Component, run
 from autobahn.twisted.wamp import ApplicationSession
-from autobahn.wamp.exception import SerializationError
 
 from twisted.internet import reactor, tksupport
 from twisted.internet.defer import inlineCallbacks
@@ -70,7 +69,7 @@ class GUI(tk.Tk):
             logging.basicConfig(level=logging.INFO)
 
         # initialise WAMP session
-        self.session = None
+        self.globals.session = None
 
         # style
         addStyle(self)
@@ -258,7 +257,6 @@ class GUI(tk.Tk):
             if self.globals.logfile:
                 self.globals.clog.update(self.globals.logfile)
                 self.globals.rlog.update(self.globals.logfile)
-                self.globals.fpslide.log.update(self.globals.logfile)
             else:
                 self.globals.clog.info('Will not log to file')
         else:
@@ -267,6 +265,7 @@ class GUI(tk.Tk):
         # update
         self.check()
 
+    @inlineCallbacks
     def ask_quit(self):
         """
         Shutdown routine
@@ -275,8 +274,11 @@ class GUI(tk.Tk):
             print('OK - I will not quit')
         else:
             bring_offline = True
+            online = yield isOnline(self.globals)
+            powered_on = yield isPoweredOn(self.globals)
+
             # explicity check online, since cpars is false on start
-            if (isOnline(self.globals) and isPoweredOn(self.globals) and
+            if (online and powered_on and
                     not messagebox.askyesno('Power Off', 'Turn off CCD clocks?')):
                 bring_offline = False
 
@@ -286,7 +288,8 @@ class GUI(tk.Tk):
 
             if bring_offline:
                 # attempt to power off server
-                if execCommand(self.globals, 'ngc_server.offline'):
+                result = yield execCommand(self.globals, 'ngc_server.offline')
+                if result:
                     self.globals.clog.info('ESO server idle and child processes quit')
                 else:
                     self.globals.clog.warn('Power off failed')
@@ -294,9 +297,13 @@ class GUI(tk.Tk):
             if self.server is not None:
                 self.server.shutdown()
 
-            self.after_cancel(self._after_id)
-            self.quit()
-            self.destroy()
+            try:
+                self.after_cancel(self._after_id)
+                self.after_cancel(self.globals.astro.after_id)
+                self.after_cancel(self.globals.ccd_hw.after_id)
+                self.quit()
+            except Exception:
+                pass
 
             reactor.stop()
             tksupport.uninstall()
@@ -310,7 +317,7 @@ class GUI(tk.Tk):
         called when joining a WAMP session
         """
         self.globals.clog.info('joined WAMP session')
-        self.session = session
+        self.globals.session = session
 
         # subscribe to ALL THE TELEMETRY TOPICS HERE
         yield session.subscribe(self.globals.fpslide.on_telemetry, "hipercam.slide.telemetry")
@@ -377,4 +384,4 @@ if __name__ == "__main__":
     component = Component(transports='ws://localhost:8080/ws',
                           realm='realm1', session_factory=WampComponent,
                           extra={'gui': gui})
-    run([component])
+    run([component], log_level=None)

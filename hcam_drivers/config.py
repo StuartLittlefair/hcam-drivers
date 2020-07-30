@@ -5,6 +5,8 @@ import pkg_resources
 import os
 import validate
 
+from twisted.internet.defer import inlineCallbacks
+
 from hcam_widgets.misc import createJSON, saveJSON
 
 
@@ -75,9 +77,10 @@ def write_config(g):
         g.clog.warn("Could not write config file:\n" + str(err))
 
 
+@inlineCallbacks
 def dump_app(g):
     """
     Dump current application settings to backup
     """
-    json_string = createJSON(g, full=False)
+    json_string = yield createJSON(g, full=False)
     saveJSON(g, json_string, backup=True)
