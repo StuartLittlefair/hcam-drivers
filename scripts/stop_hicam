@@ -1,16 +1,3 @@
 #!/bin/bash
 
-function test {
-    echo "RUN:  $@"
-    "$@"
-    local status=$?
-    if [ $status -ne 0 ]; then
-        echo "error with $1" >&2
-    fi
-    return $status
-}
-
-test ngcbCmd off
-sleep 1
-
-test ngcdcsStopServer IRCAM1
+do_wamp_call hipercam.ngc.rpc.ngc_server.exit
