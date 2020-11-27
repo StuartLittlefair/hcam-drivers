@@ -54,7 +54,7 @@ class GUI(tk.Tk):
         tk.Tk.__init__(self)
 
         # add a container object
-        self.globals = Container()
+        self.globals = Container(telescope_names=['GTC', 'WHT'])
 
         # load config
         self.globals.cpars = dict()
